@@ -77,3 +77,11 @@ crashlytics-build.properties
 # VContainer / UniTask / R3 は Packages/manifest.json の git URL から解決する。
 # Packages/ 直下に展開された embedded コピーは冗長なので追跡しない。
 /Packages/jp.hadashikick.vcontainer/
+
+# Asset Store の 3D アセット。数百MB〜GB 単位になるため追跡せず、各自が自分のアカウントから同じ版を import する
+/[Aa]ssets/Monster
+/[Aa]ssets/Monster.meta
+/[Aa]ssets/MonsterMutant 7
+/[Aa]ssets/MonsterMutant 7.meta
+/[Aa]ssets/Rallba
+/[Aa]ssets/Rallba.meta
