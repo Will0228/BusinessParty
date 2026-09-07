@@ -15,7 +15,8 @@
     "com.unity.ugui": "2.0.0",
     "com.unity.visualscripting": "1.9.12",
     "jp.hadashikick.vcontainer": "https://github.com/hadashiA/VContainer.git?path=VContainer/Assets/VContainer#1.19.0",
-    "jp.keijiro.minis": "1.2.0",
+    "jp.keijiro.minis": "https://github.com/keijiro/Minis.git?path=Packages/jp.keijiro.minis#1.2.0",
+    "jp.keijiro.rtmidi": "https://github.com/keijiro/jp.keijiro.rtmidi.git?path=Packages/jp.keijiro.rtmidi#2.1.1",
     "com.unity.modules.accessibility": "1.0.0",
     "com.unity.modules.adaptiveperformance": "1.0.0",
     "com.unity.modules.ai": "1.0.0",
@@ -50,14 +51,5 @@
     "com.unity.modules.vr": "1.0.0",
     "com.unity.modules.wind": "1.0.0",
     "com.unity.modules.xr": "1.0.0"
-  },
-  "scopedRegistries": [
-    {
-      "name": "Keijiro",
-      "url": "https://registry.npmjs.com",
-      "scopes": [
-        "jp.keijiro"
-      ]
-    }
-  ]
+  }
 }
