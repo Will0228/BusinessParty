@@ -28,7 +28,6 @@ namespace MixVerse
 
         private void ProcessTouch(PointerEventData eventData)
         {
-            // 1. 画面上のスクリーン座標（ピクセル）を、UI（RawImage）内のローカル座標に変換する
             Vector2 localPoint;
             if (RectTransformUtility.ScreenPointToLocalPointInRectangle(
                     _rectTransform,
@@ -36,8 +35,7 @@ namespace MixVerse
                     eventData.pressEventCamera,
                     out localPoint))
             {
-                // 2. ローカル座標を、UIのサイズを元に 0.0 ～ 1.0 の「UV座標」に変換する
-                // Rectの左下が (0,0)、右上が (Width, Height) になっているため、サイズで割るだけでUVになります
+                // Rect の左下が (0,0)、右上が (Width, Height) なので、大きさで割れば UV になる
                 float uvX = (localPoint.x - _rectTransform.rect.xMin) / _rectTransform.rect.width;
                 float uvY = (localPoint.y - _rectTransform.rect.yMin) / _rectTransform.rect.height;
 

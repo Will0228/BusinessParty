@@ -28,18 +28,13 @@ namespace MixVerse
 
         private void Awake()
         {
-            // パターンテクスチャ（蓄積用）のRenderTextureを生成
             _renderTexture = new RenderTexture(_patternResolution, _patternResolution, 0);
-
-            // 初期状態として、まずは背景画像（真っ黒など）をRenderTextureにコピーしておく
             Graphics.Blit(_backgroundTexture, _renderTexture);
 
-            // 蓄積用マテリアルにスタンプをセット
             _accumulateMaterial.SetTexture("_StampTex", _stampTexture);
 
-            // 表示用マテリアルに、完成したパターンテクスチャ（RenderTexture）をセット
-            _resultImage.material = _displayMaterial; // RawImage自体にマテリアルをセット
-            _displayMaterial.SetTexture("_PatternTex", _renderTexture); // 記事にあるような名前（_PatternTex）でセット
+            _resultImage.material = _displayMaterial;
+            _displayMaterial.SetTexture("_PatternTex", _renderTexture);
         }
 
         private void Start()
@@ -65,7 +60,6 @@ namespace MixVerse
             CombineImages();
         }
 
-        // インスペクターのコンポーネントを右クリックで実行できます
         [ContextMenu("Execute Blit (画像を合体)")]
         public void CombineImages()
         {
@@ -167,28 +161,19 @@ namespace MixVerse
 
         private void Stamp(Vector2 position, Vector2 scale)
         {
-            // 蓄積用マテリアルにパラメータをセット
             _accumulateMaterial.SetVector("_StampPos", position);
             _accumulateMaterial.SetVector("_StampScale", scale);
 
-            // 上書きループの処理
-            // 1. 一時的なRenderTexture（テンポラリバッファ）を1枚借りる
-            RenderTexture tempBuffer = RenderTexture.GetTemporary(_renderTexture.width, _renderTexture.height, 0);
+            // 同じ RenderTexture を入力と出力に同時には使えないので、一時的な1枚を挟んで書き戻す。
+            // 蓄積側のマテリアルが BlendOp Max で重ねるため、削った跡は消えずに残っていく。
+            var tempBuffer = RenderTexture.GetTemporary(_renderTexture.width, _renderTexture.height, 0);
 
-            // 2. 現在の「蓄積された画像(_renderTexture)」を入力とし、
-            //    新しいスタンプを重ねた結果を「tempBuffer」に書き込む（ここでBlendOp Maxが効く）
             Graphics.Blit(_renderTexture, tempBuffer, _accumulateMaterial);
-
-            // 3. 結果が入った「tempBuffer」の中身を、本番用の「_renderTexture」にコピーして戻す
             Graphics.Blit(tempBuffer, _renderTexture);
 
-            // 4. 借りた一時的なRenderTextureを返却する（メモリリーク防止のために絶対必要）
             RenderTexture.ReleaseTemporary(tempBuffer);
-
-            // （表示用マテリアルはすでに _renderTexture を参照しているので、自動的に画面が更新されます）
         }
 
-        // 終了時にメモリを解放
         private void OnDestroy()
         {
             if (_renderTexture != null)
