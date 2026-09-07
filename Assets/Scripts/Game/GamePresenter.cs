@@ -319,7 +319,7 @@ namespace MixVerse.Game
                 await _view.DiscardPairsAsync(playerIndex, discardedPerPlayer[playerIndex], token);
             }
 
-            await ApplyPlayerDiscardDamageAsync(discardedPerPlayer[HumanPlayerIndex].Count, token);
+            ApplyPlayerDiscardDamage(discardedPerPlayer[HumanPlayerIndex].Count, token);
         }
 
         /// <summary>
@@ -348,7 +348,7 @@ namespace MixVerse.Game
 
             if (result.DrawerIndex == HumanPlayerIndex)
             {
-                await ApplyPlayerDiscardDamageAsync(result.DiscardedPair.Count, token);
+                ApplyPlayerDiscardDamage(result.DiscardedPair.Count, token);
             }
 
             await _view.WaitAsync(TurnIntervalDuration, token);
@@ -359,7 +359,7 @@ namespace MixVerse.Game
         /// 捨てたことで初めて下回った相手だけが対象なので、捨てる前の枚数（捨てた枚数を足し戻したもの）と比べる。
         /// </summary>
         /// <param name="discardedCount">プレイヤーがこのタイミングで捨てた枚数。</param>
-        private async UniTask ApplyPlayerDiscardDamageAsync(int discardedCount, CancellationToken token)
+        private void ApplyPlayerDiscardDamage(int discardedCount, CancellationToken token)
         {
             if (discardedCount <= 0)
             {

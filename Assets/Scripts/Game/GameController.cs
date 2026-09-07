@@ -65,8 +65,6 @@ namespace MixVerse.Game
 
                 await _presenter.DiscardInitialPairsAsync(token);
 
-                var turns = 0;
-
                 while (!_presenter.IsGameOver)
                 {
                     await _presenter.PlayTurnAsync(token);
