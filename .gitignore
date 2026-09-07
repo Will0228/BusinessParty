@@ -85,3 +85,7 @@ crashlytics-build.properties
 /[Aa]ssets/MonsterMutant 7.meta
 /[Aa]ssets/Rallba
 /[Aa]ssets/Rallba.meta
+
+# Asset Store の有料アセット。各自が自分のアカウントから同じ版を import する
+/[Aa]ssets/HIVEMIND
+/[Aa]ssets/HIVEMIND.meta
