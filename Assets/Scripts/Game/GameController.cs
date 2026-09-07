@@ -12,13 +12,13 @@ namespace MixVerse.Game
     /// </summary>
     public sealed class GameController : ControllerBase
     {
-        private readonly GamePresenter _presenter;
+        private readonly IGamePresenter _presenter;
         private readonly ScreenNavigator _navigator;
 
         private CancellationTokenSource _cancellationTokenSource;
 
         [Inject]
-        public GameController(GamePresenter presenter, ScreenNavigator navigator)
+        public GameController(IGamePresenter presenter, ScreenNavigator navigator)
         {
             _presenter = presenter;
             _navigator = navigator;
@@ -31,7 +31,7 @@ namespace MixVerse.Game
             _cancellationTokenSource = new CancellationTokenSource();
 
             // フェーダーの向きと CUE ボタンの拍手はターン進行と独立して常に受け付けるため、ここで一度だけ購読する
-            _presenter.SetupDjControls(disposable);
+            _presenter.Bind(disposable);
 
             PlayAsync(_cancellationTokenSource.Token).Forget();
         }

@@ -5,7 +5,7 @@ using VContainer;
 
 namespace MixVerse.Home
 {
-    public sealed class HomePresenter
+    public sealed class HomePresenter : IHomePresenter
     {
         private readonly HomeView _view;
         

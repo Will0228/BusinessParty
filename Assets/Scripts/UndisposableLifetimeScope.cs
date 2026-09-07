@@ -23,11 +23,11 @@ namespace MixVerse
             
             builder.Register<HomeController>(Lifetime.Singleton);
             builder.RegisterComponent(_homeView);
-            builder.Register<HomePresenter>(Lifetime.Singleton);
+            builder.Register<HomePresenter>(Lifetime.Singleton).As<IHomePresenter>();
             
             builder.Register<GameController>(Lifetime.Singleton);
             builder.RegisterComponent(_gameView);
-            builder.Register<GamePresenter>(Lifetime.Singleton);
+            builder.Register<GamePresenter>(Lifetime.Singleton).As<IGamePresenter>();
             builder.Register<OldMaidGame>(Lifetime.Singleton);
             builder.Register<CpuStrategy>(Lifetime.Singleton);
             builder.Register<CpuHealth>(Lifetime.Singleton);

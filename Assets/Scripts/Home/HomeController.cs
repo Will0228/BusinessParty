@@ -9,11 +9,11 @@ namespace MixVerse.Home
 {
     public sealed class HomeController : ControllerBase
     {
-        private readonly HomePresenter _presenter;
+        private readonly IHomePresenter _presenter;
         private readonly ScreenNavigator _navigator;
         
         [Inject]
-        public HomeController(HomePresenter presenter, ScreenNavigator navigator)
+        public HomeController(IHomePresenter presenter, ScreenNavigator navigator)
         {
             _presenter = presenter;
             _navigator = navigator;

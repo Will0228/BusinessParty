@@ -14,7 +14,7 @@ namespace MixVerse.Game
     /// Model（ルール）と View（見た目）の橋渡し。
     /// Controller はこのクラス越しにゲームを進め、Model にも View にも直接触れない。
     /// </summary>
-    public sealed class GamePresenter
+    public sealed class GamePresenter : IGamePresenter
     {
         /// <summary>操作するプレイヤーの番号。残りの2人が CPU。</summary>
         public const int HumanPlayerIndex = 0;
@@ -137,15 +137,14 @@ namespace MixVerse.Game
         /// </summary>
         public bool IsGameOver => _game.IsGameOver || IsAnyCpuDepleted();
 
-        public bool IsHumanTurn => _game.CurrentPlayerIndex == HumanPlayerIndex;
+        private bool IsHumanTurn => _game.CurrentPlayerIndex == HumanPlayerIndex;
 
         /// <summary>
         /// フェーダーでどちらを向くかを決め、向いた相手に対して CUE で拍手する手を出し入れする。
         /// 表示中はジョグの回転方向で手を開閉させる（時計回りで合わせ、反時計回りで放す）。
         /// 向いた相手ごとの頷き用ツマミも受け付け、拍手と並行してカメラを上下させる。
-        /// 手番の進行とは独立して常に受け付けるため、Controller のライフサイクルに紐づけて一度だけ呼ぶ。
         /// </summary>
-        public void SetupDjControls(CompositeDisposable disposable)
+        public void Bind(CompositeDisposable disposable)
         {
             if (_djController == null)
             {
