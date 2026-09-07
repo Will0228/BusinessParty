@@ -13,6 +13,9 @@ namespace MixVerse.Game.Model
         /// <summary>今回の仕様上のプレイヤー数（本人 + CPU2人）。</summary>
         public const int DefaultPlayerCount = 3;
 
+        /// <summary>操作するプレイヤーの番号。残りが CPU。</summary>
+        public const int HumanPlayerIndex = 0;
+
         private readonly List<PlayerHand> _hands = new List<PlayerHand>();
         private readonly List<int> _finishedOrder = new List<int>();
         private readonly List<Card> _discardPile = new List<Card>();

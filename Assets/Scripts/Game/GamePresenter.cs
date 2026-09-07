@@ -16,8 +16,7 @@ namespace MixVerse.Game
     /// </summary>
     public sealed class GamePresenter : IGamePresenter
     {
-        /// <summary>操作するプレイヤーの番号。残りの2人が CPU。</summary>
-        public const int HumanPlayerIndex = 0;
+        private const int HumanPlayerIndex = OldMaidGame.HumanPlayerIndex;
 
         private const float CpuThinkDuration = 0.6f;
         private const float CpuShowSelectionDuration = 0.5f;
@@ -54,12 +53,6 @@ namespace MixVerse.Game
         /// <summary>SYNC が押されたことを表す番兵。手札インデックスと区別するため負値にする。</summary>
         private const int CursorConfirmed = -1;
 
-        /// <summary>左デッキ（SYNC / CUE）が担当する相手。</summary>
-        private const int LeftDeckPlayerIndex = 1;
-
-        /// <summary>右デッキ（SYNC / CUE）が担当する相手。</summary>
-        private const int RightDeckPlayerIndex = 2;
-
         /// <summary>フェーダーを端まで振り切ったとみなす許容差。MIDI の1目盛り(1/127)より小さくしてある。</summary>
         private const float FacingTolerance = 0.002f;
 
@@ -69,6 +62,8 @@ namespace MixVerse.Game
         private readonly CpuHealth _cpuHealth;
         private readonly CpuTalkScript _talkScript;
         private readonly DjControllerInput _djController;
+        private readonly PlayerNameUtility _playerNameUtility;
+        private readonly DjDeckUtility _djDeckUtility;
         private readonly ClapGestureDetector _clapGestureDetector = new ClapGestureDetector();
 
         /// <summary>
@@ -108,7 +103,7 @@ namespace MixVerse.Game
         /// CPU ごとの拍手判定。手札と同じ並び（0 がプレイヤー）で、プレイヤーの枠は使わない。
         /// 2人が同時に話すため、判定も相手ごとに分けて持つ。
         /// </summary>
-        private readonly ClapChallenge[] _clapChallenges = CreateClapChallenges();
+        private readonly ClapChallenge[] _clapChallenges;
 
         /// <summary>
         /// CPU のトークが同時に始まらないようにする排他ロック。
@@ -122,7 +117,15 @@ namespace MixVerse.Game
         private Random _talkRandom;
 
         [Inject]
-        public GamePresenter(GameView view, OldMaidGame game, CpuStrategy cpuStrategy, CpuHealth cpuHealth, CpuTalkScript talkScript, DjControllerInput djController)
+        public GamePresenter(
+            GameView view,
+            OldMaidGame game,
+            CpuStrategy cpuStrategy,
+            CpuHealth cpuHealth,
+            CpuTalkScript talkScript,
+            DjControllerInput djController,
+            PlayerNameUtility playerNameUtility,
+            DjDeckUtility djDeckUtility)
         {
             _view = view;
             _game = game;
@@ -130,6 +133,9 @@ namespace MixVerse.Game
             _cpuHealth = cpuHealth;
             _talkScript = talkScript;
             _djController = djController;
+            _playerNameUtility = playerNameUtility;
+            _djDeckUtility = djDeckUtility;
+            _clapChallenges = CreateClapChallenges();
         }
 
         /// <summary>
@@ -166,7 +172,7 @@ namespace MixVerse.Game
                     }
 
                     // フェーダーがその相手を向き切っているときだけ手を出せる
-                    if (!CanActOn(GetDeckPlayerIndex(deckSide)))
+                    if (!CanActOn(_djDeckUtility.GetPlayerIndex(deckSide)))
                     {
                         return;
                     }
@@ -179,7 +185,7 @@ namespace MixVerse.Game
             _djController.OnNodStep
                 .Subscribe(nodStep =>
                 {
-                    var deckPlayerIndex = GetDeckPlayerIndex(nodStep.DeckSide);
+                    var deckPlayerIndex = _djDeckUtility.GetPlayerIndex(nodStep.DeckSide);
 
                     // 拍手とは並行して行えるが、カード選択中（SYNC で照準を出している間）は頷けない
                     if (_view.IsDrawSelectionActive)
@@ -233,7 +239,7 @@ namespace MixVerse.Game
         private void ApplyFacing(float value)
         {
             var center = DjControllerInput.DefaultFacingValue;
-            var targetIndex = value >= center ? LeftDeckPlayerIndex : RightDeckPlayerIndex;
+            var targetIndex = value >= center ? DjDeckUtility.LeftDeckPlayerIndex : DjDeckUtility.RightDeckPlayerIndex;
 
             // 中央からの距離をそのまま向き具合にする（端まで倒すと 1）
             var amount = Mathf.Abs(value - center) / center;
@@ -266,12 +272,12 @@ namespace MixVerse.Game
 
             var value = _djController.FacingValue.CurrentValue;
 
-            if (playerIndex == LeftDeckPlayerIndex)
+            if (playerIndex == DjDeckUtility.LeftDeckPlayerIndex)
             {
                 return value >= 1f - FacingTolerance;
             }
 
-            if (playerIndex == RightDeckPlayerIndex)
+            if (playerIndex == DjDeckUtility.RightDeckPlayerIndex)
             {
                 return value <= FacingTolerance;
             }
@@ -510,7 +516,7 @@ namespace MixVerse.Game
 
             try
             {
-                _view.SetClapChallengeText(playerIndex, GetPlayerName(playerIndex) + " is talking...");
+                _view.SetClapChallengeText(playerIndex, _playerNameUtility.GetName(playerIndex) + " is talking...");
 
                 // 締めの手前（talk_1〜3）は、鳴り終わる直前に頷けたかを確かめながら流す。
                 // 頷けなかった時点で相槌を求められなかったとみなし、以降の会話（締めや拍手判定）はせず中断する。
@@ -527,7 +533,7 @@ namespace MixVerse.Game
                     // 猶予のうちにそろえられなかったときも、怒らせたときと同じ演出（talk_angry）で終える
                     await PlayAngryEndingAsync(
                         playerIndex,
-                        "No nod... " + GetPlayerName(playerIndex) + " got angry!",
+                        "No nod... " + _playerNameUtility.GetName(playerIndex) + " got angry!",
                         CpuHealth.NodFailureDamage,
                         angerCts.Token);
 
@@ -548,7 +554,7 @@ namespace MixVerse.Game
                 {
                     _view.SetClapChallengeText(
                         playerIndex,
-                        "Too quiet... " + GetPlayerName(playerIndex) + " -" + CpuHealth.ClapFailureDamage + " HP");
+                        "Too quiet... " + _playerNameUtility.GetName(playerIndex) + " -" + CpuHealth.ClapFailureDamage + " HP");
 
                     ApplyCpuFixedDamage(playerIndex, CpuHealth.ClapFailureDamage, angerCts.Token);
                 }
@@ -561,7 +567,7 @@ namespace MixVerse.Game
                 // キャンセルしたとき。以降は外側の token で、怒りの音源とダメージを最後まで見せる。
                 await PlayAngryEndingAsync(
                     playerIndex,
-                    GetPlayerName(playerIndex) + " got angry!",
+                    _playerNameUtility.GetName(playerIndex) + " got angry!",
                     CpuHealth.AngryNodDamage,
                     token);
             }
@@ -668,7 +674,7 @@ namespace MixVerse.Game
                 // HUD のフォント（LiberationSans SDF）に日本語の字が無いため、表記は英数字にしている。
                 _view.SetClapChallengeText(
                     playerIndex,
-                    "Clap for " + GetPlayerName(playerIndex)
+                    "Clap for " + _playerNameUtility.GetName(playerIndex)
                     + " - " + challenge.RemainingClapCount + " more"
                     + " (" + challenge.GetRemainingSeconds(Time.time).ToString("0.0") + "s)");
 
@@ -718,18 +724,18 @@ namespace MixVerse.Game
         /// </summary>
         private int GetFacingPlayerIndex()
         {
-            if (CanActOn(LeftDeckPlayerIndex))
+            if (CanActOn(DjDeckUtility.LeftDeckPlayerIndex))
             {
-                return LeftDeckPlayerIndex;
+                return DjDeckUtility.LeftDeckPlayerIndex;
             }
 
-            return CanActOn(RightDeckPlayerIndex) ? RightDeckPlayerIndex : NoFacingPlayer;
+            return CanActOn(DjDeckUtility.RightDeckPlayerIndex) ? DjDeckUtility.RightDeckPlayerIndex : NoFacingPlayer;
         }
 
         /// <summary>
         /// CPU ごとの拍手判定を作る。手札と同じ並びにしておき、プレイヤーの枠は使わない。
         /// </summary>
-        private static ClapChallenge[] CreateClapChallenges()
+        private ClapChallenge[] CreateClapChallenges()
         {
             var challenges = new ClapChallenge[OldMaidGame.DefaultPlayerCount];
 
@@ -837,7 +843,7 @@ namespace MixVerse.Game
             // ① SYNC が押されるまでは手札選択状態に入らない
             _view.ClearSelectable();
             _view.HideArrow();
-            _view.SetTurnText("Your turn - face " + GetPlayerName(targetIndex) + " with the fader, then press " + GetDeckName(targetIndex) + " SYNC");
+            _view.SetTurnText("Your turn - face " + _playerNameUtility.GetName(targetIndex) + " with the fader, then press " + _djDeckUtility.GetDeckName(targetIndex) + " SYNC");
 
             // フェーダーで引く相手を向き切っていない間は、SYNC を押しても無反応にする。
             // 拍手する手を出している間（もう一度 CUE を押すまで）も同じく受け付けない。
@@ -846,7 +852,7 @@ namespace MixVerse.Game
             {
                 var deckSide = await _djController.OnSyncPressed.FirstAsync(token);
 
-                if (GetDeckPlayerIndex(deckSide) == targetIndex && CanActOn(targetIndex) && !_view.IsClapHandsVisible)
+                if (_djDeckUtility.GetPlayerIndex(deckSide) == targetIndex && CanActOn(targetIndex) && !_view.IsClapHandsVisible)
                 {
                     break;
                 }
@@ -861,14 +867,14 @@ namespace MixVerse.Game
 
             _view.HideArrow();
             _view.ShowTargetCursor();
-            _view.SetTurnText("Turn the knobs to aim - press " + GetDeckName(targetIndex) + " SYNC on a card to draw from " + GetPlayerName(targetIndex));
+            _view.SetTurnText("Turn the knobs to aim - press " + _djDeckUtility.GetDeckName(targetIndex) + " SYNC on a card to draw from " + _playerNameUtility.GetName(targetIndex));
 
             using (BindTargetCursor(targetIndex))
             {
                 // SYNC で確定。マウスクリックでも確定できる。
                 var confirmations = Observable.Merge(
                     _djController.OnSyncPressed
-                        .Where(deckSide => GetDeckPlayerIndex(deckSide) == targetIndex && CanActOn(targetIndex))
+                        .Where(deckSide => _djDeckUtility.GetPlayerIndex(deckSide) == targetIndex && CanActOn(targetIndex))
                         .Select(_ => CursorConfirmed),
                     _view.OnCardClicked.Select(card => card.HandIndex));
 
@@ -907,7 +913,7 @@ namespace MixVerse.Game
         /// </summary>
         private IDisposable BindTargetCursor(int targetIndex)
             => _djController.OnCursorStep
-                .Where(cursorStep => GetDeckPlayerIndex(cursorStep.DeckSide) == targetIndex)
+                .Where(cursorStep => _djDeckUtility.GetPlayerIndex(cursorStep.DeckSide) == targetIndex)
                 .Subscribe(cursorStep =>
                 {
                     _view.MoveTargetCursor(cursorStep.Delta);
@@ -921,7 +927,7 @@ namespace MixVerse.Game
         /// </summary>
         private async UniTask<int> WaitForMouseOnlySelectionAsync(int targetIndex, CancellationToken token)
         {
-            _view.SetTurnText("Your turn - pick a card from " + GetPlayerName(targetIndex));
+            _view.SetTurnText("Your turn - pick a card from " + _playerNameUtility.GetName(targetIndex));
             await _view.BeginDrawSelectionAsync(targetIndex, token);
 
             var selected = await _view.OnCardClicked.FirstAsync(token);
@@ -938,7 +944,7 @@ namespace MixVerse.Game
         private async UniTask<int> RunCpuSelectionAsync(int targetIndex, CancellationToken token)
         {
             _view.ClearSelectable();
-            _view.SetTurnText(GetPlayerName(_game.CurrentPlayerIndex) + " is thinking...");
+            _view.SetTurnText(_playerNameUtility.GetName(_game.CurrentPlayerIndex) + " is thinking...");
 
             await _view.WaitAsync(CpuThinkDuration, token);
 
@@ -950,20 +956,5 @@ namespace MixVerse.Game
 
             return cardIndex;
         }
-
-        private static string GetPlayerName(int playerIndex)
-            => playerIndex == HumanPlayerIndex ? "You" : "CPU" + playerIndex;
-
-        /// <summary>
-        /// DJ コントローラーの左右デッキと相手プレイヤーの対応。左が CPU1、右が CPU2。
-        /// </summary>
-        private static int GetDeckPlayerIndex(DjDeckSide deckSide)
-            => deckSide == DjDeckSide.Left ? LeftDeckPlayerIndex : RightDeckPlayerIndex;
-
-        /// <summary>
-        /// 相手プレイヤーを操作するデッキ側の表示名。操作案内のテキストに使う。
-        /// </summary>
-        private static string GetDeckName(int playerIndex)
-            => playerIndex == RightDeckPlayerIndex ? "right" : "left";
     }
 }

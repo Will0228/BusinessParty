@@ -34,6 +34,8 @@ namespace MixVerse
             builder.Register<CpuStrategy>(Lifetime.Singleton);
             builder.Register<CpuHealth>(Lifetime.Singleton);
             builder.Register<CpuTalkScript>(Lifetime.Singleton);
+            builder.Register<PlayerNameUtility>(Lifetime.Singleton);
+            builder.Register<DjDeckUtility>(Lifetime.Singleton);
             
             RegisterDjController(builder);
         }
