@@ -939,14 +939,21 @@ namespace MixVerse.Game
             cardView.IsSelectable = false;
             cardView.SetRaycastEnabled(false);
 
-            // 生成したカードの入力を GameView 側へ集約する
-            cardView.OnClicked.Subscribe(_onCardClicked.OnNext).AddTo(_cardSubscriptions);
-            cardView.OnPointerEntered.Subscribe(view => _selectionArrow?.Show(view)).AddTo(_cardSubscriptions);
-            cardView.OnPointerExited.Subscribe(_ => _selectionArrow?.Hide()).AddTo(_cardSubscriptions);
+            Bind(cardView);
 
             _spawnedCards.Add(cardView);
 
             return cardView;
+        }
+
+        /// <summary>
+        /// 生成したカードの入力を GameView 側へ集約する。
+        /// </summary>
+        private void Bind(CardView cardView)
+        {
+            cardView.OnClicked.Subscribe(_onCardClicked.OnNext).AddTo(_cardSubscriptions);
+            cardView.OnPointerEntered.Subscribe(view => _selectionArrow?.Show(view)).AddTo(_cardSubscriptions);
+            cardView.OnPointerExited.Subscribe(_ => _selectionArrow?.Hide()).AddTo(_cardSubscriptions);
         }
 
         private static CardView FindCardView(HandView handView, Card card)

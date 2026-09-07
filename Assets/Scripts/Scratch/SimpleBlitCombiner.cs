@@ -42,12 +42,19 @@ public class SimpleBlitCombiner : MonoBehaviour
 
     private void Start()
     {
-        if (_imageTouchHandler != null)
+        SetEvent();
+    }
+
+    private void SetEvent()
+    {
+        if (_imageTouchHandler == null)
         {
-            _imageTouchHandler.OnTouchPositionAsObservable
-                .Subscribe(TouchScreen)
-                .AddTo(this);
+            return;
         }
+
+        _imageTouchHandler.OnTouchPositionAsObservable
+            .Subscribe(TouchScreen)
+            .AddTo(this);
     }
 
     private void TouchScreen(Vector2 uv)

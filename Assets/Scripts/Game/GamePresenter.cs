@@ -863,15 +863,7 @@ namespace MixVerse.Game
             _view.ShowTargetCursor();
             _view.SetTurnText("Turn the knobs to aim - press " + GetDeckName(targetIndex) + " SYNC on a card to draw from " + GetPlayerName(targetIndex));
 
-            using (_djController.OnCursorStep
-                       .Where(cursorStep => GetDeckPlayerIndex(cursorStep.DeckSide) == targetIndex)
-                       .Subscribe(cursorStep =>
-                       {
-                           _view.MoveTargetCursor(cursorStep.Delta);
-
-                           // 重なっていなければ範囲外のインデックスになり、View 側で矢印が消える
-                           _view.ShowArrowAt(targetIndex, _view.GetTargetedCardIndex(targetIndex));
-                       }))
+            using (BindTargetCursor(targetIndex))
             {
                 // SYNC で確定。マウスクリックでも確定できる。
                 var confirmations = Observable.Merge(
@@ -909,6 +901,20 @@ namespace MixVerse.Game
                 return selectedIndex;
             }
         }
+
+        /// <summary>
+        /// 担当デッキのツマミの回転を照準の移動へつなぐ。狙っているカードの上には矢印が出る。
+        /// </summary>
+        private IDisposable BindTargetCursor(int targetIndex)
+            => _djController.OnCursorStep
+                .Where(cursorStep => GetDeckPlayerIndex(cursorStep.DeckSide) == targetIndex)
+                .Subscribe(cursorStep =>
+                {
+                    _view.MoveTargetCursor(cursorStep.Delta);
+
+                    // 重なっていなければ範囲外のインデックスになり、View 側で矢印が消える
+                    _view.ShowArrowAt(targetIndex, _view.GetTargetedCardIndex(targetIndex));
+                });
 
         /// <summary>
         /// DJ コントローラーが接続されていない場合の従来どおりの選択。
