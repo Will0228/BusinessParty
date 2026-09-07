@@ -16,6 +16,8 @@ namespace MixVerse.Game.Model
         /// <summary>操作するプレイヤーの番号。残りが CPU。</summary>
         public const int HumanPlayerIndex = 0;
 
+        private readonly Deck _deck;
+
         private readonly List<PlayerHand> _hands = new List<PlayerHand>();
         private readonly List<int> _finishedOrder = new List<int>();
         private readonly List<Card> _discardPile = new List<Card>();
@@ -23,6 +25,11 @@ namespace MixVerse.Game.Model
         private bool[] _isFinished = Array.Empty<bool>();
         private int _currentPlayerIndex;
         private bool _isStarted;
+
+        public OldMaidGame(Deck deck)
+        {
+            _deck = deck;
+        }
 
         public IReadOnlyList<PlayerHand> Hands => _hands;
 
@@ -93,7 +100,7 @@ namespace MixVerse.Game.Model
             }
 
             // 53枚を順番に配るため、人数で割り切れない分は先頭のプレイヤーが1枚多く持つ
-            var deck = Deck.CreateShuffled(seed);
+            var deck = _deck.CreateShuffled(seed);
             for (var i = 0; i < deck.Count; i++)
             {
                 _hands[i % playerCount].Add(deck[i]);

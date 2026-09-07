@@ -14,7 +14,7 @@ namespace MixVerse.Game.Model.Tests
 
         private static OldMaidGame CreateStartedGame(int seed = Seed)
         {
-            var game = new OldMaidGame();
+            var game = new OldMaidGame(new Deck());
             game.Start(PlayerCount, seed);
             return game;
         }
@@ -233,7 +233,7 @@ namespace MixVerse.Game.Model.Tests
         [Test]
         public void Start前にDrawを呼ぶと例外になる()
         {
-            var game = new OldMaidGame();
+            var game = new OldMaidGame(new Deck());
 
             Assert.Throws<InvalidOperationException>(() => game.Draw(0));
         }

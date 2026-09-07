@@ -8,7 +8,7 @@ namespace MixVerse.Game.Model
     /// 乱数は UnityEngine.Random ではなく System.Random を使い、
     /// seed を指定すれば必ず同じ並びになるようにしている（テストの決定性のため）。
     /// </summary>
-    public static class Deck
+    public sealed class Deck
     {
         /// <summary>ジョーカーの枚数。ババ抜きなので1枚だけ。</summary>
         public const int JokerCount = 1;
@@ -22,7 +22,7 @@ namespace MixVerse.Game.Model
         /// <summary>
         /// スート順・ランク順に並んだ未シャッフルの山札を作る。
         /// </summary>
-        public static List<Card> CreateOrdered()
+        public List<Card> CreateOrdered()
         {
             var cards = new List<Card>(TotalCardCount);
 
@@ -47,7 +47,7 @@ namespace MixVerse.Game.Model
         /// <summary>
         /// シャッフル済みの山札を作る。同じ seed なら必ず同じ並びになる。
         /// </summary>
-        public static List<Card> CreateShuffled(int seed)
+        public List<Card> CreateShuffled(int seed)
         {
             var cards = CreateOrdered();
             Shuffle(cards, new Random(seed));
@@ -57,7 +57,7 @@ namespace MixVerse.Game.Model
         /// <summary>
         /// Fisher-Yates シャッフル。渡されたリストを直接並べ替える。
         /// </summary>
-        public static void Shuffle(IList<Card> cards, Random random)
+        public void Shuffle(IList<Card> cards, Random random)
         {
             if (cards == null)
             {

@@ -30,6 +30,7 @@ namespace MixVerse
             builder.Register<GameController>(Lifetime.Singleton);
             builder.RegisterComponent(_gameView);
             builder.Register<GamePresenter>(Lifetime.Singleton).As<IGamePresenter>();
+            builder.Register<Deck>(Lifetime.Singleton);
             builder.Register<OldMaidGame>(Lifetime.Singleton);
             builder.Register<CpuStrategy>(Lifetime.Singleton);
             builder.Register<CpuHealth>(Lifetime.Singleton);
