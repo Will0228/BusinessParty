@@ -65,6 +65,8 @@ namespace MixVerse.Game.View
         // 引かれるときだけ使う残像。使い始めるまでは作らない。
         private CardAfterImage _afterImage;
 
+        private TweenUtility _tweenUtility;
+
         /// <summary>カーソルが乗った。矢印 UI の表示に使う。</summary>
         public Observable<CardView> OnPointerEntered => _onPointerEntered;
 
@@ -188,6 +190,14 @@ namespace MixVerse.Game.View
         }
 
         /// <summary>
+        /// Prefab から生成されるため VContainer が直接注入できない。GameView から配ってもらう。
+        /// </summary>
+        public void Initialize(TweenUtility tweenUtility)
+        {
+            _tweenUtility = tweenUtility;
+        }
+
+        /// <summary>
         /// 現在の表裏に応じたローカル回転。
         /// </summary>
         public Quaternion GetLocalRotation()
@@ -219,7 +229,7 @@ namespace MixVerse.Game.View
 
             try
             {
-                await TweenUtility.MoveAsync(transform, lifted, _flyOutDuration, TweenEase.AccelerateIn, token);
+                await _tweenUtility.MoveAsync(transform, lifted, _flyOutDuration, TweenEase.AccelerateIn, token);
             }
             finally
             {
@@ -243,7 +253,7 @@ namespace MixVerse.Game.View
 
             try
             {
-                await TweenUtility.MoveAsync(transform, worldPosition, _flyInDuration, TweenEase.DecelerateOut, token);
+                await _tweenUtility.MoveAsync(transform, worldPosition, _flyInDuration, TweenEase.DecelerateOut, token);
             }
             finally
             {
@@ -322,7 +332,7 @@ namespace MixVerse.Game.View
         /// 呼び出し前に捨て札置き場の子にしておくこと（ローカル座標で動かす）。
         /// </summary>
         public UniTask PlayDiscardAsync(Vector3 localPosition, Quaternion localRotation, CancellationToken token)
-            => TweenUtility.TossLocalAsync(
+            => _tweenUtility.TossLocalAsync(
                 transform, localPosition, localRotation,
                 _tossArcHeight, _tossSpinDegrees, _tossDuration, token);
 

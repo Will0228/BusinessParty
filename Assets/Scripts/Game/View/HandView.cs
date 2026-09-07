@@ -22,6 +22,16 @@ namespace MixVerse.Game.View
 
         private readonly List<CardView> _cards = new List<CardView>();
 
+        private TweenUtility _tweenUtility;
+
+        /// <summary>
+        /// Prefab から生成されるため VContainer が直接注入できない。GameView から配ってもらう。
+        /// </summary>
+        public void Initialize(TweenUtility tweenUtility)
+        {
+            _tweenUtility = tweenUtility;
+        }
+
         public IReadOnlyList<CardView> Cards => _cards;
 
         /// <summary>この手札を表向きで並べるか。自分の手札だけ true。</summary>
@@ -95,7 +105,7 @@ namespace MixVerse.Game.View
                 var card = _cards[i];
                 card.HandIndex = i;
 
-                tasks.Add(TweenUtility.MoveLocalAsync(
+                tasks.Add(_tweenUtility.MoveLocalAsync(
                     card.transform,
                     GetSlotLocalPosition(i, _cards.Count),
                     card.GetLocalRotation(),

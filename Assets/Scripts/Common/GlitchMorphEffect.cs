@@ -53,9 +53,18 @@ namespace MixVerse
         private RendererBinding[] _toBindings;
         private CancellationTokenSource _playCts;
         private bool _isGlitchMaterialApplied;
+        private TweenUtility _tweenUtility;
 
         /// <summary>変身中かどうか。二重に走らせたくない呼び出し側の判定用。</summary>
         public bool IsPlaying => _isGlitchMaterialApplied;
+
+        /// <summary>
+        /// Prefab から生成されるため VContainer が直接注入できない。GameView から配ってもらう。
+        /// </summary>
+        public void Initialize(TweenUtility tweenUtility)
+        {
+            _tweenUtility = tweenUtility;
+        }
 
         /// <summary>
         /// 変身元・変身先を差し替える。Prefab から動的に生成した相手にも使えるようにしておく。
@@ -105,6 +114,9 @@ namespace MixVerse
         /// </summary>
         public async UniTask PlayAsync(CancellationToken token)
         {
+            // 動作確認用のシーンや ContextMenu から直接再生されると配ってもらえないので、その場合だけ自前で用意する
+            _tweenUtility ??= new TweenUtility();
+
             ApplyGlitchMaterials();
             ResetToStart();
 
@@ -115,7 +127,7 @@ namespace MixVerse
                 var fadeOutEnd = Mathf.Clamp(0.5f + (_overlap * 0.5f), 0.01f, 1f);
                 var fadeInStart = Mathf.Clamp(0.5f - (_overlap * 0.5f), 0f, 0.99f);
 
-                await TweenUtility.ValueAsync(0f, 1f, _duration, token, t =>
+                await _tweenUtility.ValueAsync(0f, 1f, _duration, token, t =>
                 {
                     SetProgress(_fromBindings, Mathf.Clamp01(t / fadeOutEnd));
                     SetProgress(_toBindings, 1f - Mathf.Clamp01((t - fadeInStart) / (1f - fadeInStart)));

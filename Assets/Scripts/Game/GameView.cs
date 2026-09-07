@@ -6,6 +6,7 @@ using MixVerse.Game.View;
 using R3;
 using TMPro;
 using UnityEngine;
+using VContainer;
 
 namespace MixVerse.Game
 {
@@ -138,6 +139,15 @@ namespace MixVerse.Game
         private Vector3[] _characterMorphHomeLocalPosition;
         private Quaternion[] _characterMorphHomeLocalRotation;
 
+        private TweenUtility _tweenUtility;
+
+        [Inject]
+        public void Construct(TweenUtility tweenUtility)
+        {
+            _tweenUtility = tweenUtility;
+            InitializeChildViews();
+        }
+
         /// <summary>引く対象のカードがクリックされた。</summary>
         public Observable<CardView> OnCardClicked => _onCardClicked;
 
@@ -148,6 +158,39 @@ namespace MixVerse.Game
         private void Awake()
         {
             CacheCharacterMorphHomeTransforms();
+        }
+
+        /// <summary>
+        /// 抱えている View にもトゥイーンを配る。
+        /// これらは Prefab から生成されるか Prefab の中に組み込まれているため、VContainer が直接注入できない。
+        /// </summary>
+        private void InitializeChildViews()
+        {
+            foreach (var handView in _handViews)
+            {
+                if (handView != null)
+                {
+                    handView.Initialize(_tweenUtility);
+                }
+            }
+
+            if (_clapHandsView != null)
+            {
+                _clapHandsView.Initialize(_tweenUtility);
+            }
+
+            if (_characterMorphs == null)
+            {
+                return;
+            }
+
+            foreach (var morph in _characterMorphs)
+            {
+                if (morph != null)
+                {
+                    morph.Initialize(_tweenUtility);
+                }
+            }
         }
 
         /// <summary>
@@ -207,8 +250,8 @@ namespace MixVerse.Game
 
             // 黒板を消しながら HUD を出すことで、盤面ごとフェードインしているように見せる
             await UniTask.WhenAll(
-                TweenUtility.FadeAsync(_fadeOverlayGroup, 1f, 0f, _fadeDuration, token),
-                TweenUtility.FadeAsync(_canvasGroup, 0f, 1f, _fadeDuration, token));
+                _tweenUtility.FadeAsync(_fadeOverlayGroup, 1f, 0f, _fadeDuration, token),
+                _tweenUtility.FadeAsync(_canvasGroup, 0f, 1f, _fadeDuration, token));
         }
 
         /// <summary>
@@ -243,7 +286,7 @@ namespace MixVerse.Game
                     handView.ArrangeImmediate();
                 }
 
-                await TweenUtility.WaitAsync(_dealInterval, token);
+                await _tweenUtility.WaitAsync(_dealInterval, token);
             }
         }
 
@@ -365,7 +408,7 @@ namespace MixVerse.Game
         /// 相手の手札を指定の向きへ回す。位置は動かさない。
         /// </summary>
         private UniTask PlayHandFacingAsync(HandView hand, Quaternion localRotation, CancellationToken token)
-            => TweenUtility.MoveLocalAsync(
+            => _tweenUtility.MoveLocalAsync(
                 hand.transform, hand.transform.localPosition, localRotation, _drawCameraSettings.TransitionDuration, token);
 
         /// <summary>
@@ -465,7 +508,7 @@ namespace MixVerse.Game
             _resultLabel.text = text;
         }
 
-        public UniTask WaitAsync(float seconds, CancellationToken token) => TweenUtility.WaitAsync(seconds, token);
+        public UniTask WaitAsync(float seconds, CancellationToken token) => _tweenUtility.WaitAsync(seconds, token);
 
         /// <summary>
         /// ホーム画面へ戻る際に、この画面を非表示にする。
@@ -761,11 +804,11 @@ namespace MixVerse.Game
             var risePosition = t.position + (Vector3.up * _knockOutRiseHeight);
 
             await UniTask.WhenAll(
-                TweenUtility.MoveAsync(t, risePosition, _knockOutRiseDuration, TweenEase.DecelerateOut, token),
+                _tweenUtility.MoveAsync(t, risePosition, _knockOutRiseDuration, TweenEase.DecelerateOut, token),
                 SpinCharacterAsync(t, _knockOutRiseDuration, token));
 
             await UniTask.WhenAll(
-                TweenUtility.MoveAsync(t, _knockOutLandingPoint.position, _knockOutFallDuration, TweenEase.AccelerateIn, token),
+                _tweenUtility.MoveAsync(t, _knockOutLandingPoint.position, _knockOutFallDuration, TweenEase.AccelerateIn, token),
                 SpinCharacterAsync(t, _knockOutFallDuration, token));
 
             await SpinCharacterAsync(t, null, token);
@@ -891,6 +934,7 @@ namespace MixVerse.Game
         private CardView CreateCard(Card card)
         {
             var cardView = Instantiate(_cardPrefab, transform);
+            cardView.Initialize(_tweenUtility);
             cardView.SetCard(card);
             cardView.IsSelectable = false;
             cardView.SetRaycastEnabled(false);

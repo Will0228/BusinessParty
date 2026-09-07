@@ -4,6 +4,7 @@ using Cysharp.Threading.Tasks;
 using R3;
 using UnityEngine;
 using UnityEngine.UI;
+using VContainer;
 
 namespace MixVerse.Home
 {
@@ -38,6 +39,14 @@ namespace MixVerse.Home
 
         // 演出のあいだだけ使う画面のスクショ。使い終わったら破棄する
         private Texture2D _screenshotTexture;
+
+        private TweenUtility _tweenUtility;
+
+        [Inject]
+        public void Construct(TweenUtility tweenUtility)
+        {
+            _tweenUtility = tweenUtility;
+        }
 
         /// <summary>
         /// ゲーム画面から戻ってきたときに再表示する。
@@ -96,13 +105,13 @@ namespace MixVerse.Home
                     stampScale: _scratchStampScale,
                     duration: _scratchDuration,
                     thresholdProgress: _alphaStartProgress,
-                    onThresholdReached: () => fadeTask = TweenUtility.FadeAsync(_canvasGroup, _canvasGroup.alpha, 0.0f, _fadeDuration, token),
+                    onThresholdReached: () => fadeTask = _tweenUtility.FadeAsync(_canvasGroup, _canvasGroup.alpha, 0.0f, _fadeDuration, token),
                     token: token);
             }
             else
             {
                 // スクラッチ演出が未設定の場合は従来通りフェードのみ行う
-                fadeTask = TweenUtility.FadeAsync(_canvasGroup, 1.0f, 0.0f, _fadeDuration, token);
+                fadeTask = _tweenUtility.FadeAsync(_canvasGroup, 1.0f, 0.0f, _fadeDuration, token);
             }
 
             await fadeTask;

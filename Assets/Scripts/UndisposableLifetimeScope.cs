@@ -20,6 +20,8 @@ namespace MixVerse
             
             // 画面の切り替えは ScreenNavigator が受け持つので、起点もここになる
             builder.RegisterEntryPoint<ScreenNavigator>().AsSelf();
+
+            builder.Register<TweenUtility>(Lifetime.Singleton);
             
             builder.Register<HomeController>(Lifetime.Singleton);
             builder.RegisterComponent(_homeView);

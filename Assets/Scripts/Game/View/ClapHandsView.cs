@@ -28,7 +28,17 @@ namespace MixVerse.Game.View
 
         private CancellationTokenSource _clapCts;
 
+        private TweenUtility _tweenUtility;
+
         public bool IsVisible => gameObject.activeSelf;
+
+        /// <summary>
+        /// Prefab から生成されるため VContainer が直接注入できない。GameView から配ってもらう。
+        /// </summary>
+        public void Initialize(TweenUtility tweenUtility)
+        {
+            _tweenUtility = tweenUtility;
+        }
 
         public void Show()
         {
@@ -100,15 +110,15 @@ namespace MixVerse.Game.View
                 {
                     // 打ち合わせる瞬間（時計回り）は素早く
                     await UniTask.WhenAll(
-                        TweenUtility.MoveLocalAsync(_leftHand, _leftClosedLocalPosition, _leftHand.localRotation, _clapInDuration, token, useSmoothStep: false),
-                        TweenUtility.MoveLocalAsync(_rightHand, _rightClosedLocalPosition, _rightHand.localRotation, _clapInDuration, token, useSmoothStep: false));
+                        _tweenUtility.MoveLocalAsync(_leftHand, _leftClosedLocalPosition, _leftHand.localRotation, _clapInDuration, token, useSmoothStep: false),
+                        _tweenUtility.MoveLocalAsync(_rightHand, _rightClosedLocalPosition, _rightHand.localRotation, _clapInDuration, token, useSmoothStep: false));
                 }
                 else
                 {
                     // 放す（反時計回り）は少し柔らかく
                     await UniTask.WhenAll(
-                        TweenUtility.MoveLocalAsync(_leftHand, _leftHomeLocalPosition, _leftHand.localRotation, _clapOutDuration, token),
-                        TweenUtility.MoveLocalAsync(_rightHand, _rightHomeLocalPosition, _rightHand.localRotation, _clapOutDuration, token));
+                        _tweenUtility.MoveLocalAsync(_leftHand, _leftHomeLocalPosition, _leftHand.localRotation, _clapOutDuration, token),
+                        _tweenUtility.MoveLocalAsync(_rightHand, _rightHomeLocalPosition, _rightHand.localRotation, _clapOutDuration, token));
                 }
             }
             catch (OperationCanceledException)

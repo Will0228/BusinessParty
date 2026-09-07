@@ -23,15 +23,15 @@ namespace MixVerse
     }
 
     /// <summary>
-    /// トゥイーンライブラリを導入していないため、HomeView と同じ
+    /// トゥイーンライブラリを導入していないため、
     /// 「手書きの Lerp ループ + UniTask.Yield」方式を共通化したもの。
     /// </summary>
-    public static class TweenUtility
+    public sealed class TweenUtility
     {
         /// <summary>
         /// Transform をワールド座標で移動させる。
         /// </summary>
-        public static UniTask MoveAsync(
+        public UniTask MoveAsync(
             Transform target,
             Vector3 toPosition,
             float duration,
@@ -45,7 +45,7 @@ namespace MixVerse
         /// <summary>
         /// Transform をワールド座標で移動させる。加速・減速のかかり方を選ぶ版。
         /// </summary>
-        public static async UniTask MoveAsync(
+        public async UniTask MoveAsync(
             Transform target,
             Vector3 toPosition,
             float duration,
@@ -75,7 +75,7 @@ namespace MixVerse
         /// <summary>
         /// Transform をワールド座標で移動・回転させる。カメラを専用位置へ動かす演出に使う。
         /// </summary>
-        public static async UniTask MoveAsync(
+        public async UniTask MoveAsync(
             Transform target,
             Vector3 toPosition,
             Quaternion toRotation,
@@ -111,7 +111,7 @@ namespace MixVerse
         /// Transform の位置は変えずに、向きだけをワールド回転で変える。
         /// カメラの位置を固定したまま向きだけ調整する演出に使う。
         /// </summary>
-        public static async UniTask RotateAsync(
+        public async UniTask RotateAsync(
             Transform target,
             Quaternion toRotation,
             float duration,
@@ -142,7 +142,7 @@ namespace MixVerse
         /// <summary>
         /// Transform をローカル座標で移動・回転させる。手札の整列に使う。
         /// </summary>
-        public static async UniTask MoveLocalAsync(
+        public async UniTask MoveLocalAsync(
             Transform target,
             Vector3 toLocalPosition,
             Quaternion toLocalRotation,
@@ -184,7 +184,7 @@ namespace MixVerse
         /// 開始時と着地時はどちらも 0 に戻るため、任意の値を入れても向きがずれない。
         /// 0 なら余分な回転なし。
         /// </param>
-        public static async UniTask TossLocalAsync(
+        public async UniTask TossLocalAsync(
             Transform target,
             Vector3 toLocalPosition,
             Quaternion toLocalRotation,
@@ -232,7 +232,7 @@ namespace MixVerse
         /// <summary>
         /// CanvasGroup のアルファをフェードさせる。
         /// </summary>
-        public static async UniTask FadeAsync(
+        public async UniTask FadeAsync(
             CanvasGroup canvasGroup,
             float from,
             float to,
@@ -259,7 +259,7 @@ namespace MixVerse
         /// <summary>
         /// 値を線形に補間する。マテリアルのパラメータなど、Transform 以外を動かすときに使う。
         /// </summary>
-        public static async UniTask ValueAsync(
+        public async UniTask ValueAsync(
             float from,
             float to,
             float duration,
@@ -274,13 +274,13 @@ namespace MixVerse
         /// <summary>
         /// 指定秒だけ待つ。CPU の思考時間の演出などに使う。
         /// </summary>
-        public static UniTask WaitAsync(float seconds, CancellationToken token)
+        public UniTask WaitAsync(float seconds, CancellationToken token)
             => UniTask.Delay(Mathf.RoundToInt(seconds * 1000f), DelayType.DeltaTime, PlayerLoopTiming.Update, token);
 
         /// <summary>
         /// 0→1 の進捗にイージングをかける。
         /// </summary>
-        private static float Evaluate(TweenEase ease, float t)
+        private float Evaluate(TweenEase ease, float t)
         {
             switch (ease)
             {
@@ -305,7 +305,7 @@ namespace MixVerse
         /// MissingReferenceException を投げると、それを await している対局進行ごと止まってしまう。
         /// </summary>
         /// <returns>最後まで進んだなら true。途中で対象が消えたなら false。</returns>
-        private static async UniTask<bool> RunAsync(
+        private async UniTask<bool> RunAsync(
             UnityEngine.Object target,
             float duration,
             CancellationToken token,
@@ -343,7 +343,7 @@ namespace MixVerse
         /// <summary>
         /// 0→1 の進捗を毎フレーム渡す共通ループ。
         /// </summary>
-        private static async UniTask RunAsync(float duration, CancellationToken token, System.Action<float> onUpdate)
+        private async UniTask RunAsync(float duration, CancellationToken token, System.Action<float> onUpdate)
         {
             if (duration <= 0f)
             {
