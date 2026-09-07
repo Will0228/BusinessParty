@@ -74,6 +74,6 @@ crashlytics-build.properties
 /[Aa]ssets/[Pp]ackages/
 /[Aa]ssets/[Pp]ackages.meta
 
-# VContainer は Packages/manifest.json の OpenUPM 指定から解決する。
+# VContainer / UniTask / R3 は Packages/manifest.json の git URL から解決する。
 # Packages/ 直下に展開された embedded コピーは冗長なので追跡しない。
 /Packages/jp.hadashikick.vcontainer/
