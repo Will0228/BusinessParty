@@ -375,6 +375,6 @@ namespace MixVerse.Game.View
             _onClicked.Dispose();
         }
 
-        private static bool IsRedSuit(Card card) => card.Suit == CardSuit.Hearts || card.Suit == CardSuit.Diamonds;
+        private bool IsRedSuit(Card card) => card.Suit == CardSuit.Hearts || card.Suit == CardSuit.Diamonds;
     }
 }

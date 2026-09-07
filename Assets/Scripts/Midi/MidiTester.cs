@@ -113,7 +113,7 @@ namespace MixVerse.Midi
             AddLog("Connected: " + midi.description.product);
         }
 
-        private static void Unbind(MidiDevice midi, Handlers handlers)
+        private void Unbind(MidiDevice midi, Handlers handlers)
         {
             midi.onWillNoteOn -= handlers.NoteOn;
             midi.onWillNoteOff -= handlers.NoteOff;

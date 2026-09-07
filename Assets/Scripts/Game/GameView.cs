@@ -956,7 +956,7 @@ namespace MixVerse.Game
             cardView.OnPointerExited.Subscribe(_ => _selectionArrow?.Hide()).AddTo(_cardSubscriptions);
         }
 
-        private static CardView FindCardView(HandView handView, Card card)
+        private CardView FindCardView(HandView handView, Card card)
         {
             foreach (var cardView in handView.Cards)
             {

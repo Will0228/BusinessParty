@@ -88,7 +88,7 @@ namespace MixVerse
             }
         }
 
-        private static int CompareHierarchyOrder(GlitchMorphEffect a, GlitchMorphEffect b)
+        private int CompareHierarchyOrder(GlitchMorphEffect a, GlitchMorphEffect b)
         {
             var rootOrder = a.transform.root.GetSiblingIndex().CompareTo(b.transform.root.GetSiblingIndex());
             return rootOrder != 0 ? rootOrder : a.transform.GetSiblingIndex().CompareTo(b.transform.GetSiblingIndex());

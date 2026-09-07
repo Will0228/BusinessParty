@@ -261,7 +261,7 @@ namespace MixVerse
             return material;
         }
 
-        private static string GetExistingPropertyName(Material material, string preferred, string fallback)
+        private string GetExistingPropertyName(Material material, string preferred, string fallback)
         {
             if (material.HasProperty(preferred))
             {
@@ -299,7 +299,7 @@ namespace MixVerse
             _isGlitchMaterialApplied = false;
         }
 
-        private static void SetMaterials(RendererBinding[] bindings, bool useGlitch)
+        private void SetMaterials(RendererBinding[] bindings, bool useGlitch)
         {
             if (bindings == null)
             {
@@ -330,7 +330,7 @@ namespace MixVerse
             _toBindings = null;
         }
 
-        private static void DestroyGlitchMaterials(RendererBinding[] bindings)
+        private void DestroyGlitchMaterials(RendererBinding[] bindings)
         {
             if (bindings == null)
             {
@@ -364,7 +364,7 @@ namespace MixVerse
             }
         }
 
-        private static void SetObjectActive(GameObject target, bool active)
+        private void SetObjectActive(GameObject target, bool active)
         {
             if (target != null)
             {
@@ -376,7 +376,7 @@ namespace MixVerse
         /// 消え具合を設定する。書き込む先はこのコンポーネントが複製したマテリアルだけなので、
         /// 同じマテリアルアセットを使っている他のキャラクターは影響を受けない。
         /// </summary>
-        private static void SetProgress(RendererBinding[] bindings, float progress)
+        private void SetProgress(RendererBinding[] bindings, float progress)
         {
             if (bindings == null)
             {

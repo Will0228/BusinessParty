@@ -16,7 +16,7 @@ namespace MixVerse.Game.Model.Tests
                 var lines = script.CreateSequence(random);
 
                 Assert.That(lines[0], Is.EqualTo(CpuTalkLine.Talk1));
-                Assert.That(CpuTalkScript.IsFinishLine(lines[lines.Count - 1]), Is.True);
+                Assert.That(script.IsFinishLine(lines[lines.Count - 1]), Is.True);
             }
         }
 

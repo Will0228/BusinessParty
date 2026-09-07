@@ -236,7 +236,7 @@ namespace MixVerse.Midi
             Debug.Log($"[DJ] 接続: {midi.description.product} (ch{midi.channel + 1})");
         }
 
-        private static void Unbind(MidiDevice midi, Handlers handlers)
+        private void Unbind(MidiDevice midi, Handlers handlers)
         {
             midi.onWillNoteOn -= handlers.NoteOn;
             midi.onWillControlChange -= handlers.ControlChange;
@@ -270,7 +270,7 @@ namespace MixVerse.Midi
         /// <summary>
         /// ノート番号が左右どちらのデッキのボタンかを判定する。どちらでもなければ false。
         /// </summary>
-        private static bool TryGetDeckSide(int noteNumber, int leftNoteNumber, int rightNoteNumber, out DjDeckSide side)
+        private bool TryGetDeckSide(int noteNumber, int leftNoteNumber, int rightNoteNumber, out DjDeckSide side)
         {
             if (noteNumber == leftNoteNumber)
             {

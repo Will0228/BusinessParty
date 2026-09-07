@@ -42,7 +42,7 @@ namespace MixVerse.Game.Model
         /// <summary>
         /// 締めの音源か。これが流れ終わったところから拍手の判定が始まる。
         /// </summary>
-        public static bool IsFinishLine(CpuTalkLine line)
+        public bool IsFinishLine(CpuTalkLine line)
             => line == CpuTalkLine.Finish1 || line == CpuTalkLine.Finish2;
     }
 }
