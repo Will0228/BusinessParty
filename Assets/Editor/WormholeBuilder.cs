@@ -12,7 +12,14 @@ namespace MixVerse.EditorTools
     /// </summary>
     public static class WormholeBuilder
     {
+        /// <summary>動作確認用に置く仮 Prefab。WormholeDebugWindow から作り直せる。</summary>
+        public const string PrefabPath = PrefabFolder + "/WormholeDebug.prefab";
+
+        /// <summary>覗く位置の目安。穴の表からこれだけ離れると全体が視界に入る。</summary>
+        public const float RecommendedViewDistance = 4f;
+
         private const string MaterialFolder = "Assets/Materials";
+        private const string PrefabFolder = "Assets/Prefabs";
         private const string ShaderName = "Unlit/WormholeShader";
         private const string LitShaderName = "Universal Render Pipeline/Lit";
 
@@ -28,12 +35,36 @@ namespace MixVerse.EditorTools
         [MenuItem("MixVerse/Setup/Create Wormhole Demo")]
         public static void CreateWormholeDemo()
         {
+            var root = CreateWormholeRoot();
+
+            if (root == null)
+            {
+                return;
+            }
+
+            Undo.RegisterCreatedObjectUndo(root, "Create Wormhole Demo");
+            Selection.activeGameObject = root;
+
+            AssetDatabase.SaveAssets();
+            EditorSceneManager.MarkSceneDirty(root.scene);
+
+            Debug.Log(
+                "[MixVerse] WormholeDemo を生成しました。"
+                + $"再生して {GetViewPosition(true)} あたりから PortalA を覗くと PortalB 側が見えます。");
+        }
+
+        /// <summary>
+        /// A / B の組と目印を一式作り、その親を返す。作れなければ null。
+        /// シーンへの登録や Undo は呼び出し側で行う。
+        /// </summary>
+        public static GameObject CreateWormholeRoot()
+        {
             var wormholeShader = Shader.Find(ShaderName);
 
             if (wormholeShader == null)
             {
                 Debug.LogError($"[MixVerse] {ShaderName} が見つかりませんでした。");
-                return;
+                return null;
             }
 
             EnsureFolder(MaterialFolder);
@@ -55,15 +86,43 @@ namespace MixVerse.EditorTools
             serializedWormhole.FindProperty("_portalB").objectReferenceValue = portalB;
             serializedWormhole.ApplyModifiedPropertiesWithoutUndo();
 
-            Undo.RegisterCreatedObjectUndo(root, "Create Wormhole Demo");
-            Selection.activeGameObject = root;
+            return root;
+        }
 
-            AssetDatabase.SaveAssets();
-            EditorSceneManager.MarkSceneDirty(root.scene);
+        /// <summary>
+        /// 一式を仮 Prefab として保存し直す。組み直したいときは何度でも呼べる。
+        /// </summary>
+        public static GameObject SaveWormholePrefab()
+        {
+            var root = CreateWormholeRoot();
 
-            Debug.Log(
-                "[MixVerse] WormholeDemo を生成しました。"
-                + $"再生して {PortalAPosition + (Vector3.forward * 4f)} あたりから PortalA を覗くと PortalB 側が見えます。");
+            if (root == null)
+            {
+                return null;
+            }
+
+            try
+            {
+                EnsureFolder(PrefabFolder);
+
+                var prefab = PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
+                AssetDatabase.SaveAssets();
+
+                return prefab;
+            }
+            finally
+            {
+                // Prefab へ写し取るためだけに置いたので、シーンには残さない
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        /// <summary>穴の正面、全体が視界に入るあたりの座標。</summary>
+        public static Vector3 GetViewPosition(bool isPortalA)
+        {
+            var portalPosition = isPortalA ? PortalAPosition : PortalBPosition;
+
+            return portalPosition + (Vector3.forward * RecommendedViewDistance);
         }
 
         private static WormholePortalView CreatePortal(
