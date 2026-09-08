@@ -42,6 +42,12 @@ namespace MixVerse.Wormhole
 
         private WormholeMath _wormholeMath;
 
+        /// <summary>片方の口。もう片方を覗くと、こちらのまわりが見える。</summary>
+        public WormholePortalView PortalA => _portalA;
+
+        /// <summary>もう片方の口。</summary>
+        public WormholePortalView PortalB => _portalB;
+
         private void Awake()
         {
             _wormholeMath = new WormholeMath();
