@@ -14,10 +14,13 @@ namespace MixVerse.Wormhole
 
         /// <summary>
         /// 入口のローカル空間へ移してから出口のローカル空間へ置き直す行列。
+        ///
+        /// 穴の大きさは見た目の都合で決めたいので、Transform のスケールは持ち込まない。
+        /// localToWorldMatrix をそのまま使うと、A と B の大きさが違うだけで景色が歪む。
         /// </summary>
         public Matrix4x4 GetWarpMatrix(Transform entrance, Transform exit)
         {
-            return exit.localToWorldMatrix * HalfTurn * entrance.worldToLocalMatrix;
+            return GetRigidMatrix(exit) * HalfTurn * GetRigidMatrix(entrance).inverse;
         }
 
         /// <summary>
@@ -25,11 +28,10 @@ namespace MixVerse.Wormhole
         /// </summary>
         public void GetVirtualPose(Matrix4x4 warp, Transform viewer, out Vector3 position, out Quaternion rotation)
         {
-            var virtualMatrix = warp * viewer.localToWorldMatrix;
+            var virtualMatrix = warp * GetRigidMatrix(viewer);
 
             position = virtualMatrix.GetColumn(3);
 
-            // Matrix4x4.rotation はスケールが混ざると崩れるので、前方向と上方向から組み立てる
             rotation = Quaternion.LookRotation(virtualMatrix.GetColumn(2), virtualMatrix.GetColumn(1));
         }
 
@@ -52,6 +54,11 @@ namespace MixVerse.Wormhole
             var normalCS = worldToCamera.MultiplyVector(normalWS).normalized;
 
             return new Vector4(normalCS.x, normalCS.y, normalCS.z, -Vector3.Dot(pointCS, normalCS));
+        }
+
+        private Matrix4x4 GetRigidMatrix(Transform target)
+        {
+            return Matrix4x4.TRS(target.position, target.rotation, Vector3.one);
         }
     }
 }
