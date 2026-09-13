@@ -15,12 +15,14 @@ namespace MixVerse.Seal
         private static readonly int BottomTexId = Shader.PropertyToID("_BottomTex");
         private static readonly int ProgressId = Shader.PropertyToID("_Progress");
         private static readonly int BackColorId = Shader.PropertyToID("_BackColor");
+        private static readonly int AspectId = Shader.PropertyToID("_Aspect");
+        private static readonly int PaddingId = Shader.PropertyToID("_Padding");
 
         [SerializeField] private RawImage _image;
         [SerializeField] private Material _material;
 
         [Tooltip("シールをめくった直後に一瞬見える、紙自体の裏面の色。シルバーの箔などを想定。")]
-        [SerializeField] private Color _backColor = new Color(0.75f, 0.76f, 0.78f, 1f);
+        [SerializeField] private Color _backColor = new Color(0.6f, 0.6f, 0.6f, 1f);
 
         private Material _materialInstance;
 
@@ -40,8 +42,10 @@ namespace MixVerse.Seal
             }
 
             var rectTransform = _image.rectTransform;
-            rectTransform.sizeDelta = size;
+            var padding = EnsureMaterialInstance() ? _materialInstance.GetFloat(PaddingId) : 0f;
+            rectTransform.sizeDelta = size * (1f + 2f * padding);
             rectTransform.anchoredPosition = center;
+            UpdateAspect();
         }
 
         public void SetTextures(Texture top, Texture bottom)
@@ -66,6 +70,22 @@ namespace MixVerse.Seal
             }
 
             _materialInstance.SetFloat(ProgressId, Mathf.Clamp01(progress));
+        }
+
+        private void OnRectTransformDimensionsChange()
+        {
+            UpdateAspect();
+        }
+
+        private void UpdateAspect()
+        {
+            if (_materialInstance == null || _image == null)
+            {
+                return;
+            }
+
+            var size = _image.rectTransform.rect.size;
+            _materialInstance.SetFloat(AspectId, Mathf.Max(0.01f, size.x / Mathf.Max(1f, size.y)));
         }
 
         public void Show() => gameObject.SetActive(true);
@@ -102,6 +122,7 @@ namespace MixVerse.Seal
             _image.material = _materialInstance;
 
             _materialInstance.SetColor(BackColorId, _backColor);
+            UpdateAspect();
 
             return true;
         }

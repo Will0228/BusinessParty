@@ -2,176 +2,191 @@ Shader "Unlit/SealPeelShaderURP"
 {
     Properties
     {
-        // はがれる側（例：ObjectGroupA を撮ったスナップショット）。
-        // RawImage が内部で _MainTex を要求するため、Top 側をこの名前にしている。
-        [MainTexture] _MainTex ("Top Texture (Peeling)", 2D) = "white" {}
-        // はがした後に見える側（例：ObjectGroupB を撮ったスナップショット）
-        _BottomTex ("Bottom Texture (Revealed)", 2D) = "white" {}
-
-        // 0 = Top がそのまま見えている / 1 = 完全にはがれて Bottom だけになる
-        _Progress ("Progress", Range(0, 1)) = 0
-
-        [Header(Peel Shape)]
-        // はがれ始める角（UV）。既定は左上。
-        _PeelOrigin ("Peel Origin (UV)", Vector) = (0, 1, 0, 0)
-        // はがれ始める角から対角の終点までの向きと距離（UV 空間、正規化しない）。既定は右下へ。
+        [MainTexture] _MainTex ("Image A (Sticker)", 2D) = "white" {}
+        _BottomTex ("Image B (Underneath)", 2D) = "white" {}
+        _Progress ("Peel Progress", Range(0, 1)) = 0
         _PeelDirection ("Peel Direction (UV)", Vector) = (1, -1, 0, 0)
-        // 境界線の丸み。1 で角から広がる自然な円弧、大きいほど直線的な対角カットに近づき、
-        // 小さいほど角から尖った舌状に広がる。
-        _PeelSpread ("Peel Spread", Range(0.3, 3)) = 1
-
-        [Header(Curl Look)]
-        // はがれ際で紙が巻き上がって見える帯の太さ（Progress と同じ UV スケール）。
-        _BackWidth ("Curl Width", Range(0.001, 0.5)) = 0.12
-        // 巻き上がった紙の裏面（シルバーの箔など）の色。
-        _BackColor ("Peeled Back Color", Color) = (0.75, 0.76, 0.78, 1)
-
-        [Header(Edge Look)]
-        // 巻き上がりの頂点（真横から見える位置）にできるハイライトの鋭さ。大きいほど細く強い筋になる。
-        _EdgeHighlightPower ("Edge Highlight Sharpness", Float) = 3
-        // ハイライトの強さ。
-        _EdgeHighlightIntensity ("Edge Highlight Intensity", Range(0, 3)) = 0.7
-        _EdgeHighlightColor ("Edge Highlight Color", Color) = (1, 1, 1, 1)
-
-        [Header(Shadow)]
-        _ShadowColor ("Peeled Shadow Color", Color) = (0, 0, 0, 1)
-        _ShadowWidth ("Peeled Shadow Width", Range(0.001, 0.3)) = 0.08
-        _ShadowPower ("Peeled Shadow Power", Range(0, 1)) = 0.5
+        _Aspect ("Width / Height", Float) = 1
+        _Padding ("Space Around Sticker", Range(0, 0.5)) = 0.3
+        _BackWidth ("Curl Radius", Range(0.01, 0.25)) = 0.075
+        _LiftAngle ("Lift Angle", Range(5, 60)) = 22
+        _BackColor ("Sticker Back", Color) = (0.6, 0.6, 0.6, 1)
+        _ShadowWidth ("Shadow Softness", Range(0.005, 0.15)) = 0.035
+        _ShadowPower ("Shadow Strength", Range(0, 1)) = 0.42
+        [HideInInspector] _StencilComp ("Stencil Comparison", Float) = 8
+        [HideInInspector] _Stencil ("Stencil ID", Float) = 0
+        [HideInInspector] _StencilOp ("Stencil Operation", Float) = 0
+        [HideInInspector] _StencilWriteMask ("Stencil Write Mask", Float) = 255
+        [HideInInspector] _StencilReadMask ("Stencil Read Mask", Float) = 255
+        [HideInInspector] _ColorMask ("Color Mask", Float) = 15
+        [Toggle(UNITY_UI_ALPHACLIP)] _UseUIAlphaClip ("Use Alpha Clip", Float) = 0
     }
     SubShader
     {
-        Tags
+        Tags { "RenderType"="Transparent" "Queue"="Transparent" "RenderPipeline"="UniversalPipeline" "IgnoreProjector"="True" }
+        Stencil
         {
-            "RenderType" = "Transparent"
-            "Queue" = "Transparent"
-            "IgnoreProjector" = "True"
-            "RenderPipeline" = "UniversalPipeline"
+            Ref [_Stencil]
+            Comp [_StencilComp]
+            Pass [_StencilOp]
+            ReadMask [_StencilReadMask]
+            WriteMask [_StencilWriteMask]
         }
-
         Pass
         {
-            // UI（Canvas）上で他の要素と正しく重なるようにアルファブレンドで描く
-            Blend SrcAlpha OneMinusSrcAlpha
+            Blend One OneMinusSrcAlpha
             ZWrite Off
-            ZTest Always
+            ZTest [unity_GUIZTestMode]
             Cull Off
+            ColorMask [_ColorMask]
 
             HLSLPROGRAM
             #pragma vertex vert
             #pragma fragment frag
-
+            #pragma multi_compile_local _ UNITY_UI_CLIP_RECT
+            #pragma multi_compile_local _ UNITY_UI_ALPHACLIP
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
 
             struct Attributes
             {
                 float3 positionOS : POSITION;
                 float2 uv : TEXCOORD0;
-                float4 color : COLOR; // CanvasGroup のアルファはここに乗ってくる
+                float4 color : COLOR;
             };
-
             struct Varyings
             {
                 float4 positionCS : SV_POSITION;
                 float2 uv : TEXCOORD0;
                 float4 color : COLOR;
+                float2 positionOS : TEXCOORD1;
             };
-
             TEXTURE2D(_MainTex);
             SAMPLER(sampler_MainTex);
-
             TEXTURE2D(_BottomTex);
             SAMPLER(sampler_BottomTex);
+            float _Progress, _Aspect, _Padding, _BackWidth, _LiftAngle, _ShadowWidth, _ShadowPower;
+            float4 _PeelDirection, _BackColor, _ClipRect;
 
-            float _Progress;
-            float4 _PeelOrigin;
-            float4 _PeelDirection;
-            float _PeelSpread;
-            float4 _BackColor;
-            float _BackWidth;
-            float4 _EdgeHighlightColor;
-            float _EdgeHighlightPower;
-            float _EdgeHighlightIntensity;
-            float4 _ShadowColor;
-            float _ShadowWidth;
-            float _ShadowPower;
-
-            Varyings vert (Attributes input)
+            Varyings vert(Attributes input)
             {
                 Varyings o;
                 o.positionCS = TransformObjectToHClip(input.positionOS);
+                o.positionOS = input.positionOS.xy;
                 o.uv = input.uv;
                 o.color = input.color;
                 return o;
             }
 
-            // はがれ始めた角からの距離を、直線ではなく楕円（≒円弧）で測る。
-            // これにより、はがれる境界線が対角線一本の直線ではなく、角から丸く広がる
-            // 自然なめくれのラインになる。戻り値は角で 0、_PeelDirection の先端で 1。
-            float ComputePeelDistance(float2 uv)
+            float Coverage(float2 uv)
             {
-                float2 dir = _PeelDirection.xy;
-                float maxAlong = max(length(dir), 1e-5);
-                float2 dirN = dir / maxAlong;
-                float2 perpN = float2(-dirN.y, dirN.x);
-
-                float2 toPixel = uv - _PeelOrigin.xy;
-                float along = dot(toPixel, dirN);
-                float perp = dot(toPixel, perpN);
-
-                float u = along / maxAlong;
-                float v = perp / (maxAlong * max(_PeelSpread, 1e-3));
-
-                return length(float2(u, v));
+                float2 edge = min(uv, 1.0 - uv);
+                float2 aa = max(fwidth(uv), 0.00001);
+                return saturate(edge.x / aa.x + 0.5) * saturate(edge.y / aa.y + 0.5);
             }
 
-            half4 frag (Varyings input) : SV_Target
+            half4 Sticker(float2 point, float2 scale)
             {
-                float t = ComputePeelDistance(input.uv);
+                float2 uv = point / scale;
+                half4 c = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, saturate(uv));
+                c.a *= Coverage(uv);
+                return c;
+            }
 
-                half4 topColor = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, input.uv);
-                half4 bottomColor = SAMPLE_TEXTURE2D(_BottomTex, sampler_BottomTex, input.uv);
+            half4 Over(half4 below, half4 above)
+            {
+                return half4(above.rgb * above.a + below.rgb * (1.0 - above.a),
+                    above.a + below.a * (1.0 - above.a));
+            }
 
-                float halfBand = max(_BackWidth, 1e-4) * 0.5;
-                float outerEdge = _Progress + halfBand; // ここより外側はまだ完全に貼り付いた Top
-                float innerEdge = _Progress - halfBand; // ここより内側は完全にはがれ終わった Bottom
-
-                half4 result;
-
-                if (t >= outerEdge)
-                {
-                    // まだはがれていない
-                    result = topColor;
-                }
-                else if (t <= innerEdge)
-                {
-                    // はがれ終わった直後は、巻き上がった紙が落とす影を落として厚みを出す
-                    float distPastBand = innerEdge - t;
-                    float shadow = saturate(1.0 - distPastBand / max(_ShadowWidth, 1e-4)) * _ShadowPower;
-                    half3 rgb = lerp(bottomColor.rgb, _ShadowColor.rgb, shadow);
-                    result = half4(rgb, bottomColor.a);
-                }
+            // Invert the projected cylinder and lifted sheet, retaining the original sticker silhouette.
+            float FoldShadow(float2 p, float2 dir, float2 scale, float crease, float radius, float cosine)
+            {
+                float x = dot(p, dir);
+                float d = crease - x;
+                float sourceX;
+                if (d >= 0.0 && d <= radius)
+                    sourceX = crease - radius * (PI - asin(saturate(d / radius)));
+                else if (d < 0.0)
+                    sourceX = crease - PI * radius - (x - crease) / cosine;
                 else
+                    return 0.0;
+                return Sticker(p + dir * (sourceX - x), scale).a;
+            }
+
+            half4 frag(Varyings input) : SV_Target
+            {
+                float2 scale = float2(max(_Aspect, 0.01), 1.0);
+                float2 uv = (input.uv - 0.5) * (1.0 + 2.0 * _Padding) + 0.5;
+                float2 p = uv * scale;
+                float2 rawDir = _PeelDirection.xy * scale;
+                float2 dir = dot(rawDir, rawDir) > 0.00001 ? normalize(rawDir) : normalize(float2(1, -1));
+                float start = dot(min(dir, 0.0), scale);
+                float extent = dot(abs(dir), scale);
+                float radius = max(_BackWidth, 0.005) * min(scale.x, scale.y);
+                float angle = radians(clamp(_LiftAngle, 5.0, 60.0));
+                float cosine = cos(angle);
+                float crease = start + lerp(-radius, extent * (1.0 + _Padding) + PI * radius, _Progress);
+                float x = dot(p, dir);
+                float d = crease - x;
+                half4 bottom = SAMPLE_TEXTURE2D(_BottomTex, sampler_BottomTex, saturate(uv));
+                bottom.a *= Coverage(uv);
+                half4 result = half4(bottom.rgb * bottom.a, bottom.a);
+
+                if (_Progress < 1.0)
                 {
-                    // 巻き上がりの帯の中。theta = 0 で紙がまだ平らに接している側、
-                    // theta = PI で完全に丸まって Bottom へ接地する側。
-                    // cos(theta) を円柱の断面が視線に対してどれだけ正面/背面を向いているかに見立てて
-                    // Top と裏面色を混ぜ、sin(theta) が 1 になる真横（頂点）にハイライトを乗せることで
-                    // 紙が丸まっているように見せている。
-                    float theta = (outerEdge - t) / max(_BackWidth, 1e-4) * PI;
-                    float c = cos(theta);
-                    float frontFacing = saturate(c);
-                    float backFacing = saturate(-c);
-                    float rim = pow(saturate(sin(theta)), max(_EdgeHighlightPower, 1e-3)) * _EdgeHighlightIntensity;
+                    half4 top = Sticker(p, scale);
+                    top.a *= 1.0 - smoothstep(-fwidth(d), fwidth(d), d);
+                    result = Over(result, top);
 
-                    half3 rgb = topColor.rgb * frontFacing
-                        + _BackColor.rgb * backFacing
-                        + _EdgeHighlightColor.rgb * rim;
-                    half a = lerp(topColor.a, bottomColor.a, backFacing);
+                    float2 shadowOffset = dir * radius * 0.6 + float2(-0.02, 0.028);
+                    float2 shadowPoint = p + shadowOffset;
+                    float softness = max(_ShadowWidth, 0.001) * min(scale.x, scale.y);
+                    float2 perpendicular = float2(-dir.y, dir.x) * softness;
+                    float shadow = FoldShadow(shadowPoint, dir, scale, crease, radius, cosine) * 0.4;
+                    shadow += FoldShadow(shadowPoint + dir * softness, dir, scale, crease, radius, cosine) * 0.15;
+                    shadow += FoldShadow(shadowPoint - dir * softness, dir, scale, crease, radius, cosine) * 0.15;
+                    shadow += FoldShadow(shadowPoint + perpendicular, dir, scale, crease, radius, cosine) * 0.15;
+                    shadow += FoldShadow(shadowPoint - perpendicular, dir, scale, crease, radius, cosine) * 0.15;
+                    result.rgb *= 1.0 - shadow * _ShadowPower;
 
-                    result = half4(rgb, a);
+                    if (d >= 0.0 && d <= radius)
+                    {
+                        float theta = asin(saturate(d / radius));
+                        float sourceX = crease - radius * theta;
+                        half4 front = Sticker(p + dir * (sourceX - x), scale);
+                        front.rgb *= 0.58 + 0.42 * cos(theta);
+                        result = Over(result, front);
+
+                        theta = PI - theta;
+                        sourceX = crease - radius * theta;
+                        half4 back = Sticker(p + dir * (sourceX - x), scale);
+                        float lighting = 0.52 + 0.38 * abs(cos(theta)) + 0.23 * pow(sin(theta), 6.0);
+                        back.rgb = _BackColor.rgb * lighting;
+                        back.a *= _BackColor.a;
+                        result = Over(result, back);
+                    }
+                    else if (d < 0.0)
+                    {
+                        float distance = (x - crease) / cosine;
+                        float sourceX = crease - PI * radius - distance;
+                        half4 back = Sticker(p + dir * (sourceX - x), scale);
+                        float height = 2.0 * radius + distance * sin(angle);
+                        back.rgb = _BackColor.rgb * (0.90 + 0.12 * saturate(height / (radius * 5.0)));
+                        back.a *= _BackColor.a;
+                        result = Over(result, back);
+                    }
                 }
 
-                return result * input.color;
+                result.rgb *= input.color.rgb * input.color.a;
+                result.a *= input.color.a;
+                #ifdef UNITY_UI_CLIP_RECT
+                float2 inside = step(_ClipRect.xy, input.positionOS) * step(input.positionOS, _ClipRect.zw);
+                result *= inside.x * inside.y;
+                #endif
+                #ifdef UNITY_UI_ALPHACLIP
+                clip(result.a - 0.001);
+                #endif
+                return result;
             }
             ENDHLSL
         }
