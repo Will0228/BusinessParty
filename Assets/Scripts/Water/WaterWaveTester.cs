@@ -139,7 +139,7 @@ namespace MixVerse
             _surface.MaxAmplitude = Slider("振幅の上限", _surface.MaxAmplitude, 0.05f, 1f);
             _surface.WavelengthPerRadius = Slider("波長(半径)", _surface.WavelengthPerRadius, 0.5f, 10f);
             _surface.SpeedMultiplier = Slider("伝播速度倍率", _surface.SpeedMultiplier, 0.1f, 3f);
-            _surface.LifeBase = Slider("寿命(秒)", _surface.LifeBase, 0.2f, 6f);
+            _surface.DecayPerPeriod = Slider("減衰(1周期毎)", _surface.DecayPerPeriod, 0.05f, 0.95f);
 
             GUILayout.EndArea();
         }

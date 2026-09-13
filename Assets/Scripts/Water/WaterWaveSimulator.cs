@@ -22,7 +22,17 @@ namespace MixVerse
         /// <summary>波紋が外側へ広がる速さ。</summary>
         public float Speed { get; }
 
-        public WaterRipple(Vector2 localOrigin, float startTime, float life, float amplitude, float wavelength, float speed)
+        /// <summary>その場で 1 周期(山→谷→山)揺れるたびに振幅が何倍になるか。0.5 なら 1 周期ごとに半分になる。</summary>
+        public float DecayPerPeriod { get; }
+
+        public WaterRipple(
+            Vector2 localOrigin,
+            float startTime,
+            float life,
+            float amplitude,
+            float wavelength,
+            float speed,
+            float decayPerPeriod)
         {
             LocalOrigin = localOrigin;
             StartTime = startTime;
@@ -30,6 +40,7 @@ namespace MixVerse
             Amplitude = amplitude;
             Wavelength = wavelength;
             Speed = speed;
+            DecayPerPeriod = decayPerPeriod;
         }
     }
 
@@ -47,8 +58,9 @@ namespace MixVerse
         public float Gravity;
         public float BaseSpeed;
         public float SpeedMultiplier;
-        public float LifeBase;
-        public float LifePerRadius;
+
+        /// <summary>その場で 1 周期揺れるたびに振幅が何倍になるか。0.5 なら 1 周期ごとに半分になる。</summary>
+        public float DecayPerPeriod;
     }
 
     /// <summary>
@@ -65,6 +77,12 @@ namespace MixVerse
     {
         // WaterWaveShaderURP.shader の RIPPLE_MAX と揃えること。
         public const int RippleMax = 16;
+
+        // 振幅がこの割合まで下がったら、実用上ゼロ(見えない)とみなして寿命を打ち切る。
+        private const float FadeEpsilon = 0.02f;
+
+        private const float MinLife = 0.2f;
+        private const float MaxLife = 30f;
 
         private static readonly int RippleData0Id = Shader.PropertyToID("_RippleData0");
         private static readonly int RippleData1Id = Shader.PropertyToID("_RippleData1");
@@ -91,19 +109,26 @@ namespace MixVerse
             var wavelength = Mathf.Max(0.05f, settings.WavelengthPerRadius * radius);
 
             // 深水波の分散関係(速さは波長が長いほど増す)を使うと、大きな水滴の波ほど速く広がる。
-            var speed = settings.UseDispersion
+            var speed = Mathf.Max(0.01f, settings.UseDispersion
                 ? Mathf.Sqrt(settings.Gravity * wavelength / (2f * Mathf.PI)) * settings.SpeedMultiplier
-                : settings.BaseSpeed * settings.SpeedMultiplier;
+                : settings.BaseSpeed * settings.SpeedMultiplier);
 
-            var life = settings.LifeBase + (settings.LifePerRadius * radius);
+            var decayPerPeriod = Mathf.Clamp(settings.DecayPerPeriod, 0.01f, 0.99f);
+
+            // 寿命は「振幅が FadeEpsilon まで減衰するのに何周期かかるか」から逆算する。
+            // 波長が長い(=水滴が大きい)ほど 1 周期が長くなるので、寿命も自然に長くなる。
+            var period = wavelength / speed;
+            var periodsUntilFade = Mathf.Log(FadeEpsilon) / Mathf.Log(decayPerPeriod);
+            var life = Mathf.Clamp(period * periodsUntilFade, MinLife, MaxLife);
 
             AddRipple(new WaterRipple(
                 localPosition,
                 Time.time,
-                Mathf.Max(0.01f, life),
+                life,
                 amplitude,
                 wavelength,
-                Mathf.Max(0.01f, speed)));
+                speed,
+                decayPerPeriod));
         }
 
         /// <summary>
@@ -124,7 +149,7 @@ namespace MixVerse
                 var ripple = _ripples[i];
 
                 _data0Buffer[i] = new Vector4(ripple.LocalOrigin.x, ripple.LocalOrigin.y, ripple.StartTime, ripple.Life);
-                _data1Buffer[i] = new Vector4(ripple.Amplitude, ripple.Wavelength, ripple.Speed, 0f);
+                _data1Buffer[i] = new Vector4(ripple.Amplitude, ripple.Wavelength, ripple.Speed, ripple.DecayPerPeriod);
             }
 
             material.SetVectorArray(RippleData0Id, _data0Buffer);

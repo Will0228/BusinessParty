@@ -4,9 +4,8 @@ Shader "MixVerse/WaterWaveShaderURP"
     {
         [Header(Color)]
         _BaseColor ("Base Color", Color) = (0.09, 0.33, 0.5, 1)
-        _CrestColor ("Crest Color", Color) = (0.68, 0.88, 0.92, 1)
-        _CrestThreshold ("Crest Threshold", Range(0, 1)) = 0.5
-        _CrestReference ("Crest Reference Height", Range(0.001, 2)) = 0.15
+        _CrestColor ("Crest Color", Color) = (0.3, 0.55, 0.65, 1)
+        _CrestReference ("Crest Reference Height", Range(0.001, 2)) = 0.35
 
         [Header(Lighting)]
         _Smoothness ("Smoothness", Range(0, 1)) = 0.75
@@ -63,7 +62,6 @@ Shader "MixVerse/WaterWaveShaderURP"
             CBUFFER_START(UnityPerMaterial)
                 half4 _BaseColor;
                 half4 _CrestColor;
-                float _CrestThreshold;
                 float _CrestReference;
                 float _Smoothness;
                 half4 _SpecularColor;
@@ -72,7 +70,7 @@ Shader "MixVerse/WaterWaveShaderURP"
 
                 // xy = 波紋の中心(オブジェクト空間の X, Z), z = 発生時刻, w = 寿命(秒)
                 float4 _RippleData0[RIPPLE_MAX];
-                // x = 振幅, y = 波長, z = 伝わる速さ, w = 未使用
+                // x = 振幅, y = 波長, z = 伝わる速さ, w = 1周期ごとに振幅が何倍に減るか(0~1)
                 float4 _RippleData1[RIPPLE_MAX];
             CBUFFER_END
 
@@ -91,6 +89,7 @@ Shader "MixVerse/WaterWaveShaderURP"
                 float amplitude = _RippleData1[index].x;
                 float wavelength = _RippleData1[index].y;
                 float speed = _RippleData1[index].z;
+                float decayPerPeriod = _RippleData1[index].w;
 
                 float age = _Time.y - startTime;
 
@@ -114,10 +113,13 @@ Shader "MixVerse/WaterWaveShaderURP"
                 // 円形に広がる波はエネルギーが円周に分散するぶん、遠いほど振幅が下がる。
                 float spread = rsqrt(max(r, wavelength * 0.25));
 
-                // 寿命の終わりにかけてなめらかにフェードアウトする。
-                float lifeFade = 1.0 - smoothstep(life * 0.7, life, age);
+                // その場で 1 往復(1周期)するたびに振幅が decayPerPeriod 倍になる減衰。
+                // 実際の水面と同じく、同じ場所で何度も同じ高さで揺れ続けたりしないよう、
+                // 山が来るたびに前の山よりはっきり低くなる。
+                float period = wavelength / max(speed, 1e-4);
+                float timeDecay = pow(max(decayPerPeriod, 1e-4), age / max(period, 1e-4));
 
-                float envelope = amplitude * frontFade * spread * lifeFade;
+                float envelope = amplitude * frontFade * spread * timeDecay;
 
                 float s, c;
                 sincos(k * r - omega * age, s, c);
@@ -170,8 +172,10 @@ Shader "MixVerse/WaterWaveShaderURP"
                 float3 viewDirWS = normalize(_WorldSpaceCameraPos - input.positionWS);
                 Light mainLight = GetMainLight();
 
+                // しきい値による切り替えだと波の頂点だけ色がくっきり変わって不自然に見えるため、
+                // 高さに応じてなだらかに(S字カーブで)色を混ぜる。
                 float crestAmount = saturate(input.waveHeight / max(_CrestReference, 1e-4));
-                float crest = smoothstep(_CrestThreshold - 0.15, _CrestThreshold + 0.15, crestAmount);
+                float crest = smoothstep(0.0, 1.0, crestAmount);
                 half3 albedo = lerp(_BaseColor.rgb, _CrestColor.rgb, crest);
 
                 float nDotL = saturate(dot(normalWS, mainLight.direction));

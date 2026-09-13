@@ -54,12 +54,11 @@ namespace MixVerse
         [Tooltip("波紋が広がる速さ全体の倍率。演出の速さ調整用。")]
         [SerializeField] private float _speedMultiplier = 1f;
 
-        [Header("Life")]
-        [Tooltip("波紋が消えるまでの基本時間(秒)。")]
-        [SerializeField] private float _lifeBase = 2.5f;
-
-        [Tooltip("水滴の半径ぶん、寿命にどれだけ足すか。大きい水滴ほど長く波紋が残る。")]
-        [SerializeField] private float _lifePerRadius = 3f;
+        [Header("Decay")]
+        [Tooltip("その場で 1 周期(山→谷→山)揺れるたびに振幅が何倍になるか。0.5 なら毎周期半分に減る。" +
+                 "小さいほど早く落ち着き、1 に近いほどいつまでも同じ高さで揺れ続ける。")]
+        [Range(0.05f, 0.95f)]
+        [SerializeField] private float _decayPerPeriod = 0.5f;
 
         private WaterWaveSimulator _simulator;
         private Material _materialInstance;
@@ -94,10 +93,10 @@ namespace MixVerse
             set => _speedMultiplier = value;
         }
 
-        public float LifeBase
+        public float DecayPerPeriod
         {
-            get => _lifeBase;
-            set => _lifeBase = value;
+            get => _decayPerPeriod;
+            set => _decayPerPeriod = value;
         }
 
         private void Awake()
@@ -159,8 +158,7 @@ namespace MixVerse
                 Gravity = _gravity,
                 BaseSpeed = _baseSpeed,
                 SpeedMultiplier = _speedMultiplier,
-                LifeBase = _lifeBase,
-                LifePerRadius = _lifePerRadius,
+                DecayPerPeriod = _decayPerPeriod,
             };
         }
 
