@@ -37,15 +37,25 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - _BackWidth: 0.12
+    - _Aspect: 1
+    - _BackWidth: 0.075
+    - _ColorMask: 15
     - _EdgeHighlightIntensity: 0.7
     - _EdgeHighlightPower: 3
+    - _LiftAngle: 22
+    - _Padding: 0.3
     - _PeelSpread: 1
     - _Progress: 0
-    - _ShadowPower: 0.5
-    - _ShadowWidth: 0.08
+    - _ShadowPower: 0.42
+    - _ShadowWidth: 0.035
+    - _Stencil: 0
+    - _StencilComp: 8
+    - _StencilOp: 0
+    - _StencilReadMask: 255
+    - _StencilWriteMask: 255
+    - _UseUIAlphaClip: 0
     m_Colors:
-    - _BackColor: {r: 0.75, g: 0.76, b: 0.78, a: 1}
+    - _BackColor: {r: 0.6, g: 0.6, b: 0.6, a: 1}
     - _EdgeHighlightColor: {r: 1, g: 1, b: 1, a: 1}
     - _PeelDirection: {r: 1, g: -1, b: 0, a: 0}
     - _PeelOrigin: {r: 0, g: 1, b: 0, a: 0}

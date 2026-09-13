@@ -77,18 +77,18 @@ Shader "Unlit/SealPeelShaderURP"
                 return o;
             }
 
-            float Coverage(float2 uv)
+            float Coverage(float2 uv, float2 aa)
             {
                 float2 edge = min(uv, 1.0 - uv);
-                float2 aa = max(fwidth(uv), 0.00001);
+                aa = max(aa, 0.00001);
                 return saturate(edge.x / aa.x + 0.5) * saturate(edge.y / aa.y + 0.5);
             }
 
-            half4 Sticker(float2 point, float2 scale)
+            half4 Sticker(float2 position, float2 scale, float2 aa)
             {
-                float2 uv = point / scale;
+                float2 uv = position / scale;
                 half4 c = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, saturate(uv));
-                c.a *= Coverage(uv);
+                c.a *= Coverage(uv, aa);
                 return c;
             }
 
@@ -99,24 +99,24 @@ Shader "Unlit/SealPeelShaderURP"
             }
 
             // Invert the projected cylinder and lifted sheet, retaining the original sticker silhouette.
-            float FoldShadow(float2 p, float2 dir, float2 scale, float crease, float radius, float cosine)
+            float FoldShadow(float2 p, float2 dir, float2 scale, float crease, float radius, float cosine, float softness)
             {
                 float x = dot(p, dir);
                 float d = crease - x;
                 float sourceX;
-                if (d >= 0.0 && d <= radius)
+                if (d >= 0.0)
                     sourceX = crease - radius * (PI - asin(saturate(d / radius)));
-                else if (d < 0.0)
-                    sourceX = crease - PI * radius - (x - crease) / cosine;
                 else
-                    return 0.0;
-                return Sticker(p + dir * (sourceX - x), scale).a;
+                    sourceX = crease - PI * radius - (x - crease) / cosine;
+                float silhouette = 1.0 - smoothstep(radius - softness, radius + softness, d);
+                return Sticker(p + dir * (sourceX - x), scale, softness / scale).a * silhouette;
             }
 
             half4 frag(Varyings input) : SV_Target
             {
                 float2 scale = float2(max(_Aspect, 0.01), 1.0);
                 float2 uv = (input.uv - 0.5) * (1.0 + 2.0 * _Padding) + 0.5;
+                float2 aa = max(fwidth(uv), 0.00001);
                 float2 p = uv * scale;
                 float2 rawDir = _PeelDirection.xy * scale;
                 float2 dir = dot(rawDir, rawDir) > 0.00001 ? normalize(rawDir) : normalize(float2(1, -1));
@@ -129,37 +129,37 @@ Shader "Unlit/SealPeelShaderURP"
                 float x = dot(p, dir);
                 float d = crease - x;
                 half4 bottom = SAMPLE_TEXTURE2D(_BottomTex, sampler_BottomTex, saturate(uv));
-                bottom.a *= Coverage(uv);
+                bottom.a *= Coverage(uv, aa);
                 half4 result = half4(bottom.rgb * bottom.a, bottom.a);
 
                 if (_Progress < 1.0)
                 {
-                    half4 top = Sticker(p, scale);
-                    top.a *= 1.0 - smoothstep(-fwidth(d), fwidth(d), d);
+                    half4 top = Sticker(p, scale, aa);
+                    top.a *= step(d, 0.0);
                     result = Over(result, top);
 
                     float2 shadowOffset = dir * radius * 0.6 + float2(-0.02, 0.028);
                     float2 shadowPoint = p + shadowOffset;
                     float softness = max(_ShadowWidth, 0.001) * min(scale.x, scale.y);
                     float2 perpendicular = float2(-dir.y, dir.x) * softness;
-                    float shadow = FoldShadow(shadowPoint, dir, scale, crease, radius, cosine) * 0.4;
-                    shadow += FoldShadow(shadowPoint + dir * softness, dir, scale, crease, radius, cosine) * 0.15;
-                    shadow += FoldShadow(shadowPoint - dir * softness, dir, scale, crease, radius, cosine) * 0.15;
-                    shadow += FoldShadow(shadowPoint + perpendicular, dir, scale, crease, radius, cosine) * 0.15;
-                    shadow += FoldShadow(shadowPoint - perpendicular, dir, scale, crease, radius, cosine) * 0.15;
+                    float shadow = FoldShadow(shadowPoint, dir, scale, crease, radius, cosine, softness) * 0.4;
+                    shadow += FoldShadow(shadowPoint + dir * softness, dir, scale, crease, radius, cosine, softness) * 0.15;
+                    shadow += FoldShadow(shadowPoint - dir * softness, dir, scale, crease, radius, cosine, softness) * 0.15;
+                    shadow += FoldShadow(shadowPoint + perpendicular, dir, scale, crease, radius, cosine, softness) * 0.15;
+                    shadow += FoldShadow(shadowPoint - perpendicular, dir, scale, crease, radius, cosine, softness) * 0.15;
                     result.rgb *= 1.0 - shadow * _ShadowPower;
 
                     if (d >= 0.0 && d <= radius)
                     {
                         float theta = asin(saturate(d / radius));
                         float sourceX = crease - radius * theta;
-                        half4 front = Sticker(p + dir * (sourceX - x), scale);
+                        half4 front = Sticker(p + dir * (sourceX - x), scale, aa);
                         front.rgb *= 0.58 + 0.42 * cos(theta);
                         result = Over(result, front);
 
                         theta = PI - theta;
                         sourceX = crease - radius * theta;
-                        half4 back = Sticker(p + dir * (sourceX - x), scale);
+                        half4 back = Sticker(p + dir * (sourceX - x), scale, aa);
                         float lighting = 0.52 + 0.38 * abs(cos(theta)) + 0.23 * pow(sin(theta), 6.0);
                         back.rgb = _BackColor.rgb * lighting;
                         back.a *= _BackColor.a;
@@ -169,7 +169,7 @@ Shader "Unlit/SealPeelShaderURP"
                     {
                         float distance = (x - crease) / cosine;
                         float sourceX = crease - PI * radius - distance;
-                        half4 back = Sticker(p + dir * (sourceX - x), scale);
+                        half4 back = Sticker(p + dir * (sourceX - x), scale, aa);
                         float height = 2.0 * radius + distance * sin(angle);
                         back.rgb = _BackColor.rgb * (0.90 + 0.12 * saturate(height / (radius * 5.0)));
                         back.a *= _BackColor.a;
