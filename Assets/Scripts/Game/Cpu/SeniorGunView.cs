@@ -9,6 +9,7 @@ namespace MixVerse.Game.Cpu
     {
         [SerializeField] private GameObject _gunPrefab;
         [SerializeField] private Transform _mount;
+        [SerializeField] private Vector3 _modelOffset = new Vector3(0.32f, 0.18f, 0.35f);
         [SerializeField] private Vector3 _modelEuler;
         [SerializeField] private float _scale = 5f;
         [SerializeField] private Light _muzzleFlash;
@@ -41,7 +42,7 @@ namespace MixVerse.Game.Cpu
             if (_gun == null)
             {
                 _gun = Instantiate(_gunPrefab, _mount);
-                _gun.transform.localPosition = Vector3.zero;
+                _gun.transform.localPosition = _modelOffset;
                 _gun.transform.localRotation = Quaternion.Euler(_modelEuler);
                 _gun.transform.localScale = Vector3.one * _scale;
             }

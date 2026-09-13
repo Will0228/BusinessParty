@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using MixVerse.Game.Cpu;
@@ -24,6 +26,7 @@ namespace MixVerse.Game
         [SerializeField] private float _fadeDuration = 0.6f;
 
         private readonly Subject<Unit> _onExitRequested = new Subject<Unit>();
+        private readonly List<Behaviour> _pausedTesterBehaviours = new List<Behaviour>();
         private TweenUtility _tween;
 
         public PartyGameSettings Settings => _settings;
@@ -38,6 +41,7 @@ namespace MixVerse.Game
         public async UniTask ShowAsync(CancellationToken token)
         {
             gameObject.SetActive(true);
+            PauseStageTesters();
             _resultLabel.gameObject.SetActive(false);
             if (_bgmSource != null) _bgmSource.Play();
             await UniTask.WhenAll(
@@ -57,7 +61,30 @@ namespace MixVerse.Game
         public void Hide()
         {
             if (_bgmSource != null) _bgmSource.Stop();
+            ResumeStageTesters();
             gameObject.SetActive(false);
+        }
+
+        private void PauseStageTesters()
+        {
+            _pausedTesterBehaviours.Clear();
+            var behaviours = FindObjectsByType<Behaviour>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            foreach (var behaviour in behaviours)
+            {
+                if (behaviour == null || !behaviour.enabled ||
+                    !behaviour.GetType().Name.EndsWith("Tester", StringComparison.Ordinal)) continue;
+                behaviour.enabled = false;
+                _pausedTesterBehaviours.Add(behaviour);
+            }
+        }
+
+        private void ResumeStageTesters()
+        {
+            foreach (var behaviour in _pausedTesterBehaviours)
+            {
+                if (behaviour != null) behaviour.enabled = true;
+            }
+            _pausedTesterBehaviours.Clear();
         }
 
         private void Update()
