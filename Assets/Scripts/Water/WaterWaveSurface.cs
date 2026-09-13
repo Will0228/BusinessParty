@@ -146,6 +146,24 @@ namespace MixVerse
             _simulator.Apply(_materialInstance);
         }
 
+        /// <summary>
+        /// ワールド座標 worldPosition の x, z における、いまの水面の高さ(ワールドY)を返す。
+        /// 波に浮かぶオブジェクトなどが、自分のいる位置の水面に追従するために使う。
+        /// </summary>
+        public float SampleHeight(Vector3 worldPosition)
+        {
+            if (_simulator == null)
+            {
+                return worldPosition.y;
+            }
+
+            var local = transform.InverseTransformPoint(worldPosition);
+            var height = _simulator.GetHeight(new Vector2(local.x, local.z), Time.time);
+            var localSurfacePoint = new Vector3(local.x, height, local.z);
+
+            return transform.TransformPoint(localSurfacePoint).y;
+        }
+
         private WaterWaveSettings BuildSettings()
         {
             return new WaterWaveSettings

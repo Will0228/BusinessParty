@@ -141,6 +141,61 @@ namespace MixVerse
             _nextIndex = (_nextIndex + 1) % RippleMax;
         }
 
+        /// <summary>
+        /// いま持っている波紋から、ローカル座標 posXZ・時刻 time における水面の高さ(オブジェクト空間のY)を求める。
+        /// WaterWaveShaderURP.shader の AccumulateRipple と同じ式を CPU 側でも計算したもの
+        /// (浮かぶオブジェクトの追従などに使う)。シェーダー側を直すときはこちらも揃えること。
+        /// </summary>
+        public float GetHeight(Vector2 localPosition, float time)
+        {
+            var height = 0f;
+
+            for (var i = 0; i < RippleMax; i++)
+            {
+                height += EvaluateRippleHeight(_ripples[i], localPosition, time);
+            }
+
+            return height;
+        }
+
+        private static float EvaluateRippleHeight(in WaterRipple ripple, Vector2 posXZ, float time)
+        {
+            var amplitude = ripple.Amplitude;
+            var age = time - ripple.StartTime;
+
+            if (amplitude <= 0f || age < 0f || age >= ripple.Life)
+            {
+                return 0f;
+            }
+
+            var r = Vector2.Distance(posXZ, ripple.LocalOrigin);
+
+            var wavelength = ripple.Wavelength;
+            var speed = ripple.Speed;
+            var k = (2f * Mathf.PI) / Mathf.Max(wavelength, 1e-4f);
+            var omega = k * speed;
+
+            var front = speed * age;
+            var frontFade = 1f - SmoothStep(front - wavelength, front + wavelength, r);
+
+            var spread = 1f / Mathf.Sqrt(Mathf.Max(r, wavelength * 0.25f));
+
+            var decayPerPeriod = Mathf.Max(ripple.DecayPerPeriod, 1e-4f);
+            var period = wavelength / Mathf.Max(speed, 1e-4f);
+            var timeDecay = Mathf.Pow(decayPerPeriod, age / Mathf.Max(period, 1e-4f));
+
+            var envelope = amplitude * frontFade * spread * timeDecay;
+
+            return envelope * Mathf.Sin((k * r) - (omega * age));
+        }
+
+        /// <summary>HLSL の smoothstep(edge0, edge1, x) と同じ式。Mathf.SmoothStep とは引数の意味が違うので自前で持つ。</summary>
+        private static float SmoothStep(float edge0, float edge1, float x)
+        {
+            var t = Mathf.Clamp01((x - edge0) / Mathf.Max(edge1 - edge0, 1e-6f));
+            return t * t * (3f - (2f * t));
+        }
+
         /// <summary>いま持っている波紋の状態をマテリアルへ書き込む。波紋を追加した直後にだけ呼べばよい。</summary>
         public void Apply(Material material)
         {
