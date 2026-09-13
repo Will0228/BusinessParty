@@ -7,9 +7,9 @@ namespace MixVerse.Game.View
 {
     /// <summary>
     /// CUE ボタンで呼び出す、拍手する両手。
-    /// スクラッチの回転方向に合わせて、外部（GamePresenter）から SetHandsClosed を呼んでもらう。
+    /// スクラッチの回転方向に合わせて PlayerPresenter から操作する。
     /// 時計回りで合わせ、反時計回りで放す。
-    /// 見た目の姿勢はすべて GameScreenPrefabBuilder が焼き込んだ値を使うため、実行時の計算はしない。
+    /// 手の姿勢は Prefab に保存したローカル座標を使う。
     /// </summary>
     public sealed class ClapHandsView : MonoBehaviour
     {
@@ -33,7 +33,7 @@ namespace MixVerse.Game.View
         public bool IsVisible => gameObject.activeSelf;
 
         /// <summary>
-        /// Prefab から生成されるため VContainer が直接注入できない。GameView から配ってもらう。
+        /// PlayerView からアニメーション用のUtilityを受け取る。
         /// </summary>
         public void Initialize(TweenUtility tweenUtility)
         {

@@ -1,5 +1,6 @@
 using MixVerse.Game;
 using MixVerse.Game.Model;
+using MixVerse.Game.Player;
 using MixVerse.Home;
 using MixVerse.Midi;
 using UnityEngine;
@@ -30,20 +31,17 @@ namespace MixVerse
             builder.Register<GameController>(Lifetime.Singleton);
             builder.RegisterComponent(_gameView);
             builder.Register<GamePresenter>(Lifetime.Singleton).As<IGamePresenter>();
-            builder.Register<Deck>(Lifetime.Singleton);
-            builder.Register<OldMaidGame>(Lifetime.Singleton);
-            builder.Register<CpuStrategy>(Lifetime.Singleton);
-            builder.Register<CpuHealth>(Lifetime.Singleton);
+            builder.RegisterInstance(_gameView.Settings);
+            builder.RegisterComponent(_gameView.PlayerView);
+            builder.Register<PlayerPresenter>(Lifetime.Singleton).As<IPlayerPresenter>();
             builder.Register<CpuTalkScript>(Lifetime.Singleton);
-            builder.Register<PlayerNameUtility>(Lifetime.Singleton);
-            builder.Register<DjDeckUtility>(Lifetime.Singleton);
             
             RegisterDjController(builder);
         }
         
         /// <summary>
         /// DJ コントローラーは任意接続なので、未設定でもコンテナが壊れないようにする。
-        /// null が解決された場合、GamePresenter はマウス操作のみにフォールバックする。
+        /// 未設定でもキーボードで視線とアクションを操作できる。
         /// </summary>
         private void RegisterDjController(IContainerBuilder builder)
         {
@@ -53,7 +51,7 @@ namespace MixVerse
                 return;
             }
             
-            Debug.LogWarning("[MixVerse] DjControllerInput が未設定です。カード選択はマウスのみになります。");
+            Debug.LogWarning("[BusinessParty] DjControllerInput が未設定です。キーボードで操作できます。");
             builder.Register<DjControllerInput>(_ => null, Lifetime.Singleton);
         }
     }

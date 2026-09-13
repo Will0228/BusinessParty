@@ -1,85 +1,117 @@
 using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using MixVerse.Game.Model;
+using MixVerse.Game.Player;
 using MixVerse.Home;
+using R3;
 using UnityEngine;
-using VContainer;
 
 namespace MixVerse.Game
 {
-    /// <summary>
-    /// ババ抜きの進行役。ScreenNavigator から ChangeController を呼ばれて動き出す。
-    /// </summary>
     public sealed class GameController : ControllerBase
     {
-        private readonly IGamePresenter _presenter;
+        private readonly IGamePresenter _game;
+        private readonly IPlayerPresenter _player;
+        private readonly PartyGameSettings _settings;
+        private readonly CpuTalkScript _talkScript;
         private readonly ScreenNavigator _navigator;
+        private CancellationTokenSource _session;
+        private System.Random _random;
 
-        private CancellationTokenSource _cancellationTokenSource;
-
-        [Inject]
-        public GameController(IGamePresenter presenter, ScreenNavigator navigator)
+        public GameController(IGamePresenter game, IPlayerPresenter player, PartyGameSettings settings,
+            CpuTalkScript talkScript, ScreenNavigator navigator)
         {
-            _presenter = presenter;
+            _game = game;
+            _player = player;
+            _settings = settings;
+            _talkScript = talkScript;
             _navigator = navigator;
         }
 
         public override void ChangeController()
         {
             base.ChangeController();
-
-            _cancellationTokenSource = new CancellationTokenSource();
-
-            // フェーダーの向きと CUE ボタンの拍手はターン進行と独立して常に受け付けるため、ここで一度だけ購読する
-            _presenter.Bind(disposable);
-
-            PlayAsync(_cancellationTokenSource.Token).Forget();
+            _session = new CancellationTokenSource();
+            _random = new System.Random(Environment.TickCount);
+            _game.Junior.Prepare();
+            _game.Senior.Prepare();
+            _player.Prepare(_game.Junior.FocusPoint, _game.Senior.FocusPoint);
+            Bind();
+            PlayAsync(_session.Token).Forget();
         }
 
-        public override void LeaveController()
+        private void Bind()
         {
-            // 進行中の演出を止めてから購読を破棄する
-            if (_cancellationTokenSource != null)
+            _player.OnClapped.Subscribe(role =>
+                (role == CpuRole.Senior ? _game.Senior : _game.Junior).RegisterClap(Time.time)).AddTo(disposable);
+            _player.OnFacingChanged.Subscribe(value =>
             {
-                _cancellationTokenSource.Cancel();
-                _cancellationTokenSource.Dispose();
-                _cancellationTokenSource = null;
-            }
-
-            _presenter.HideView();
-
-            base.LeaveController();
+                _game.SetFacing(value);
+                _game.Junior.SetFacing(value);
+                _game.Senior.SetFacing(value);
+            }).AddTo(disposable);
+            _game.OnExitRequested.Subscribe(_ => _navigator.Navigate<HomeController>()).AddTo(disposable);
+            _player.Bind(disposable);
         }
 
-        /// <summary>
-        /// 配札から決着までを一続きの非同期処理として回す。
-        /// </summary>
         private async UniTaskVoid PlayAsync(CancellationToken token)
         {
             try
             {
-                await _presenter.PrepareAsync(Environment.TickCount, token);
-
-                // CPU のトークと拍手の判定は手番の進行と並行して回す
-                _presenter.StartCpuTalkLoops(token);
-
-                await _presenter.DiscardInitialPairsAsync(token);
-
-                while (!_presenter.IsGameOver)
+                await _game.ShowAsync(token);
+                while (!_game.Senior.IsDepleted)
                 {
-                    await _presenter.PlayTurnAsync(token);
+                    var interval = _settings.minTalkInterval + (float)_random.NextDouble()
+                        * (_settings.maxTalkInterval - _settings.minTalkInterval);
+                    await WaitAsync(interval, token);
+                    foreach (var line in _talkScript.CreateSequence(_random))
+                        await _game.Senior.SpeakAsync(line, token);
+
+                    _game.Senior.BeginApplause(Time.time);
+                    var result = ClapChallengeResult.Pending;
+                    while (result == ClapChallengeResult.Pending)
+                    {
+                        await UniTask.Yield(PlayerLoopTiming.Update, token);
+                        result = _game.Senior.EvaluateApplause(Time.time);
+                    }
+                    _game.Senior.CompleteApplause(result);
+                    if (_game.Senior.IsDepleted) break;
+                    await WaitAsync(_settings.reactionDuration, token);
+                    _game.Senior.SetIdle();
+                    _game.Junior.SetIdle();
                 }
 
-                _presenter.ShowResult(token);
-
-                await _presenter.WaitBeforeReturnToHomeAsync(token);
-
+                _player.LockOnSenior();
+                _game.Senior.AimAt(_player.EyePosition);
+                _game.ShowRetaliation();
+                await WaitAsync(_settings.gunAimSeconds, token);
+                await UniTask.WhenAll(_game.Senior.FireAsync(token), _player.PlayShotAsync(_settings, token));
+                _game.ShowResult();
+                await WaitAsync(_settings.resultSeconds, token);
                 _navigator.Navigate<HomeController>();
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException) when (token.IsCancellationRequested) { }
+            catch (Exception exception)
             {
-                // 画面遷移などで中断された場合は何もしない
+                Debug.LogException(exception);
+                _navigator.Navigate<HomeController>();
             }
+        }
+
+        private UniTask WaitAsync(float seconds, CancellationToken token)
+            => UniTask.Delay(TimeSpan.FromSeconds(seconds), cancellationToken: token);
+
+        public override void LeaveController()
+        {
+            _session?.Cancel();
+            _session?.Dispose();
+            _session = null;
+            base.LeaveController();
+            _game.Junior.Stop();
+            _game.Senior.Stop();
+            _player.Stop();
+            _game.Hide();
         }
     }
 }

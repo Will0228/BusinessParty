@@ -1,7 +1,7 @@
 namespace MixVerse.Game.Model
 {
     /// <summary>
-    /// <see cref="ClapChallenge"/> の判定結果。まだ決まっていない間は <see cref="Pending"/>。
+    /// 拍手の判定結果。
     /// </summary>
     public enum ClapChallengeResult
     {
