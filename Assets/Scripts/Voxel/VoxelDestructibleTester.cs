@@ -84,7 +84,7 @@ namespace MixVerse
 
             if (Physics.Raycast(ray, out var hit) && hit.collider.GetComponentInParent<VoxelDestructibleCube>() == _target)
             {
-                _target.ApplyImpact(hit.point, hit.normal, _impactRadius);
+                _target.ApplyImpact(hit.point, _impactRadius);
             }
         }
 
