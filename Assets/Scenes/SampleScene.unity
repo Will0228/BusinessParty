@@ -4864,6 +4864,75 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1303936127
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1303936130}
+  - component: {fileID: 1303936129}
+  - component: {fileID: 1303936128}
+  m_Layer: 0
+  m_Name: VoxelDestructibleDemo
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1303936128
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1303936127}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bf392d82b2ab0404e9f89529211d4376, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MixVerse.VoxelDestructibleTester
+  _target: {fileID: 0}
+  _camera: {fileID: 0}
+  _impactRadius: 0.5
+  _rebuildKey: 32
+  _panelKey: 94
+--- !u!114 &1303936129
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1303936127}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a25627587ffda1b47a891813e983dd66, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MixVerse.VoxelDestructibleCube
+  _dimensions: {x: 12, y: 12, z: 12}
+  _voxelSize: 0.2
+  _voxelGap: 0.06
+  _randomSeed: 12345
+  _material: {fileID: 2100000, guid: ba7b98405ddb4e8458f569d3e24cd246, type: 2}
+  _debrisForce: 2.5
+  _debrisLifetime: 2.5
+--- !u!4 &1303936130
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1303936127}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 1.2, z: 0.5}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &1340506847 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 6243119364051274654, guid: 9dbbff6021d931c4d963d6947e5b37fc, type: 3}
@@ -8273,3 +8342,4 @@ SceneRoots:
   - {fileID: 1887734484}
   - {fileID: 857650698}
   - {fileID: 947613721}
+  - {fileID: 1303936130}
