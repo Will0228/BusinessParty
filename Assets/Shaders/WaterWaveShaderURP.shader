@@ -12,6 +12,9 @@ Shader "MixVerse/WaterWaveShaderURP"
         _SpecularColor ("Specular Color", Color) = (1, 1, 1, 1)
         _FresnelColor ("Fresnel Color", Color) = (0.8, 0.92, 1, 1)
         _FresnelPower ("Fresnel Power", Range(0.1, 8)) = 3
+
+        [Header(Floater Foam)]
+        _FoamColor ("Foam Color", Color) = (0.95, 0.97, 1, 1)
     }
 
     SubShader
@@ -43,6 +46,10 @@ Shader "MixVerse/WaterWaveShaderURP"
             // 変えるときは WaterWaveSimulator.RippleMax と揃えること。
             #define RIPPLE_MAX 16
 
+            // C# 側の WaterWaveSurface が確保する浮遊物バッファの最大数。
+            // 変えるときは WaterWaveSurface.FloaterMax と揃えること。
+            #define FLOATER_MAX 8
+
             struct Attributes
             {
                 float4 positionOS : POSITION;
@@ -57,6 +64,7 @@ Shader "MixVerse/WaterWaveShaderURP"
                 float3 normalWS : TEXCOORD1;
                 float2 uv : TEXCOORD2;
                 float waveHeight : TEXCOORD3;
+                float2 localXZ : TEXCOORD4;
             };
 
             CBUFFER_START(UnityPerMaterial)
@@ -67,11 +75,14 @@ Shader "MixVerse/WaterWaveShaderURP"
                 half4 _SpecularColor;
                 half4 _FresnelColor;
                 float _FresnelPower;
+                half4 _FoamColor;
 
                 // xy = 波紋の中心(オブジェクト空間の X, Z), z = 発生時刻, w = 寿命(秒)
                 float4 _RippleData0[RIPPLE_MAX];
                 // x = 振幅, y = 波長, z = 伝わる速さ, w = 1周期ごとに振幅が何倍に減るか(0~1)
                 float4 _RippleData1[RIPPLE_MAX];
+                // xy = 浮遊物の位置(オブジェクト空間の X, Z), z = 泡の半径, w = 強さ(0で無効)
+                float4 _FloaterData[FLOATER_MAX];
             CBUFFER_END
 
             /// <summary>
@@ -131,6 +142,40 @@ Shader "MixVerse/WaterWaveShaderURP"
                 slope += envelope * k * c * dir;
             }
 
+            /// <summary>
+            /// 浮遊物 1 個ぶんの、水面が白く泡立って見える寄与を足し込む。
+            /// 浮遊物の位置を中心にした柔らかい円で、中心が最も濃く、半径の外側で消える。
+            /// </summary>
+            void AccumulateFoam(int index, float2 posXZ, inout float foam)
+            {
+                float strength = _FloaterData[index].w;
+
+                if (strength <= 0.0)
+                {
+                    return;
+                }
+
+                float2 floaterPos = _FloaterData[index].xy;
+                float radius = max(_FloaterData[index].z, 1e-4);
+                float dist = length(posXZ - floaterPos);
+                float ring = 1.0 - smoothstep(radius * 0.6, radius, dist);
+
+                foam = max(foam, ring * strength);
+            }
+
+            float EvaluateFoam(float2 posXZ)
+            {
+                float foam = 0.0;
+
+                [unroll]
+                for (int i = 0; i < FLOATER_MAX; i++)
+                {
+                    AccumulateFoam(i, posXZ, foam);
+                }
+
+                return foam;
+            }
+
             void EvaluateWaves(float2 posXZ, out float height, out float2 slope)
             {
                 height = 0.0;
@@ -162,6 +207,7 @@ Shader "MixVerse/WaterWaveShaderURP"
 
                 output.uv = input.uv;
                 output.waveHeight = height;
+                output.localXZ = input.positionOS.xz;
 
                 return output;
             }
@@ -177,6 +223,10 @@ Shader "MixVerse/WaterWaveShaderURP"
                 float crestAmount = saturate(input.waveHeight / max(_CrestReference, 1e-4));
                 float crest = smoothstep(0.0, 1.0, crestAmount);
                 half3 albedo = lerp(_BaseColor.rgb, _CrestColor.rgb, crest);
+
+                // 浮遊物の周りだけ白く泡立たせて、何かが浮かんでいることを見た目で伝える。
+                float foam = EvaluateFoam(input.localXZ);
+                albedo = lerp(albedo, _FoamColor.rgb, foam);
 
                 float nDotL = saturate(dot(normalWS, mainLight.direction));
                 half3 diffuse = albedo * (mainLight.color * nDotL + SampleSH(normalWS));

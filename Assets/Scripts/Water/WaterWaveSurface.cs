@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace MixVerse
@@ -18,6 +19,11 @@ namespace MixVerse
     [DisallowMultipleComponent]
     public sealed class WaterWaveSurface : MonoBehaviour
     {
+        // WaterWaveShaderURP.shader の FLOATER_MAX と揃えること。
+        public const int FloaterMax = 8;
+
+        private static readonly int FloaterDataId = Shader.PropertyToID("_FloaterData");
+
         [Header("References")]
         [Tooltip("WaterWaveShaderURP を使うマテリアル。複製して使うのでアセット自体は汚れない。")]
         [SerializeField] private Material _material;
@@ -62,6 +68,9 @@ namespace MixVerse
 
         private WaterWaveSimulator _simulator;
         private Material _materialInstance;
+
+        private readonly List<WaterFloater> _floaters = new List<WaterFloater>();
+        private readonly Vector4[] _floaterBuffer = new Vector4[FloaterMax];
 
         public float AmplitudePerRadius
         {
@@ -144,6 +153,47 @@ namespace MixVerse
 
             _simulator.AddSplash(new Vector2(localPosition.x, localPosition.z), radius, impactSpeed, BuildSettings());
             _simulator.Apply(_materialInstance);
+        }
+
+        /// <summary>
+        /// 浮遊物を登録する。登録されているあいだ、その位置の周りが白く泡立って見えるようになる。
+        /// </summary>
+        public void RegisterFloater(WaterFloater floater)
+        {
+            if (!_floaters.Contains(floater))
+            {
+                _floaters.Add(floater);
+            }
+        }
+
+        public void UnregisterFloater(WaterFloater floater)
+        {
+            _floaters.Remove(floater);
+        }
+
+        // 浮遊物は毎フレーム動くので、波紋と違って毎フレームマテリアルへ書き込む必要がある。
+        private void LateUpdate()
+        {
+            if (_materialInstance == null)
+            {
+                return;
+            }
+
+            for (var i = 0; i < FloaterMax; i++)
+            {
+                var floater = i < _floaters.Count ? _floaters[i] : null;
+
+                if (floater == null)
+                {
+                    _floaterBuffer[i] = Vector4.zero;
+                    continue;
+                }
+
+                var local = transform.InverseTransformPoint(floater.transform.position);
+                _floaterBuffer[i] = new Vector4(local.x, local.z, floater.FoamRadius, 1f);
+            }
+
+            _materialInstance.SetVectorArray(FloaterDataId, _floaterBuffer);
         }
 
         /// <summary>

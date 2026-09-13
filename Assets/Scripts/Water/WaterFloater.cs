@@ -24,8 +24,17 @@ namespace MixVerse
         [Tooltip("揺れを抑える強さ(減衰)。大きいほど早く静止する。0に近いほどいつまでも揺れ続ける。")]
         [SerializeField] private float _damping = 6f;
 
+        [Tooltip("水平方向(x, z)のうねりをどれだけ強調するか。1で計算どおり、大きいほど横に大きく揺れる。")]
+        [SerializeField] private float _horizontalInfluence = 3f;
+
+        [Tooltip("浮かんでいる位置の周りに出す白い泡の半径。")]
+        [SerializeField] private float _foamRadius = 0.35f;
+
         private Vector3 _anchor;
         private Vector3 _velocity;
+
+        /// <summary>浮かんでいる位置の周りに出す白い泡の半径。WaterWaveSurface が毎フレーム参照する。</summary>
+        public float FoamRadius => _foamRadius;
 
         private void Awake()
         {
@@ -37,6 +46,16 @@ namespace MixVerse
             _anchor = transform.position;
         }
 
+        private void OnEnable()
+        {
+            _surface?.RegisterFloater(this);
+        }
+
+        private void OnDisable()
+        {
+            _surface?.UnregisterFloater(this);
+        }
+
         // ばね・ダンパーの数値積分は刻み幅が一定のほうが安定するので FixedUpdate で行う。
         private void FixedUpdate()
         {
@@ -45,7 +64,11 @@ namespace MixVerse
                 return;
             }
 
-            var target = _anchor + _surface.SampleSurfaceOffset(_anchor) + (Vector3.up * _floatHeight);
+            var offset = _surface.SampleSurfaceOffset(_anchor);
+            offset.x *= _horizontalInfluence;
+            offset.z *= _horizontalInfluence;
+
+            var target = _anchor + offset + (Vector3.up * _floatHeight);
 
             var displacement = target - transform.position;
             var acceleration = (displacement * _stiffness) - (_velocity * _damping);
