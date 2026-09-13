@@ -38,8 +38,9 @@ Material:
     m_Ints: []
     m_Floats:
     - _BackWidth: 0.12
-    - _EdgeHighlightPower: 1.5
-    - _EdgeWidth: 0.05
+    - _EdgeHighlightIntensity: 0.7
+    - _EdgeHighlightPower: 3
+    - _PeelSpread: 1
     - _Progress: 0
     - _ShadowPower: 0.5
     - _ShadowWidth: 0.08
