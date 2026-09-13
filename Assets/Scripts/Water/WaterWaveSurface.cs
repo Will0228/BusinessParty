@@ -148,7 +148,6 @@ namespace MixVerse
 
         /// <summary>
         /// ワールド座標 worldPosition の x, z における、いまの水面の高さ(ワールドY)を返す。
-        /// 波に浮かぶオブジェクトなどが、自分のいる位置の水面に追従するために使う。
         /// </summary>
         public float SampleHeight(Vector3 worldPosition)
         {
@@ -162,6 +161,27 @@ namespace MixVerse
             var localSurfacePoint = new Vector3(local.x, height, local.z);
 
             return transform.TransformPoint(localSurfacePoint).y;
+        }
+
+        /// <summary>
+        /// ワールド座標 worldReference を基準に、いま波でどれだけ変位しているか(ワールド空間の
+        /// オフセット)を返す。上下だけでなく、震源から見た水平方向のうねりぶんも含む。
+        /// 波に浮かぶオブジェクトなどが、静止位置からの目標変位を求めるために使う。
+        /// </summary>
+        public Vector3 SampleSurfaceOffset(Vector3 worldReference)
+        {
+            if (_simulator == null)
+            {
+                return Vector3.zero;
+            }
+
+            var local = transform.InverseTransformPoint(worldReference);
+            var offset = _simulator.GetSurfaceOffset(new Vector2(local.x, local.z), Time.time);
+
+            var localSurfacePoint = new Vector3(local.x + offset.x, offset.y, local.z + offset.z);
+            var localFlatPoint = new Vector3(local.x, 0f, local.z);
+
+            return transform.TransformPoint(localSurfacePoint) - transform.TransformPoint(localFlatPoint);
         }
 
         private WaterWaveSettings BuildSettings()

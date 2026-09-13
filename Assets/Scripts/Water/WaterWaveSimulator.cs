@@ -143,32 +143,46 @@ namespace MixVerse
 
         /// <summary>
         /// いま持っている波紋から、ローカル座標 posXZ・時刻 time における水面の高さ(オブジェクト空間のY)を求める。
-        /// WaterWaveShaderURP.shader の AccumulateRipple と同じ式を CPU 側でも計算したもの
-        /// (浮かぶオブジェクトの追従などに使う)。シェーダー側を直すときはこちらも揃えること。
         /// </summary>
-        public float GetHeight(Vector2 localPosition, float time)
+        public float GetHeight(Vector2 localPosition, float time) => GetSurfaceOffset(localPosition, time).y;
+
+        /// <summary>
+        /// いま持っている波紋から、ローカル座標 posXZ・時刻 time における水面の変位を求める。
+        /// x, z が水平方向のうねり(震源から見て放射方向)、y が高さ。
+        ///
+        /// 波は水面の粒子を「円軌道」で動かす(水面波の粒子運動)。上下方向は Sin、
+        /// それと 90°ずれた水平方向は Cos になるので、高さと同じ envelope に
+        /// cos(位相) を掛けて震源から見た方向へ足し合わせている。
+        ///
+        /// WaterWaveShaderURP.shader の AccumulateRipple と高さの計算(sin の項)は揃えてあるが、
+        /// シェーダー側は頂点を上下にしか動かしていないため水平方向の変位は反映していない。
+        /// シェーダー側を直すときはこの高さの式だけでも揃えること。
+        /// </summary>
+        public Vector3 GetSurfaceOffset(Vector2 localPosition, float time)
         {
-            var height = 0f;
+            var offset = Vector3.zero;
 
             for (var i = 0; i < RippleMax; i++)
             {
-                height += EvaluateRippleHeight(_ripples[i], localPosition, time);
+                offset += EvaluateRippleOffset(_ripples[i], localPosition, time);
             }
 
-            return height;
+            return offset;
         }
 
-        private static float EvaluateRippleHeight(in WaterRipple ripple, Vector2 posXZ, float time)
+        private static Vector3 EvaluateRippleOffset(in WaterRipple ripple, Vector2 posXZ, float time)
         {
             var amplitude = ripple.Amplitude;
             var age = time - ripple.StartTime;
 
             if (amplitude <= 0f || age < 0f || age >= ripple.Life)
             {
-                return 0f;
+                return Vector3.zero;
             }
 
-            var r = Vector2.Distance(posXZ, ripple.LocalOrigin);
+            var delta = posXZ - ripple.LocalOrigin;
+            var r = delta.magnitude;
+            var dir = r > 1e-4f ? delta / r : Vector2.zero;
 
             var wavelength = ripple.Wavelength;
             var speed = ripple.Speed;
@@ -185,8 +199,12 @@ namespace MixVerse
             var timeDecay = Mathf.Pow(decayPerPeriod, age / Mathf.Max(period, 1e-4f));
 
             var envelope = amplitude * frontFade * spread * timeDecay;
+            var phase = (k * r) - (omega * age);
 
-            return envelope * Mathf.Sin((k * r) - (omega * age));
+            var height = envelope * Mathf.Sin(phase);
+            var horizontal = dir * (envelope * Mathf.Cos(phase));
+
+            return new Vector3(horizontal.x, height, horizontal.y);
         }
 
         /// <summary>HLSL の smoothstep(edge0, edge1, x) と同じ式。Mathf.SmoothStep とは引数の意味が違うので自前で持つ。</summary>
