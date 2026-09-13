@@ -708,7 +708,7 @@ Material:
     - _Smoothness: 0.75
     m_Colors:
     - _BaseColor: {r: 0.089999996, g: 0.32999998, b: 0.5, a: 1}
-    - _CrestColor: {r: 0.68, g: 0.88, b: 0.92, a: 1}
+    - _CrestColor: {r: 0.059362777, g: 0.36750096, b: 0.4339623, a: 1}
     - _FresnelColor: {r: 0.8, g: 0.92, b: 1, a: 1}
     - _SpecularColor: {r: 1, g: 1, b: 1, a: 1}
   m_BuildTextureStacks: []
