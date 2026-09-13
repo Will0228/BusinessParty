@@ -31,6 +31,13 @@ namespace MixVerse.Seal
         [Header("View")]
         [SerializeField] private SealPeelView _peelView;
 
+        [Header("Area")]
+        [Tooltip("演出を表示する範囲の幅・高さ（ピクセル）。")]
+        [SerializeField] private Vector2 _areaSize = new Vector2(400f, 400f);
+
+        [Tooltip("演出を表示する範囲の中心。画面中心からのオフセット（ピクセル）。")]
+        [SerializeField] private Vector2 _areaCenter = Vector2.zero;
+
         [Header("Timing")]
         [SerializeField] private float _duration = 1.2f;
 
@@ -106,22 +113,22 @@ namespace MixVerse.Seal
 
             try
             {
-                var width = Mathf.Max(1, camera.pixelWidth);
-                var height = Mathf.Max(1, camera.pixelHeight);
+                var pixelRect = ComputeAreaPixelRect(camera);
 
                 // A だけを表に出して撮る
                 SetActiveSafe(_objectGroupA, true);
                 SetActiveSafe(_objectGroupB, false);
-                topTexture = _capturer.Capture(camera, camera.cullingMask, width, height);
+                topTexture = _capturer.Capture(camera, camera.cullingMask, pixelRect);
 
                 // 入れ替えて B だけを撮る
                 SetActiveSafe(_objectGroupA, false);
                 SetActiveSafe(_objectGroupB, true);
-                bottomTexture = _capturer.Capture(camera, camera.cullingMask, width, height);
+                bottomTexture = _capturer.Capture(camera, camera.cullingMask, pixelRect);
 
                 // ここからは 2D 側が画面を覆うので、3D の実体はいったん両方隠しておく
                 SetActiveSafe(_objectGroupB, false);
 
+                _peelView.SetArea(_areaSize, _areaCenter);
                 _peelView.SetTextures(topTexture, bottomTexture);
                 _peelView.SetProgress(0f);
                 _peelView.Show();
@@ -147,6 +154,19 @@ namespace MixVerse.Seal
 
                 IsPlaying = false;
             }
+        }
+
+        /// <summary>
+        /// 画面中心を基準に、インスペクターで指定した幅・高さ・中心オフセットからピクセル矩形を求める。
+        /// </summary>
+        private Rect ComputeAreaPixelRect(Camera camera)
+        {
+            var width = Mathf.Max(1f, _areaSize.x);
+            var height = Mathf.Max(1f, _areaSize.y);
+            var centerX = (camera.pixelWidth * 0.5f) + _areaCenter.x;
+            var centerY = (camera.pixelHeight * 0.5f) + _areaCenter.y;
+
+            return new Rect(centerX - (width * 0.5f), centerY - (height * 0.5f), width, height);
         }
 
         private Camera GetCamera()

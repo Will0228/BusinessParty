@@ -105,8 +105,9 @@ namespace MixVerse.EditorTools
         }
 
         /// <summary>
-        /// 全画面の RawImage オーバーレイを作る。Home のスクラッチ演出と同じく
-        /// ScreenSpaceOverlay の Canvas の下に、四辺いっぱいに広げた RawImage を置く。
+        /// 決められた範囲だけに表示する RawImage オーバーレイを作る。Home のスクラッチ演出と違い、
+        /// 画面全体ではなく SealManager が指定した矩形にだけ演出を表示するため、
+        /// RectTransform は画面中心を基準にしたサイズ・位置指定にしておく（SetArea が上書きする）。
         /// </summary>
         private static SealPeelView BuildOverlay(out RawImage resultImage)
         {
@@ -132,10 +133,11 @@ namespace MixVerse.EditorTools
             imageObject.transform.SetParent(overlayObject.transform, false);
 
             var rectTransform = GetOrAddComponent<RectTransform>(imageObject);
-            rectTransform.anchorMin = Vector2.zero;
-            rectTransform.anchorMax = Vector2.one;
-            rectTransform.offsetMin = Vector2.zero;
-            rectTransform.offsetMax = Vector2.zero;
+            rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
+            rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
+            rectTransform.pivot = new Vector2(0.5f, 0.5f);
+            rectTransform.sizeDelta = new Vector2(400f, 400f);
+            rectTransform.anchoredPosition = Vector2.zero;
 
             resultImage = GetOrAddComponent<RawImage>(imageObject);
             resultImage.raycastTarget = false; // 演出専用。ボタン操作を邪魔しない

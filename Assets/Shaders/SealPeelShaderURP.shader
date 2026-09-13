@@ -2,8 +2,9 @@ Shader "Unlit/SealPeelShaderURP"
 {
     Properties
     {
-        // はがれる側（例：ObjectGroupA を撮ったスナップショット）
-        _TopTex ("Top Texture (Peeling)", 2D) = "white" {}
+        // はがれる側（例：ObjectGroupA を撮ったスナップショット）。
+        // RawImage が内部で _MainTex を要求するため、Top 側をこの名前にしている。
+        [MainTexture] _MainTex ("Top Texture (Peeling)", 2D) = "white" {}
         // はがした後に見える側（例：ObjectGroupB を撮ったスナップショット）
         _BottomTex ("Bottom Texture (Revealed)", 2D) = "white" {}
 
@@ -14,6 +15,11 @@ Shader "Unlit/SealPeelShaderURP"
         _PeelOrigin ("Peel Origin (UV)", Vector) = (0, 1, 0, 0)
         // はがれ始める角から対角の終点までの向きと距離（UV 空間、正規化しない）。既定は右下へ。
         _PeelDirection ("Peel Direction (UV)", Vector) = (1, -1, 0, 0)
+
+        [Header(Peeled Back Side)]
+        // シールをめくった直後、紙自体の裏面（シルバーの箔など）が一瞬見えるように色を挟む
+        _BackColor ("Peeled Back Color", Color) = (0.75, 0.76, 0.78, 1)
+        _BackWidth ("Peeled Back Width", Range(0.001, 0.5)) = 0.12
 
         [Header(Edge Look)]
         _EdgeWidth ("Edge Width", Range(0.001, 0.3)) = 0.05
@@ -63,8 +69,8 @@ Shader "Unlit/SealPeelShaderURP"
                 float4 color : COLOR;
             };
 
-            TEXTURE2D(_TopTex);
-            SAMPLER(sampler_TopTex);
+            TEXTURE2D(_MainTex);
+            SAMPLER(sampler_MainTex);
 
             TEXTURE2D(_BottomTex);
             SAMPLER(sampler_BottomTex);
@@ -72,6 +78,8 @@ Shader "Unlit/SealPeelShaderURP"
             float _Progress;
             float4 _PeelOrigin;
             float4 _PeelDirection;
+            float4 _BackColor;
+            float _BackWidth;
             float _EdgeWidth;
             float4 _EdgeHighlightColor;
             float _EdgeHighlightPower;
@@ -95,12 +103,17 @@ Shader "Unlit/SealPeelShaderURP"
                 float span = dot(_PeelDirection.xy, _PeelDirection.xy);
                 float t = saturate(dot(toPixel, _PeelDirection.xy) / max(span, 1e-6));
 
-                half4 topColor = SAMPLE_TEXTURE2D(_TopTex, sampler_TopTex, input.uv);
+                half4 topColor = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, input.uv);
                 half4 bottomColor = SAMPLE_TEXTURE2D(_BottomTex, sampler_BottomTex, input.uv);
 
                 // まだはがれていない（t が進捗より先の）部分は Top、はがれ終わった部分は Bottom
                 bool peeled = t < _Progress;
                 half4 baseColor = peeled ? bottomColor : topColor;
+
+                // まだはがれていない側のうち境界のすぐ手前は、めくれた紙自体の裏（シールの裏面）を見せる
+                float distanceFromBoundary = t - _Progress;
+                float backMask = 1.0 - saturate(distanceFromBoundary / max(_BackWidth, 1e-4));
+                baseColor.rgb = lerp(baseColor.rgb, _BackColor.rgb, peeled ? 0.0 : backMask);
 
                 // はがれた直後の Bottom 側に影を落として、めくれた紙の下にできる陰を表す。
                 // 境界から離れるほど（はがれてから時間が経つほど）薄くなる。
