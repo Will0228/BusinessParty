@@ -15,6 +15,7 @@ Shader "MixVerse/WaterWaveShaderURP"
 
         [Header(Floater Foam)]
         _FoamColor ("Foam Color", Color) = (0.95, 0.97, 1, 1)
+        _FoamOpacity ("Foam Opacity", Range(0, 1)) = 0.45
     }
 
     SubShader
@@ -76,6 +77,7 @@ Shader "MixVerse/WaterWaveShaderURP"
                 half4 _FresnelColor;
                 float _FresnelPower;
                 half4 _FoamColor;
+                float _FoamOpacity;
 
                 // xy = 波紋の中心(オブジェクト空間の X, Z), z = 発生時刻, w = 寿命(秒)
                 float4 _RippleData0[RIPPLE_MAX];
@@ -143,8 +145,10 @@ Shader "MixVerse/WaterWaveShaderURP"
             }
 
             /// <summary>
-            /// 浮遊物 1 個ぶんの、水面が白く泡立って見える寄与を足し込む。
-            /// 浮遊物の位置を中心にした柔らかい円で、中心が最も濃く、半径の外側で消える。
+            /// 浮遊物 1 個ぶんの、水面が泡立って見える寄与を足し込む。
+            /// 途中で平らになる部分を作らず、中心から縁まで一様になだらかに(2乗の減衰で)
+            /// 弱まっていくことで、水の色との境目がくっきり出ないようにしている。
+            /// 実際の色への反映は _FoamOpacity で頭打ちにするので、ここでは 0~1 の強さだけを返す。
             /// </summary>
             void AccumulateFoam(int index, float2 posXZ, inout float foam)
             {
@@ -157,10 +161,10 @@ Shader "MixVerse/WaterWaveShaderURP"
 
                 float2 floaterPos = _FloaterData[index].xy;
                 float radius = max(_FloaterData[index].z, 1e-4);
-                float dist = length(posXZ - floaterPos);
-                float ring = 1.0 - smoothstep(radius * 0.6, radius, dist);
+                float t = saturate(length(posXZ - floaterPos) / radius);
+                float falloff = (1.0 - t) * (1.0 - t);
 
-                foam = max(foam, ring * strength);
+                foam = max(foam, falloff * strength);
             }
 
             float EvaluateFoam(float2 posXZ)
@@ -224,8 +228,9 @@ Shader "MixVerse/WaterWaveShaderURP"
                 float crest = smoothstep(0.0, 1.0, crestAmount);
                 half3 albedo = lerp(_BaseColor.rgb, _CrestColor.rgb, crest);
 
-                // 浮遊物の周りだけ白く泡立たせて、何かが浮かんでいることを見た目で伝える。
-                float foam = EvaluateFoam(input.localXZ);
+                // 浮遊物の周りだけ泡立たせて、何かが浮かんでいることを見た目で伝える。
+                // 中心でも水の色をうっすら透かせたいので、_FoamOpacity で頭打ちにしてから混ぜる。
+                float foam = EvaluateFoam(input.localXZ) * _FoamOpacity;
                 albedo = lerp(albedo, _FoamColor.rgb, foam);
 
                 float nDotL = saturate(dot(normalWS, mainLight.direction));
