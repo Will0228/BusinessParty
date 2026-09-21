@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using MixVerse.Game.Model;
 using UnityEngine;
 
 namespace MixVerse.Game.Stage
@@ -13,7 +14,8 @@ namespace MixVerse.Game.Stage
 
         public Camera Camera { get; set; }
         public AudioListener Listener { get; set; }
-        public Transform NoteRoot { get; set; }
+        public StageLaneView LeftLane { get; set; }
+        public StageLaneView RightLane { get; set; }
         public StageActorView Player { get; set; }
         public StageActorView LeftCpu { get; set; }
         public StageActorView RightCpu { get; set; }
@@ -21,10 +23,11 @@ namespace MixVerse.Game.Stage
         public AudioSource ClickSource { get; set; }
         public AudioClip DownBeatClip { get; set; }
         public AudioClip BeatClip { get; set; }
-        public Material NoteMaterial { get; set; }
         public Vector3 NoteScale { get; set; }
         public float SpawnZ { get; set; }
         public float JudgeZ { get; set; }
+
+        public StageLaneView LaneOf(ChartLane lane) => lane == ChartLane.Left ? LeftLane : RightLane;
 
         public void RegisterGeneratedAsset(Object asset) => _generatedAssets.Add(asset);
 

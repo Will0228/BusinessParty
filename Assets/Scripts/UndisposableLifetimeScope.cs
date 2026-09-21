@@ -1,4 +1,5 @@
 using MixVerse.Game;
+using MixVerse.Game.Model;
 using MixVerse.Game.Stage;
 using MixVerse.Home;
 using UnityEngine;
@@ -30,6 +31,7 @@ namespace MixVerse
             builder.Register<GamePresenter>(Lifetime.Singleton).As<IGamePresenter>();
             builder.RegisterInstance(_gameView.Settings);
             builder.Register<RhythmStageFactory>(Lifetime.Singleton);
+            builder.Register<SteadyChartBuilder>(Lifetime.Singleton);
         }
     }
 }

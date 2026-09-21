@@ -1,3 +1,4 @@
+using MixVerse.Game.Model;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -6,7 +7,7 @@ namespace MixVerse.Game.Stage
 {
     /// <summary>
     /// 俯瞰視点のリズムゲームステージを実行時に組み立てる。
-    /// プレイヤーと CPU は一旦 Capsule で、判定ラインへ向かって奥から手前へノーツが流れる。
+    /// プレイヤーと CPU は一旦 Capsule で、左右 2 本のレーンを奥から手前へノーツが流れる。
     /// </summary>
     public sealed class RhythmStageFactory
     {
@@ -17,7 +18,8 @@ namespace MixVerse.Game.Stage
         private static readonly Color GroundColor = new Color(0.07f, 0.08f, 0.12f);
         private static readonly Color LaneColor = new Color(0.14f, 0.16f, 0.26f);
         private static readonly Color JudgeLineColor = new Color(1f, 0.85f, 0.3f);
-        private static readonly Color NoteColor = new Color(0.3f, 0.86f, 1f);
+        private static readonly Color LeftNoteColor = new Color(0.32f, 0.74f, 1f);
+        private static readonly Color RightNoteColor = new Color(1f, 0.55f, 0.42f);
         private static readonly Color PlayerColor = new Color(1f, 0.72f, 0.28f);
         private static readonly Color CpuColor = new Color(0.55f, 0.62f, 0.85f);
 
@@ -37,23 +39,16 @@ namespace MixVerse.Game.Stage
             var lit = FindShader(LitShaderName, "Standard");
 
             var groundMaterial = CreateMaterial(stage, unlit, GroundColor);
-            var laneMaterial = CreateMaterial(stage, unlit, LaneColor);
-            var judgeMaterial = CreateMaterial(stage, unlit, JudgeLineColor);
-            stage.NoteMaterial = CreateMaterial(stage, unlit, NoteColor);
 
             var groundDepth = settings.laneLength + 12f;
             var groundCenterZ = (stage.SpawnZ + settings.playerOffsetZ - 6f) * 0.5f;
             CreateBox(root.transform, "Ground", new Vector3(0f, -0.1f, groundCenterZ),
-                new Vector3(settings.cpuSpacing * 4f + settings.laneWidth, 0.2f, groundDepth), groundMaterial);
+                new Vector3(settings.cpuSpacing * 4f + settings.LaneWidthTotal, 0.2f, groundDepth), groundMaterial);
 
-            CreateBox(root.transform, "Lane", new Vector3(0f, 0.005f, settings.laneLength * 0.5f),
-                new Vector3(settings.laneWidth, 0.02f, settings.laneLength), laneMaterial);
-
-            CreateBox(root.transform, "JudgeLine", new Vector3(0f, 0.02f, stage.JudgeZ),
-                new Vector3(settings.laneWidth * 1.35f, 0.04f, 0.28f), judgeMaterial);
-
-            stage.NoteRoot = new GameObject("Notes").transform;
-            stage.NoteRoot.SetParent(root.transform, false);
+            stage.LeftLane = CreateLane(stage, root.transform, settings, "LaneLeft", -settings.LaneOffsetX, unlit,
+                LeftNoteColor);
+            stage.RightLane = CreateLane(stage, root.transform, settings, "LaneRight", settings.LaneOffsetX, unlit,
+                RightNoteColor);
 
             stage.Player = CreateActor(stage, root.transform, "Player",
                 new Vector3(0f, 0f, settings.playerOffsetZ), PlayerColor, lit);
@@ -76,10 +71,33 @@ namespace MixVerse.Game.Stage
             return stage;
         }
 
-        public NoteView CreateNote(RhythmStageView stage)
+        public NoteView CreateNote(RhythmStageView stage, ChartLane lane)
         {
-            var note = CreateBox(stage.NoteRoot, "Note", Vector3.zero, stage.NoteScale, stage.NoteMaterial);
+            var view = stage.LaneOf(lane);
+            var note = CreateBox(view.NoteRoot, "Note", Vector3.zero, stage.NoteScale, view.NoteMaterial);
             return note.AddComponent<NoteView>();
+        }
+
+        private StageLaneView CreateLane(RhythmStageView stage, Transform parent, RhythmGameSettings settings,
+            string name, float offsetX, Shader unlit, Color noteColor)
+        {
+            var root = new GameObject(name);
+            root.transform.SetParent(parent, false);
+            root.transform.localPosition = new Vector3(offsetX, 0f, 0f);
+
+            CreateBox(root.transform, "Floor", new Vector3(0f, 0.005f, settings.laneLength * 0.5f),
+                new Vector3(settings.laneWidth, 0.02f, settings.laneLength), CreateMaterial(stage, unlit, LaneColor));
+
+            var judgeMaterial = CreateMaterial(stage, unlit, JudgeLineColor);
+            CreateBox(root.transform, "JudgeLine", new Vector3(0f, 0.02f, stage.JudgeZ),
+                new Vector3(settings.laneWidth * 1.05f, 0.04f, 0.28f), judgeMaterial);
+
+            var notes = new GameObject("Notes").transform;
+            notes.SetParent(root.transform, false);
+
+            var lane = root.AddComponent<StageLaneView>();
+            lane.Initialize(notes, CreateMaterial(stage, unlit, noteColor), judgeMaterial, JudgeLineColor, noteColor);
+            return lane;
         }
 
         private Camera CreateCamera(RhythmGameSettings settings, Transform parent)

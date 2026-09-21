@@ -53,6 +53,17 @@ namespace MixVerse.Game.Stage
             _judgementElapsed = 0f;
         }
 
+        /// <summary>譜面を流し終えたときの表示。判定の文字はここで止めて残す。</summary>
+        public void ShowResult(ScoreBoard score)
+        {
+            _judgementLabel.text = "FINISH";
+            _judgementLabel.color = Color.white;
+            _judgementElapsed = JudgementHoldSeconds;
+            _hintLabel.text =
+                $"SCORE {score.Score}　MAX COMBO {score.MaxCombo}　" +
+                $"PERFECT {score.PerfectCount} / GOOD {score.GoodCount} / MISS {score.MissCount}　　ESC でホームへ戻る";
+        }
+
         private Color ColorOf(NoteJudgement judgement)
         {
             switch (judgement)

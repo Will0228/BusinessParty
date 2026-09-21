@@ -13,14 +13,24 @@ namespace MixVerse.Game
 {
     public sealed class GameView : MonoBehaviour
     {
-        private const string HintText = "SPACE / F / J でノーツを叩く　　ESC でホームへ戻る";
+        private const string HintText = "F / ← で左のノーツ　J / → で右のノーツ　　ESC でホームへ戻る";
+
+        [Tooltip("譜面エディタで作った譜面。未設定なら 4 分で左右交互の仮譜面を流す。")]
+        [SerializeField] private NoteChartAsset _chart;
 
         [SerializeField] private RhythmGameSettings _settings = new RhythmGameSettings();
 
-        private readonly Subject<Unit> _onHitInput = new Subject<Unit>();
+        private readonly Subject<ChartLane> _onHitInput = new Subject<ChartLane>();
         private readonly Subject<Unit> _onExitRequested = new Subject<Unit>();
         private readonly Dictionary<int, NoteView> _liveNotes = new Dictionary<int, NoteView>();
-        private readonly Stack<NoteView> _pooledNotes = new Stack<NoteView>();
+
+        private readonly Dictionary<ChartLane, Stack<NoteView>> _pooledNotes =
+            new Dictionary<ChartLane, Stack<NoteView>>
+            {
+                { ChartLane.Left, new Stack<NoteView>() },
+                { ChartLane.Right, new Stack<NoteView>() },
+            };
+
         private readonly List<Camera> _suspendedCameras = new List<Camera>();
         private readonly List<AudioListener> _suspendedListeners = new List<AudioListener>();
         private readonly List<Behaviour> _suspendedTesters = new List<Behaviour>();
@@ -32,7 +42,8 @@ namespace MixVerse.Game
         private bool _inputEnabled;
 
         public RhythmGameSettings Settings => _settings;
-        public Observable<Unit> OnHitInput => _onHitInput;
+        public NoteChartAsset Chart => _chart;
+        public Observable<ChartLane> OnHitInput => _onHitInput;
         public Observable<Unit> OnExitRequested => _onExitRequested;
 
         [Inject]
@@ -55,11 +66,12 @@ namespace MixVerse.Game
                 _tween.ValueAsync(1f, 0f, _settings.fadeDuration, token, _stage.Hud.SetFadeAlpha));
         }
 
-        public int SpawnNote(double hitTime)
+        public int SpawnNote(ChartLane lane, double hitTime, double leadSeconds)
         {
-            var note = _pooledNotes.Count > 0 ? _pooledNotes.Pop() : _factory.CreateNote(_stage);
+            var pool = _pooledNotes[lane];
+            var note = pool.Count > 0 ? pool.Pop() : _factory.CreateNote(_stage, lane);
             _lastNoteId++;
-            note.Initialize(_lastNoteId, hitTime, _settings.NoteLeadSeconds, _stage.SpawnZ, _stage.JudgeZ);
+            note.Initialize(_lastNoteId, hitTime, leadSeconds, _stage.SpawnZ, _stage.JudgeZ);
             _liveNotes.Add(_lastNoteId, note);
             return _lastNoteId;
         }
@@ -72,7 +84,7 @@ namespace MixVerse.Game
             }
         }
 
-        public void ReleaseNote(int id)
+        public void ReleaseNote(ChartLane lane, int id)
         {
             if (!_liveNotes.TryGetValue(id, out var note))
             {
@@ -81,7 +93,7 @@ namespace MixVerse.Game
 
             _liveNotes.Remove(id);
             note.Release();
-            _pooledNotes.Push(note);
+            _pooledNotes[lane].Push(note);
         }
 
         public void PlayBeat(int beatIndex)
@@ -97,14 +109,24 @@ namespace MixVerse.Game
             _stage.ClickSource.PlayOneShot(beatIndex % 4 == 0 ? _stage.DownBeatClip : _stage.BeatClip);
         }
 
-        public void ShowJudgement(NoteJudgement judgement)
+        public void ShowJudgement(ChartLane lane, NoteJudgement judgement)
         {
             _stage.Hud.ShowJudgement(judgement);
 
-            if (judgement != NoteJudgement.Miss)
+            if (judgement == NoteJudgement.Miss)
             {
-                _stage.Player.Bounce();
+                return;
             }
+
+            _stage.Player.Bounce();
+            _stage.LaneOf(lane).Flash();
+        }
+
+        /// <summary>譜面を流し終えたら入力を閉じて、成績を出す。</summary>
+        public void ShowResult(ScoreBoard score)
+        {
+            _inputEnabled = false;
+            _stage.Hud.ShowResult(score);
         }
 
         public void SetScore(int score, int combo) => _stage.Hud.SetScore(score, combo);
@@ -113,7 +135,11 @@ namespace MixVerse.Game
         {
             _inputEnabled = false;
             _liveNotes.Clear();
-            _pooledNotes.Clear();
+
+            foreach (var pool in _pooledNotes.Values)
+            {
+                pool.Clear();
+            }
 
             if (_stage != null)
             {
@@ -209,10 +235,14 @@ namespace MixVerse.Game
                 return;
             }
 
-            if (keyboard.spaceKey.wasPressedThisFrame || keyboard.fKey.wasPressedThisFrame ||
-                keyboard.jKey.wasPressedThisFrame)
+            if (keyboard.fKey.wasPressedThisFrame || keyboard.leftArrowKey.wasPressedThisFrame)
             {
-                _onHitInput.OnNext(Unit.Default);
+                _onHitInput.OnNext(ChartLane.Left);
+            }
+
+            if (keyboard.jKey.wasPressedThisFrame || keyboard.rightArrowKey.wasPressedThisFrame)
+            {
+                _onHitInput.OnNext(ChartLane.Right);
             }
         }
 

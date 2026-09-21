@@ -27,7 +27,11 @@ namespace MixVerse.Game
         public Vector3 stageOrigin = new Vector3(0f, 1000f, 0f);
 
         [Min(8f)] public float laneLength = 32f;
+
+        [Tooltip("レーン 1 本ぶんの幅。左右で 2 本並べる。")]
         [Min(0.5f)] public float laneWidth = 3f;
+
+        [Min(0f)] public float laneGap = 0.6f;
 
         [Tooltip("判定ラインから見たプレイヤーの位置。手前へずらすとより画面下に映る。")]
         public float playerOffsetZ = -1.2f;
@@ -44,8 +48,10 @@ namespace MixVerse.Game
         [Min(0f)] public float fadeDuration = 0.6f;
         public bool playMetronome = true;
 
-        public float SecondsPerBeat => 60f / bpm;
-        public float NoteLeadSeconds => noteLeadBeats * SecondsPerBeat;
+        /// <summary>レーンの中心が原点から左右へ離れている距離。</summary>
+        public float LaneOffsetX => (laneWidth + laneGap) * 0.5f;
+
+        public float LaneWidthTotal => laneWidth * 2f + laneGap;
 
         public void Validate()
         {
@@ -56,6 +62,7 @@ namespace MixVerse.Game
             goodSeconds = Mathf.Max(perfectSeconds, goodSeconds);
             laneLength = Mathf.Max(8f, laneLength);
             laneWidth = Mathf.Max(0.5f, laneWidth);
+            laneGap = Mathf.Max(0f, laneGap);
             cpuSpacing = Mathf.Max(1f, cpuSpacing);
             cameraHeight = Mathf.Max(1f, cameraHeight);
             cameraDistance = Mathf.Max(0f, cameraDistance);

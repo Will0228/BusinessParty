@@ -48,6 +48,26 @@ namespace MixVerse.Game
             return chart;
         }
 
+        /// <summary>インゲームで流せるよう、ステップを曲頭からの秒へ直す。</summary>
+        public List<TimedNote> ToTimedNotes(BeatClock clock, double offsetSeconds)
+        {
+            if (clock == null)
+            {
+                throw new ArgumentNullException(nameof(clock));
+            }
+
+            var grid = CreateGrid();
+            var sorted = CreateChart().ToSortedList();
+            var notes = new List<TimedNote>(sorted.Count);
+
+            foreach (var note in sorted)
+            {
+                notes.Add(new TimedNote(note.Lane, grid.TimeOfStep(clock, note.Step) + offsetSeconds));
+            }
+
+            return notes;
+        }
+
         public void Write(ChartGrid grid, float bpm, EditableNoteChart chart)
         {
             if (grid == null)

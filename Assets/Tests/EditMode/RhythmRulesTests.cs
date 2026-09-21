@@ -20,21 +20,46 @@ namespace MixVerse.Game.Model.Tests
         }
 
         [Test]
-        public void ChartHandsOutOneNotePerBeatOnceItsLeadTimeArrives()
+        public void NotesComeOutOnceTheirLeadTimeArrives()
         {
-            var clock = new BeatClock(130);
-            var chart = new NoteChart(clock, 8);
-            var lead = clock.SecondsPerBeat * 4;
+            var sequence = new NoteSequence(new[]
+            {
+                new TimedNote(ChartLane.Right, 4d),
+                new TimedNote(ChartLane.Left, 2d),
+            });
 
-            Assert.That(chart.TryDequeue(clock.TimeOfBeat(8) - lead - 0.001, lead, out _), Is.False);
-            Assert.That(chart.TryDequeue(clock.TimeOfBeat(8) - lead, lead, out var first), Is.True);
-            Assert.That(first, Is.EqualTo(clock.TimeOfBeat(8)).Within(Tolerance));
+            Assert.That(sequence.Count, Is.EqualTo(2));
+            Assert.That(sequence.LastHitTime, Is.EqualTo(4d).Within(Tolerance));
 
-            Assert.That(chart.TryDequeue(clock.TimeOfBeat(9) - lead, lead, out var second), Is.True);
-            Assert.That(second - first, Is.EqualTo(clock.SecondsPerBeat).Within(Tolerance));
+            Assert.That(sequence.TryDequeue(0.199, 1.8, out _), Is.False);
+            Assert.That(sequence.TryDequeue(0.2, 1.8, out var first), Is.True);
+            Assert.That(first.Lane, Is.EqualTo(ChartLane.Left));
+            Assert.That(sequence.IsFinished, Is.False);
 
-            chart.Reset();
-            Assert.That(chart.NextBeatIndex, Is.EqualTo(8));
+            Assert.That(sequence.TryDequeue(2.2, 1.8, out var second), Is.True);
+            Assert.That(second.Lane, Is.EqualTo(ChartLane.Right));
+            Assert.That(sequence.IsFinished, Is.True);
+            Assert.That(sequence.TryDequeue(10d, 1.8, out _), Is.False);
+
+            sequence.Reset();
+            Assert.That(sequence.IsFinished, Is.False);
+        }
+
+        [Test]
+        public void TheFallbackChartKeepsTheBeatAndAlternatesLanes()
+        {
+            var clock = new BeatClock(120);
+            var sequence = new SteadyChartBuilder().Build(clock, 4, 2d);
+
+            Assert.That(sequence.Count, Is.EqualTo(4));
+
+            Assert.That(sequence.TryDequeue(10d, 0d, out var first), Is.True);
+            Assert.That(first.Lane, Is.EqualTo(ChartLane.Left));
+            Assert.That(first.HitTime, Is.EqualTo(2d).Within(Tolerance));
+
+            Assert.That(sequence.TryDequeue(10d, 0d, out var second), Is.True);
+            Assert.That(second.Lane, Is.EqualTo(ChartLane.Right));
+            Assert.That(second.HitTime, Is.EqualTo(2.5d).Within(Tolerance));
         }
 
         [TestCase(0d, NoteJudgement.Perfect)]
