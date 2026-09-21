@@ -54,10 +54,12 @@ import 先のフォルダ名は上記から変えないこと。変えると GUI
 
 ## 既知の未解決参照（対応不要）
 
-以下は clone の失敗ではなく、元アセットやベイク結果が最初から含まれていないもの。警告が出ても無視してよい。
+以下は clone の失敗ではなく、元アセットやベイク結果、テンプレートの残骸が最初から含まれていないもの。
+`セットアップ状況を確認` ウィンドウの参照切れ一覧に出てきても無視してよい。
 
 - `Assets/SimpleHands/Prefabs/*.prefab` の AnimatorController
 - `Assets/Ishikawa1116/.../DemoScene_sample.unity` の LightingDataAsset
+- `Assets/Settings/DefaultVolumeProfile.asset` と `Assets/Settings/PC_Renderer.asset`（URP テンプレート由来）
 
 ## うまくいかないとき
 
