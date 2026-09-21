@@ -69,10 +69,9 @@ crashlytics-build.properties
 # Packed Addressables
 #/[Aa]ssets/[Aa]ddressable[Aa]ssets[Dd]ata/*/*.bin*
 
-# NuGetForUnity が Assets/packages.config から自動復元するため追跡しない
-# （プロジェクトを開くかコードが再コンパイルされるたびに Restore が走る）
-/[Aa]ssets/[Pp]ackages/
-/[Aa]ssets/[Pp]ackages.meta
+# NuGetForUnity が復元する DLL は追跡する。
+# 追跡しないと clone 直後の初回インポートで R3 本体が存在せず、
+# Packages/com.cysharp.r3 が CS0246 で大量に失敗する（復元前にコンパイルが走るため）。
 
 # VContainer / UniTask / R3 は Packages/manifest.json の git URL から解決する。
 # Packages/ 直下に展開された embedded コピーは冗長なので追跡しない。
