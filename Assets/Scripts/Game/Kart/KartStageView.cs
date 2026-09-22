@@ -27,6 +27,7 @@ namespace MixVerse.Game.Kart
         public TextMeshProUGUI ModalBody;
         public TextMeshProUGUI ActionLabel;
         public GameObject Modal;
+        public GameObject RaceHud;
         public Button ActionButton;
         public Button ExitButton;
         public Image Progress;
@@ -36,6 +37,7 @@ namespace MixVerse.Game.Kart
         public AudioSource Audio;
         public AudioClip RadioClip;
         public AudioClip AlertClip;
+        public ParticleSystem[] DriftSparks;
         public readonly List<Object> GeneratedAssets = new List<Object>();
         public readonly Dictionary<int, Transform> ObjectViews = new Dictionary<int, Transform>();
         public readonly Dictionary<int, KartExplosionView> Explosions = new Dictionary<int, KartExplosionView>();
@@ -47,8 +49,12 @@ namespace MixVerse.Game.Kart
         private RacePhase _lastPhase;
         private readonly List<int> _expired = new List<int>();
         private readonly HashSet<int> _seen = new HashSet<int>();
+        private readonly List<Transform> _resultRockets = new List<Transform>();
+        private readonly List<Vector3> _rocketStarts = new List<Vector3>();
+        private readonly HashSet<int> _rocketImpacts = new HashSet<int>();
         private KartRaceSettings _settings;
         private bool _debug;
+        private bool _worldLabelsHidden;
         private readonly string[] _sectionNames = { "01  市街地", "02  峠の上り", "03  ギャラリー", "04  トンネル", "05  連続ヘアピン", "06  ゴール前直線" };
         private readonly string[] _racerNames = { "あなた", "上司", "部下" };
 
@@ -73,22 +79,63 @@ namespace MixVerse.Game.Kart
             {
                 var racer = race.Racers[i];
                 var position = Point(racer.Distance, racer.Lane);
-                Karts[i].localPosition = position + Vector3.up * 0.45f;
-                var roll = racer.DisabledSeconds > 0f && !racer.IsSpinning ? 80f + Mathf.Sin(race.Time * 10f) * 12f : 0f;
+                var trackRotation = DirectionAt(racer.Distance);
                 var spin = racer.DisabledSeconds > 0f && racer.IsSpinning ? race.Time * 650f : 0f;
-                Karts[i].localRotation = DirectionAt(racer.Distance) * Quaternion.Euler(0f, spin, roll);
+                var knockbackOffset = Vector3.zero;
+                var knockbackTumble = Quaternion.identity;
+                if (racer.DisabledSeconds > 0f && !racer.IsSpinning)
+                {
+                    var total = _settings.knockbackFlightSeconds + _settings.knockbackRecoverySeconds;
+                    var elapsed = Mathf.Max(0f, total - racer.DisabledSeconds);
+                    var flightT = Mathf.Clamp01(elapsed / _settings.knockbackFlightSeconds);
+                    var side = racer.Lane >= 0f ? 1f : -1f;
+                    if (racer.IsCourseOut)
+                    {
+                        var fallT = Mathf.Clamp01((elapsed - _settings.knockbackFlightSeconds * 0.4f) / (_settings.knockbackFlightSeconds * 0.6f));
+                        var spinProgress = elapsed / _settings.knockbackFlightSeconds;
+                        knockbackOffset = new Vector3(side * flightT * flightT * 7f, Mathf.Sin(flightT * Mathf.PI * 0.6f) * 5f - fallT * fallT * 9f, -flightT * 2f);
+                        knockbackTumble = Quaternion.Euler(spinProgress * 610f, 0f, spinProgress * 430f * side);
+                    }
+                    else
+                    {
+                        var grounded = elapsed >= _settings.knockbackFlightSeconds;
+                        knockbackOffset = new Vector3(Mathf.Sin(flightT * Mathf.PI) * side * 1.4f, Mathf.Sin(flightT * Mathf.PI) * 4f, -Mathf.Sin(flightT * Mathf.PI) * 1.2f);
+                        knockbackTumble = grounded
+                            ? Quaternion.Euler(0f, 0f, 78f + Mathf.Sin(race.Time * 10f) * 10f)
+                            : Quaternion.Euler(flightT * 420f, 0f, flightT * 300f * side);
+                    }
+                }
+                if (race.ResultScene == FailureScene.Distance && i == (int)RacerId.Player && race.ResultTime >= 0.8f)
+                {
+                    var flight = Mathf.Clamp01((race.ResultTime - 0.8f) / 1.8f);
+                    knockbackOffset = new Vector3(14f * flight, Mathf.Sin(flight * Mathf.PI) * 12f, -8f * flight);
+                    knockbackTumble = Quaternion.Euler(flight * 1440f, flight * 550f, flight * 1080f);
+                }
+                if (race.ResultScene == FailureScene.BossHit && i == (int)RacerId.Boss)
+                {
+                    var flight = Mathf.Clamp01(race.ResultTime / 1.5f);
+                    knockbackOffset = new Vector3(-11f * flight, Mathf.Sin(flight * Mathf.PI) * 9f, -5f * flight);
+                    knockbackTumble = Quaternion.Euler(flight * 900f, flight * 340f, -flight * 720f);
+                }
+                Karts[i].localPosition = position + Vector3.up * 0.45f + trackRotation * knockbackOffset;
+                Karts[i].localRotation = trackRotation * Quaternion.Euler(0f, spin, 0f) * knockbackTumble;
+                Tags[i].gameObject.SetActive(race.Phase == RacePhase.Racing);
                 Tags[i].localPosition = position + Vector3.up * 3.2f;
                 Tags[i].rotation = Camera.transform.rotation;
                 TagLabels[i].text = $"{race.Rank(racer)}  {_racerNames[i]}";
             }
-            var focus = Point(race.Player.Distance);
-            var direction = DirectionAt(race.Player.Distance);
+            var followBoss = race.ResultScene == FailureScene.BossHit;
+            var focusRacer = followBoss ? race.Boss : race.Player;
+            var focus = race.Phase == RacePhase.Failed ? Karts[(int)focusRacer.Id].localPosition : Point(race.Player.Distance);
+            var direction = DirectionAt(focusRacer.Distance);
             Camera.transform.localPosition = focus + direction * new Vector3(0f, 11f, -17f);
-            Camera.transform.LookAt(transform.TransformPoint(focus + direction * new Vector3(0f, 0f, 13f)));
+            Camera.transform.LookAt(transform.TransformPoint(focus + direction * new Vector3(0f, 0f, race.Phase == RacePhase.Failed ? 2f : 13f)));
             Camera.backgroundColor = race.SectionAt(race.Player.Distance) == CourseSection.Tunnel ? new Color(0.025f, 0.035f, 0.06f) : new Color(0.28f, 0.48f, 0.62f);
             foreach (var gate in Gates) gate.Value.SetActive(gate.Key > race.Player.Distance + 15f);
             RenderObjects(race);
+            RenderResultBarrage(race);
             RenderExplosionImpact();
+            UpdateDriftSparks(race);
             var ranks = new string[3];
             foreach (var racer in race.Racers)
             {
@@ -119,7 +166,11 @@ namespace MixVerse.Game.Kart
             TailgateZone.gameObject.SetActive(_debug);
             TailgateZone.localPosition = Point(race.Boss.Distance - _settings.tailgateDistance * 0.5f, race.Boss.Lane) + Vector3.up * 0.05f;
             TailgateZone.localRotation = DirectionAt(race.Boss.Distance);
-            Modal.SetActive(ready || countdown > 0f || race.Phase != RacePhase.Racing);
+            var result = !ready && countdown <= 0f && race.Phase != RacePhase.Racing;
+            RaceHud.SetActive(!result);
+            SetWorldLabelsVisible(!result);
+            ConfigureModal(result);
+            Modal.SetActive(ready || countdown > 0f || result);
             ActionButton.gameObject.SetActive(countdown <= 0f);
             ExitButton.gameObject.SetActive(countdown <= 0f);
             if (ready)
@@ -136,10 +187,8 @@ namespace MixVerse.Game.Kart
             else if (race.Phase != RacePhase.Racing)
             {
                 ModalTitle.text = race.Phase == RacePhase.Cleared ? "接待成功！" : "接待失敗";
-                ModalBody.text = race.ResultReason + $"\n\n走行時間 {race.Time:0.0} 秒   /   部下への攻撃 {race.Attacks} 回\n" +
-                    (race.Boss.Finished ? $"上司と2位の着差 {race.FinishGap:0.00} 秒\n" : "") +
-                    (race.CameraEvidence.Count > 0 ? "\n監視記録：" + string.Join(" / ", race.CameraEvidence) : "") + "\n\n" + FailureHint(race.ResultReason);
-                ActionLabel.text = "もう一度接待する  [ R / ENTER ]";
+                ModalBody.text = race.ResultReason;
+                ActionLabel.text = "もう一度プレイする";
             }
             if (race.SlipRemaining > _lastSlip + 1f) Audio.PlayOneShot(RadioClip, 0.6f);
             if (race.Attacks > _lastAttacks) Audio.PlayOneShot(AlertClip, 0.35f);
@@ -149,13 +198,28 @@ namespace MixVerse.Game.Kart
             _lastPhase = race.Phase;
         }
 
-        private string FailureHint(string reason)
+        private void ConfigureModal(bool result)
         {
-            if (reason.Contains("距離")) return "部下を放置せず、止めすぎず。距離が70mを超えたら調整を。";
-            if (reason.Contains("接触") || reason.Contains("煽")) return "上司の横を通るときは車線を空け、真後ろに居続けないように。";
-            if (reason.Contains("1位") || reason.Contains("着差")) return "最後は上司を先に通し、あなたか部下が3秒以内にゴール。";
-            if (reason.Contains("失言")) return "部下の前に出て速度を落とすブロッキングも攻撃になります。";
-            return "ギャラリーでは丁寧に走行。ロケランは上司から離して使いましょう。";
+            ((RectTransform)Modal.transform).sizeDelta = result ? new Vector2(650f, 290f) : new Vector2(1100f, 650f);
+            ModalTitle.rectTransform.sizeDelta = result ? new Vector2(600f, 65f) : new Vector2(1000f, 90f);
+            ModalTitle.rectTransform.anchoredPosition = result ? new Vector2(0f, -26f) : new Vector2(0f, -40f);
+            ModalBody.rectTransform.sizeDelta = result ? new Vector2(600f, 90f) : new Vector2(1000f, 370f);
+            ModalBody.rectTransform.anchoredPosition = result ? new Vector2(0f, 12f) : new Vector2(0f, 18f);
+            ((RectTransform)ActionButton.transform).sizeDelta = result ? new Vector2(260f, 58f) : new Vector2(610f, 60f);
+            ((RectTransform)ActionButton.transform).anchoredPosition = result ? new Vector2(-145f, 22f) : new Vector2(-145f, 45f);
+            ActionLabel.rectTransform.sizeDelta = result ? new Vector2(250f, 58f) : new Vector2(610f, 60f);
+            ((RectTransform)ExitButton.transform).sizeDelta = result ? new Vector2(260f, 58f) : new Vector2(235f, 60f);
+            ((RectTransform)ExitButton.transform).anchoredPosition = result ? new Vector2(145f, 22f) : new Vector2(335f, 45f);
+            var exitLabel = ExitButton.GetComponentInChildren<TextMeshProUGUI>();
+            exitLabel.rectTransform.sizeDelta = result ? new Vector2(250f, 58f) : new Vector2(235f, 60f);
+            exitLabel.text = result ? "ホームに戻る" : "ホームへ [ ESC ]";
+        }
+
+        private void SetWorldLabelsVisible(bool visible)
+        {
+            if (_worldLabelsHidden == !visible) return;
+            _worldLabelsHidden = !visible;
+            foreach (var label in GetComponentsInChildren<TextMeshPro>(true)) label.enabled = visible;
         }
 
         public string ItemName(KartItem item)
@@ -200,6 +264,66 @@ namespace MixVerse.Game.Kart
             }
         }
 
+        private void RenderResultBarrage(KartRace race)
+        {
+            if (race.ResultScene != FailureScene.Distance) return;
+            if (_resultRockets.Count == 0)
+            {
+                for (var i = 0; i < 18; i++)
+                {
+                    var rocket = Factory.CreateResultRocket();
+                    var x = 0.1f + ((i * 7) % 17) / 21f;
+                    var start = Camera.ViewportToWorldPoint(new Vector3(x, 1.12f + (i % 3) * 0.09f, 31f));
+                    _resultRockets.Add(rocket);
+                    _rocketStarts.Add(transform.InverseTransformPoint(start));
+                }
+            }
+            for (var i = 0; i < _resultRockets.Count; i++)
+            {
+                var rocket = _resultRockets[i];
+                var flight = (race.ResultTime - i * 0.055f) / 0.62f;
+                rocket.gameObject.SetActive(flight >= 0f && flight < 1f);
+                if (flight < 0f) continue;
+                var target = Karts[(int)RacerId.Player].localPosition + Vector3.up * 0.5f;
+                if (flight >= 1f)
+                {
+                    if (i % 3 == 0 && _rocketImpacts.Add(i))
+                    {
+                        var id = -100 - i;
+                        var explosion = Factory.CreateResultExplosion(id, target);
+                        ObjectViews.Add(id, explosion.transform);
+                        Explosions.Add(id, explosion);
+                    }
+                    continue;
+                }
+                rocket.localPosition = Vector3.Lerp(_rocketStarts[i], target, Mathf.Clamp01(flight));
+                rocket.localRotation = Quaternion.LookRotation(target - rocket.localPosition, Vector3.up);
+            }
+        }
+
+        // マリオカート同様、ドリフトの溜め具合（DriftTier）で火花の色を白→水色→オレンジと変える
+        private static readonly Color[] DriftSparkColors =
+        {
+            new Color(0.92f, 0.92f, 0.97f),
+            new Color(0.35f, 0.75f, 1f),
+            new Color(1f, 0.55f, 0.1f),
+        };
+
+        private void UpdateDriftSparks(KartRace race)
+        {
+            if (DriftSparks == null) return;
+            var active = race.Phase == RacePhase.Racing && race.IsDrifting;
+            var color = DriftSparkColors[race.DriftTier];
+            foreach (var spark in DriftSparks)
+            {
+                var emission = spark.emission;
+                emission.enabled = active;
+                if (!active) continue;
+                var main = spark.main;
+                main.startColor = color;
+            }
+        }
+
         private void RenderExplosionImpact()
         {
             var impact = 0f;
@@ -216,6 +340,10 @@ namespace MixVerse.Game.Kart
 
         public void ResetObjects()
         {
+            foreach (var rocket in _resultRockets) if (rocket != null) Destroy(rocket.gameObject);
+            _resultRockets.Clear();
+            _rocketStarts.Clear();
+            _rocketImpacts.Clear();
             foreach (var view in ObjectViews.Values) if (view != null) Destroy(view.gameObject);
             ObjectViews.Clear();
             Explosions.Clear();

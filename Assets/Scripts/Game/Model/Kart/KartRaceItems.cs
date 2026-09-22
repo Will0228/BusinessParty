@@ -100,9 +100,9 @@ namespace MixVerse.Game.Model.Kart
                     else if (obj.Kind == TrackObjectKind.Papers && (obj.Owner != racer.Id || obj.Lifetime < _settings.paperLifetime - 1f))
                     {
                         obj.Active = false;
-                        Disable(racer, true);
+                        Disable(racer, racer.Id != RacerId.Boss);
                         if (obj.Owner == RacerId.Player && racer.Id == RacerId.Junior) RegisterAttack("書類でスピンさせました");
-                        if (obj.Owner == RacerId.Player && racer.Id == RacerId.Boss) Fail("上司があなたの書類でスピンしました");
+                        if (obj.Owner == RacerId.Player && racer.Id == RacerId.Boss) Fail("上司があなたの書類で吹き飛びました", FailureScene.BossHit);
                         if (racer.Id == RacerId.Player) RecordMisconduct("スピンが見つかりました");
                     }
                     if (!obj.Active) break;
@@ -161,7 +161,7 @@ namespace MixVerse.Game.Model.Kart
             {
                 if (racer.Finished || DistanceSquared(racer.Distance, racer.Lane, rocket.Distance, rocket.Lane) > _settings.explosionRadius * _settings.explosionRadius) continue;
                 Disable(racer, false);
-                if (rocket.Owner == RacerId.Player && racer.Id == RacerId.Boss) Fail("ロケランの爆発に上司を巻き込みました");
+                if (rocket.Owner == RacerId.Player && racer.Id == RacerId.Boss) Fail("ロケランの爆発に上司を巻き込みました", FailureScene.BossHit);
                 if (rocket.Owner == RacerId.Player && racer.Id == RacerId.Junior) RegisterAttack("ロケランで部下を横転させました");
                 if (racer.Id == RacerId.Player) RecordMisconduct("爆発に巻き込まれて横転しました");
             }
@@ -173,7 +173,16 @@ namespace MixVerse.Game.Model.Kart
         private void Disable(RacerState racer, bool spinning)
         {
             racer.IsSpinning = spinning;
-            racer.DisabledSeconds = spinning ? _settings.spinSeconds : _settings.overturnSeconds;
+            if (spinning)
+            {
+                racer.IsCourseOut = false;
+                racer.DisabledSeconds = _settings.spinSeconds;
+            }
+            else
+            {
+                racer.IsCourseOut = Math.Abs(racer.Lane) > _settings.roadHalfWidth - _settings.knockbackEdgeMargin;
+                racer.DisabledSeconds = _settings.knockbackFlightSeconds + _settings.knockbackRecoverySeconds;
+            }
             racer.Speed = 0f;
         }
         private float DistanceSquared(float a, float x, float b, float y) => (a - b) * (a - b) + (x - y) * (x - y);

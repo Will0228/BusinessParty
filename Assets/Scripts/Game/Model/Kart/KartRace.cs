@@ -34,12 +34,15 @@ namespace MixVerse.Game.Model.Kart
         public float TailgateTime => _tailgateTime;
         public float DriftTime => _driftTime;
         public int DriftTier => _driftTime >= _settings.driftSecondSeconds ? 2 : _driftTime >= _settings.driftFirstSeconds ? 1 : 0;
+        public bool IsDrifting => _driftDirection != 0;
         public int Direction => _direction;
         public int Attacks { get; private set; }
         public float FinishGap { get; private set; }
         public float MaximumDistance => Math.Max(Math.Abs(Player.Distance - Boss.Distance), Math.Abs(Junior.Distance - Boss.Distance));
         public string Message { get; private set; } = "部下を止めて、上司に花を持たせよう。";
         public string ResultReason { get; private set; } = "";
+        public FailureScene ResultScene { get; private set; }
+        public float ResultTime { get; private set; }
         public List<string> CameraEvidence { get; } = new List<string>();
         public int BossMood => Phase == RacePhase.Failed ? 0 : 1;
 
@@ -70,7 +73,13 @@ namespace MixVerse.Game.Model.Kart
 
         public void Tick(float deltaTime, KartInput input)
         {
-            if (Phase != RacePhase.Racing || deltaTime <= 0f) return;
+            if (deltaTime <= 0f) return;
+            if (Phase == RacePhase.Failed)
+            {
+                AdvanceFailure(Math.Min(deltaTime, 0.25f));
+                return;
+            }
+            if (Phase != RacePhase.Racing) return;
             _pendingItem |= input.UseItem;
             _accumulator += Math.Min(deltaTime, 0.25f);
             const float step = 1f / 120f;
@@ -80,6 +89,25 @@ namespace MixVerse.Game.Model.Kart
                 Step(step, input);
                 _pendingItem = false;
                 _accumulator -= step;
+            }
+        }
+
+        private void AdvanceFailure(float dt)
+        {
+            var previousTime = ResultTime;
+            ResultTime += dt;
+            if (ResultScene == FailureScene.Distance && previousTime < 0.8f && ResultTime >= 0.8f)
+                Disable(Player, false);
+            foreach (var racer in Racers)
+            {
+                if (racer.DisabledSeconds > 0f)
+                {
+                    racer.DisabledSeconds = Math.Max(0f, racer.DisabledSeconds - dt);
+                    continue;
+                }
+                if (racer.Finished) continue;
+                racer.Speed = MoveTowards(racer.Speed, 0f, dt * 8f);
+                racer.Distance = Clamp(racer.Distance + racer.Speed * _settings.metersPerSpeedUnit * dt, 0f, _settings.courseLength);
             }
         }
 
@@ -181,7 +209,7 @@ namespace MixVerse.Game.Model.Kart
                 _tailgateTime += dt;
             else _tailgateTime = 0f;
             if (_tailgateTime >= _settings.tailgateSeconds) Fail("上司を煽り続けました");
-            if (MaximumDistance >= _settings.maximumBossDistance) Fail("上司との距離が離れすぎました");
+            if (MaximumDistance >= _settings.maximumBossDistance) Fail("上司との距離が離れすぎました", FailureScene.Distance);
             if (SlipRemaining > 0f)
             {
                 SlipRemaining -= dt;
@@ -227,11 +255,12 @@ namespace MixVerse.Game.Model.Kart
             if (failInGallery && SectionAt(Player.Distance) == CourseSection.Gallery) Fail("ギャラリー区間：" + reason);
             if (InCamera(Player.Distance) && !CameraEvidence.Contains(reason)) CameraEvidence.Add(reason);
         }
-        private void Fail(string reason)
+        private void Fail(string reason, FailureScene scene = FailureScene.None)
         {
             if (Phase != RacePhase.Racing) return;
             Phase = RacePhase.Failed;
             ResultReason = reason;
+            ResultScene = scene;
         }
         private float Clamp(float value, float min, float max) => Math.Max(min, Math.Min(max, value));
         private float MoveTowards(float value, float target, float step) => value + Clamp(target - value, -step, step);

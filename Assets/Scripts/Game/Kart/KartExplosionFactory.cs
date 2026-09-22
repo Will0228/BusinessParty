@@ -29,7 +29,7 @@ namespace MixVerse.Game.Kart
             _fireShader = Shader.Find("MixVerse/ExplosionShaderURP");
         }
 
-        public KartExplosionView Create(bool rocket, int seed)
+        public KartExplosionView Create(bool rocket, int seed, bool showCaption = true)
         {
             var root = new GameObject(rocket ? "Rocket fireworks" : "Crate impact");
             root.transform.SetParent(_stage.transform, false);
@@ -55,7 +55,7 @@ namespace MixVerse.Game.Kart
                 smokeSize.size = new ParticleSystem.MinMaxCurve(1f, AnimationCurve.Linear(0f, 0.4f, 1f, 1.6f));
                 Shockwave(root.transform, "Ground shockwave", 0f, 24f, seed + 5);
                 Shockwave(root.transform, "Second shockwave", 0.13f, 18f, seed + 6);
-                caption = Caption(root.transform);
+                if (showCaption) caption = Caption(root.transform);
             }
             var view = root.AddComponent<KartExplosionView>();
             view.Initialize(fireball.transform, fire, caption, _stage.Camera, radius, rocket);

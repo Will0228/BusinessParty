@@ -18,7 +18,9 @@ namespace MixVerse.Game.Model.Kart
         public float blockingDistance = 8f;
         public float blockingSeconds = 0.65f;
         public float pushCreditSeconds = 2f;
-        public float overturnSeconds = 2.2f;
+        public float knockbackFlightSeconds = 0.9f;
+        public float knockbackRecoverySeconds = 1f;
+        public float knockbackEdgeMargin = 0.75f;
         public float spinSeconds = 1.4f;
         public float driftFirstSeconds = 0.8f;
         public float driftSecondSeconds = 1.8f;
@@ -48,7 +50,9 @@ namespace MixVerse.Game.Model.Kart
             blockingDistance = Math.Max(3f, blockingDistance);
             blockingSeconds = Math.Max(0.1f, blockingSeconds);
             pushCreditSeconds = Math.Max(0.1f, pushCreditSeconds);
-            overturnSeconds = Math.Max(0.2f, overturnSeconds);
+            knockbackFlightSeconds = Math.Max(0.2f, knockbackFlightSeconds);
+            knockbackRecoverySeconds = Math.Max(0.1f, knockbackRecoverySeconds);
+            knockbackEdgeMargin = Math.Max(0f, knockbackEdgeMargin);
             spinSeconds = Math.Max(0.2f, spinSeconds);
             driftFirstSeconds = Math.Max(0.1f, driftFirstSeconds);
             driftSecondSeconds = Math.Max(driftFirstSeconds + 0.1f, driftSecondSeconds);
@@ -64,6 +68,7 @@ namespace MixVerse.Game.Model.Kart
 
     public enum RacerId { Player, Boss, Junior }
     public enum RacePhase { Racing, Cleared, Failed }
+    public enum FailureScene { None, Distance, BossHit }
     public enum CourseSection { City, Uphill, Gallery, Tunnel, Hairpins, FinishStraight }
     public enum KartItem { None, Papers, Rocket, Drink }
 
@@ -87,6 +92,7 @@ namespace MixVerse.Game.Model.Kart
         public float FinishTime = -1f;
         public KartItem Item;
         public bool IsSpinning;
+        public bool IsCourseOut;
         public bool Finished => FinishTime >= 0f;
     }
 }

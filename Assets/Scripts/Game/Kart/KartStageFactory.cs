@@ -177,10 +177,58 @@ namespace MixVerse.Game.Kart
                         var wheel = Shape(kart, "Wheel", PrimitiveType.Cylinder, new Vector3(side * 0.88f, -0.1f, axle * 0.8f), new Vector3(0.65f, 0.18f, 0.65f), new Color(0.035f, 0.045f, 0.06f));
                         wheel.transform.localRotation = Quaternion.Euler(0f, 0f, 90f);
                     }
+                if (i == (int)RacerId.Player)
+                    _stage.DriftSparks = new[] { DriftSparkEmitter(kart, -1f), DriftSparkEmitter(kart, 1f) };
                 var label = WorldLabel(_stage.transform, "", colors[i], 7f);
                 _stage.Tags[i] = label.transform;
                 _stage.TagLabels[i] = label;
             }
+        }
+
+        // 後輪の接地点から地面との摩擦火花を飛ばす。色は KartStageView がドリフトの溜め具合に応じて毎フレーム切り替える
+        private ParticleSystem DriftSparkEmitter(Transform parent, float side)
+        {
+            var obj = new GameObject("Drift spark");
+            obj.transform.SetParent(parent, false);
+            obj.transform.localPosition = new Vector3(side * 0.88f, -0.4f, -0.8f);
+            obj.transform.localRotation = Quaternion.LookRotation(new Vector3(side * 0.6f, 0.35f, -1f).normalized, Vector3.up);
+            var particles = obj.AddComponent<ParticleSystem>();
+            particles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            var main = particles.main;
+            main.loop = true;
+            main.playOnAwake = false;
+            main.startLifetime = new ParticleSystem.MinMaxCurve(0.12f, 0.3f);
+            main.startSpeed = new ParticleSystem.MinMaxCurve(2.5f, 5.5f);
+            main.startSize = new ParticleSystem.MinMaxCurve(0.05f, 0.12f);
+            main.startColor = Color.white;
+            main.gravityModifier = 2.4f;
+            main.simulationSpace = ParticleSystemSimulationSpace.World;
+            main.maxParticles = 60;
+            var emission = particles.emission;
+            emission.enabled = false;
+            emission.rateOverTime = 60f;
+            var shape = particles.shape;
+            shape.shapeType = ParticleSystemShapeType.Cone;
+            shape.angle = 16f;
+            shape.radius = 0.03f;
+            var colors = particles.colorOverLifetime;
+            colors.enabled = true;
+            var gradient = new Gradient();
+            gradient.SetKeys(new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(Color.white, 1f) },
+                new[] { new GradientAlphaKey(1f, 0f), new GradientAlphaKey(0.8f, 0.5f), new GradientAlphaKey(0f, 1f) });
+            colors.color = gradient;
+            var size = particles.sizeOverLifetime;
+            size.enabled = true;
+            size.size = new ParticleSystem.MinMaxCurve(1f, AnimationCurve.Linear(0f, 1f, 1f, 0.15f));
+            var renderer = particles.GetComponent<ParticleSystemRenderer>();
+            renderer.sharedMaterial = _explosions.Glow;
+            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            renderer.receiveShadows = false;
+            renderer.renderMode = ParticleSystemRenderMode.Stretch;
+            renderer.lengthScale = 2.2f;
+            renderer.velocityScale = 0.1f;
+            particles.Play();
+            return particles;
         }
 
         public Transform CreateObject(KartStageView stage, TrackObject obj)
@@ -204,6 +252,25 @@ namespace MixVerse.Game.Kart
             return root;
         }
 
+        public Transform CreateResultRocket()
+        {
+            var root = new GameObject("Result rocket").transform;
+            root.SetParent(_stage.transform, false);
+            Shape(root, "Warhead", PrimitiveType.Sphere, new Vector3(0f, 0f, 0.9f), new Vector3(0.55f, 0.55f, 0.9f), _coral);
+            Shape(root, "Body", PrimitiveType.Cylinder, Vector3.zero, new Vector3(0.5f, 0.85f, 0.5f), _navy)
+                .transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+            for (var side = -1; side <= 1; side += 2)
+                Shape(root, "Fin", PrimitiveType.Cube, new Vector3(side * 0.35f, 0f, -0.65f), new Vector3(0.45f, 0.1f, 0.65f), _gold);
+            return root;
+        }
+
+        public KartExplosionView CreateResultExplosion(int id, Vector3 position)
+        {
+            var effect = _explosions.Create(true, id, false);
+            effect.transform.localPosition = position;
+            return effect;
+        }
+
         private void BuildHud()
         {
             var canvasObject = new GameObject("Kart HUD", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
@@ -215,7 +282,15 @@ namespace MixVerse.Game.Kart
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = new Vector2(1600f, 900f);
             scaler.matchWidthOrHeight = 0.5f;
-            var parent = canvasObject.transform;
+            var hudRoot = new GameObject("Race HUD", typeof(RectTransform));
+            hudRoot.transform.SetParent(canvasObject.transform, false);
+            var hudRect = (RectTransform)hudRoot.transform;
+            hudRect.anchorMin = Vector2.zero;
+            hudRect.anchorMax = Vector2.one;
+            hudRect.offsetMin = Vector2.zero;
+            hudRect.offsetMax = Vector2.zero;
+            _stage.RaceHud = hudRoot;
+            var parent = hudRoot.transform;
             Panel(parent, new Vector2(0f, 1f), new Vector2(24f, -24f), new Vector2(270f, 218f), _navy);
             Label(parent, "SETTAI / KART", new Vector2(0f, 1f), new Vector2(42f, -38f), new Vector2(240f, 32f), 23, _cyan);
             _stage.Ranking = Label(parent, "", new Vector2(0f, 1f), new Vector2(42f, -87f), new Vector2(240f, 142f), 24, Color.white);
@@ -237,7 +312,7 @@ namespace MixVerse.Game.Kart
             _stage.DriftFill = Bar(parent, new Vector2(1f, 0f), new Vector2(-42f, 96f), new Vector2(292f, 5f), _cyan);
             _stage.Progress = Bar(parent, new Vector2(0.5f, 0f), new Vector2(0f, 65f), new Vector2(1552f, 5f), _gold);
             _stage.Controls = Label(parent, "", new Vector2(0.5f, 0f), new Vector2(0f, 17f), new Vector2(1560f, 35f), 19, Color.white, TextAlignmentOptions.Center);
-            var modal = Panel(parent, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1100f, 650f), new Color(0.035f, 0.065f, 0.1f, 1f));
+            var modal = Panel(canvasObject.transform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1100f, 650f), new Color(0.035f, 0.065f, 0.1f, 0.94f));
             _stage.Modal = modal.gameObject;
             _stage.ModalTitle = Label(modal.transform, "", new Vector2(0.5f, 1f), new Vector2(0f, -40f), new Vector2(1000f, 90f), 50, _gold, TextAlignmentOptions.Center);
             _stage.ModalBody = Label(modal.transform, "", new Vector2(0.5f, 0.5f), new Vector2(0f, 18f), new Vector2(1000f, 370f), 25, Color.white, TextAlignmentOptions.Center);

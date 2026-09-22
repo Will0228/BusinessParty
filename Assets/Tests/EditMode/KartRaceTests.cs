@@ -68,6 +68,27 @@ namespace MixVerse.Game.Model.Tests
             race.Tick(0.02f, Forward());
             Assert.That(race.ResultReason, Does.Contain("距離"));
         }
+        [Test] public void DistanceFailureCoastsWithoutAcceptingControlsThenLaunchesPlayer()
+        {
+            var race = NewRace();
+            race.Objects.Clear();
+            race.Player.Lane = 0f;
+            race.Player.Speed = 80f;
+            race.Boss.Distance = 110f;
+            race.Junior.Distance = 100f;
+            race.Tick(0.02f, Forward(1f));
+            Assert.That(race.ResultScene, Is.EqualTo(FailureScene.Distance));
+            var distance = race.Player.Distance;
+            var speed = race.Player.Speed;
+            Advance(race, 0.4f, new KartInput { Gain = 0f, Steering = 1f, Master = 0f, UseItem = true });
+            Assert.That(race.Player.Distance, Is.GreaterThan(distance));
+            Assert.That(race.Player.Speed, Is.LessThan(speed));
+            Assert.That(race.Player.Lane, Is.EqualTo(0f));
+            Assert.That(race.Direction, Is.EqualTo(1));
+            Advance(race, 0.5f, Forward());
+            Assert.That(race.Player.DisabledSeconds, Is.GreaterThan(0f));
+            Assert.That(race.Player.Speed, Is.Zero);
+        }
         [Test] public void ReverseInGalleryFails()
         {
             var race = NewRace();
@@ -146,6 +167,11 @@ namespace MixVerse.Game.Model.Tests
             race.Tick(0.02f, input);
             Advance(race, 0.3f, Forward());
             Assert.That(race.ResultReason, Does.Contain("ロケラン"));
+            Assert.That(race.ResultScene, Is.EqualTo(FailureScene.BossHit));
+            var disabled = race.Boss.DisabledSeconds;
+            Advance(race, 0.5f, Forward());
+            Assert.That(race.ResultTime, Is.GreaterThan(0f));
+            Assert.That(race.Boss.DisabledSeconds, Is.LessThan(disabled));
         }
         [Test] public void PapersHitJuniorAndConsumeSingleStock()
         {
@@ -160,6 +186,21 @@ namespace MixVerse.Game.Model.Tests
             Assert.That(race.Player.Item, Is.EqualTo(KartItem.None));
             Assert.That(race.Junior.DisabledSeconds, Is.GreaterThan(0f));
             Assert.That(race.Attacks, Is.EqualTo(1));
+        }
+        [Test] public void OwnPapersLaunchBossAndContinueResultAnimation()
+        {
+            var race = NewRace();
+            race.Objects.Clear();
+            race.Player.Distance = 32f;
+            race.Player.Lane = -2f;
+            race.Boss.Distance = 29f;
+            race.Junior.Distance = 25f;
+            race.Player.Item = KartItem.Papers;
+            var input = Forward(0f); input.UseItem = true;
+            race.Tick(0.02f, input);
+            Assert.That(race.ResultScene, Is.EqualTo(FailureScene.BossHit));
+            Assert.That(race.Boss.IsSpinning, Is.False);
+            Assert.That(race.Boss.DisabledSeconds, Is.GreaterThan(0f));
         }
         [Test] public void CameraMisconductIsReviewedOnlyAtFinish()
         {
@@ -228,6 +269,19 @@ namespace MixVerse.Game.Model.Tests
             Assert.That(race.Player.TurboSeconds, Is.EqualTo(0f));
             Advance(race, 1f, Forward(0f));
             Assert.That(race.Player.Speed, Is.EqualTo(0f).Within(0.01f));
+        }
+        [Test] public void IsDriftingReflectsActiveJogAndClearsOnRelease()
+        {
+            var race = NewRace();
+            race.Objects.Clear();
+            race.Player.Lane = 0f;
+            race.Player.Speed = 50f;
+            Assert.That(race.IsDrifting, Is.False);
+            var drift = Forward(); drift.Jog = 1;
+            race.Tick(0.02f, drift);
+            Assert.That(race.IsDrifting, Is.True);
+            race.Tick(0.02f, Forward());
+            Assert.That(race.IsDrifting, Is.False);
         }
         [Test] public void JuniorNeverExceedsSeventyWithDrink()
         {
