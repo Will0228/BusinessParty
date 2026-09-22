@@ -6,6 +6,7 @@ namespace MixVerse.Game.Model.Kart
     public sealed partial class KartRace
     {
         private readonly KartRaceSettings _settings;
+        private readonly KartCourseLayout _layout;
         private readonly Random _random;
         private float _blockingTime;
         private float _tailgateTime;
@@ -46,6 +47,7 @@ namespace MixVerse.Game.Model.Kart
         {
             _settings = settings;
             _settings.Validate();
+            _layout = new KartCourseLayout(_settings.courseLength);
             _random = new Random(seed);
             ScheduleSlip();
             BuildObjects();
@@ -92,7 +94,11 @@ namespace MixVerse.Game.Model.Kart
             if (Player.DisabledSeconds <= 0f && !Player.Finished)
             {
                 var movement = Math.Min(1f, Math.Abs(Player.Speed) / 25f);
-                Player.Lane += (steer + _driftDirection * 0.4f) * _settings.steeringSpeed * movement * dt * _direction;
+                var turnRate = _layout.TurnRateAt(Player.Distance);
+                var driftAssist = _driftDirection != 0 && _driftDirection == Math.Sign(turnRate) ? 0.38f : 1f;
+                var outwardSlip = -Math.Sign(turnRate) * Math.Max(0f, Math.Abs(Player.Speed) - 30f) * 0.18f *
+                                  Math.Min(2f, Math.Abs(turnRate) / 0.07854f) * driftAssist;
+                Player.Lane += ((steer + _driftDirection * 0.4f) * _settings.steeringSpeed * movement * _direction + outwardSlip) * dt;
                 if (Math.Abs(Player.Lane) > _settings.roadHalfWidth - 0.7f)
                 {
                     Player.Lane = Clamp(Player.Lane, -_settings.roadHalfWidth + 0.7f, _settings.roadHalfWidth - 0.7f);

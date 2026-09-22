@@ -58,13 +58,13 @@ namespace MixVerse.Game.Kart
         private void BuildPath(KartRaceSettings settings)
         {
             var position = Vector3.zero;
+            var layout = new KartCourseLayout(settings.courseLength);
             for (var i = 0; i <= Mathf.CeilToInt(settings.courseLength / 5f) + 12; i++)
             {
                 var distance = i * 5f;
                 _stage.Path.Add(position);
                 var t = distance / settings.courseLength;
-                var heading = t < 0.16f ? Mathf.Sin(t * 22f) * 0.12f : t < 0.33f ? Mathf.Sin(t * 25f) * 0.55f :
-                    t < 0.5f ? 0.12f : t < 0.66f ? -0.2f : t < 0.84f ? Mathf.Sin((t - 0.66f) * 70f) * 1.1f : 0f;
+                var heading = layout.HeadingAt(distance);
                 var slope = t > 0.16f && t < 0.33f ? 0.12f : t > 0.66f && t < 0.84f ? -0.11f : 0f;
                 position += new Vector3(Mathf.Sin(heading), slope, Mathf.Cos(heading)).normalized * 5f;
             }
@@ -111,7 +111,7 @@ namespace MixVerse.Game.Kart
                                 Shape(root, "Gallery head", PrimitiveType.Sphere, spectator + Vector3.up * 1.8f, Vector3.one * 0.55f, new Color(0.95f, 0.74f, 0.58f));
                             }
                         }
-                        else
+                        else if (section != 4)
                         {
                             Shape(root, "Tree trunk", PrimitiveType.Cylinder, scenery + Vector3.up * 1.5f, new Vector3(0.6f, 1.5f, 0.6f), new Color(0.3f, 0.22f, 0.15f));
                             Shape(root, "Tree canopy", PrimitiveType.Sphere, scenery + Vector3.up * 4f, new Vector3(4f, 5f, 4f), new Color(0.12f, 0.39f, 0.3f));

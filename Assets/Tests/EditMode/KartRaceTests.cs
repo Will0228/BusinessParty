@@ -238,6 +238,7 @@ namespace MixVerse.Game.Model.Tests
         [Test] public void FullCourseCanBeClearedUsingOnlyNormalDrivingInputs()
         {
             var race = NewRace();
+            race.Objects.Clear();
             for (var frame = 0; frame < 18000 && race.Phase == RacePhase.Racing; frame++)
             {
                 var target = race.Junior.Distance + 5f;
@@ -255,6 +256,38 @@ namespace MixVerse.Game.Model.Tests
             Assert.That(race.Phase, Is.EqualTo(RacePhase.Cleared), race.ResultReason);
             Assert.That(race.FinishGap, Is.LessThan(3f));
             Assert.That(race.Attacks, Is.GreaterThan(0));
+        }
+
+        [Test] public void HairpinSectionHasTwoOppositeHalfCircleTurns()
+        {
+            var layout = new KartCourseLayout(1200f);
+            Assert.That(layout.HeadingAt(820f), Is.EqualTo(-0.2f).Within(0.001f));
+            Assert.That(layout.HeadingAt(860f) - layout.HeadingAt(820f), Is.EqualTo(System.Math.PI).Within(0.001));
+            Assert.That(layout.HeadingAt(940f), Is.EqualTo(-0.2f).Within(0.001f));
+            Assert.That(layout.TurnRateAt(830f), Is.GreaterThan(0.07f));
+            Assert.That(layout.TurnRateAt(910f), Is.LessThan(-0.07f));
+        }
+
+        [Test] public void SteeringAndDriftCounterOutwardSlipOnHairpin()
+        {
+            var unattended = NewRace();
+            var assisted = NewRace();
+            foreach (var race in new[] { unattended, assisted })
+            {
+                race.Objects.Clear();
+                race.Player.Distance = 830f;
+                race.Player.Lane = 0f;
+                race.Player.Speed = 80f;
+                race.Boss.Distance = 900f;
+                race.Junior.Distance = 900f;
+            }
+            Advance(unattended, 0.35f, Forward(0.8f));
+            var input = Forward(0.8f);
+            input.Steering = 1f;
+            input.Jog = 1;
+            Advance(assisted, 0.35f, input);
+            Assert.That(unattended.Player.Lane, Is.LessThan(-2f));
+            Assert.That(assisted.Player.Lane, Is.GreaterThan(-1f));
         }
     }
 }
