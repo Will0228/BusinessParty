@@ -40,6 +40,7 @@ namespace MixVerse.Game.Kart
 
         private sealed class Handlers
         {
+            public Action<MidiNoteControl, float> Note;
             public Action<MidiValueControl, float> Control;
         }
 
@@ -57,7 +58,12 @@ namespace MixVerse.Game.Kart
         {
             if (!(device is MidiDevice midi) || _devices.ContainsKey(midi)) return;
             if (_mapping.channel > 0 && midi.channel != _mapping.channel - 1) return;
-            var handlers = new Handlers { Control = (control, value) => ApplyControlChange(midi.channel, control.controlNumber, value) };
+            var handlers = new Handlers
+            {
+                Note = (note, velocity) => ApplyNoteOn(midi.channel, note.noteNumber, velocity),
+                Control = (control, value) => ApplyControlChange(midi.channel, control.controlNumber, value),
+            };
+            midi.onWillNoteOn += handlers.Note;
             midi.onWillControlChange += handlers.Control;
             _devices.Add(midi, handlers);
         }
@@ -77,6 +83,14 @@ namespace MixVerse.Game.Kart
                     _syncPressed = false;
                 }
             }
+        }
+
+        // 実機の DJ コントローラーは SYNC ボタンを CC ではなく NoteOn/NoteOff で送ってくる機種があるため、
+        // syncControl の番号を CC 番号とノート番号の両方として受け付ける
+        public void ApplyNoteOn(int channel, int noteNumber, float velocity)
+        {
+            if (_mapping.channel > 0 && channel != _mapping.channel - 1) return;
+            if (velocity > 0f && noteNumber == _mapping.syncControl) _useItem = true;
         }
 
         public void ApplyControlChange(int channel, int controlNumber, float value)
@@ -153,6 +167,7 @@ namespace MixVerse.Game.Kart
 
         private void Unbind(MidiDevice device, Handlers handlers)
         {
+            device.onWillNoteOn -= handlers.Note;
             device.onWillControlChange -= handlers.Control;
         }
 

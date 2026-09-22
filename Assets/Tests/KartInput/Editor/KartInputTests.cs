@@ -17,6 +17,16 @@ namespace MixVerse.Game.Tests
         }
 
         [Test]
+        public void SyncNoteOnTriggersItemUseLikeControlChange()
+        {
+            // 実機の DJ コントローラーは SYNC ボタンを CC ではなく NoteOn/NoteOff で送るため、
+            // ノート番号でも CC と同じく syncControl の番号にヒットさせる必要がある
+            var reader = new KartInputReader(new KartMidiMapping());
+            reader.ApplyNoteOn(0, 71, 1f);
+            Assert.That(reader.Read(0f).UseItem, Is.True);
+        }
+
+        [Test]
         public void SteeringCenterAndEndpointsMatchPlayerRightPositiveLane()
         {
             var reader = new KartInputReader(new KartMidiMapping());
