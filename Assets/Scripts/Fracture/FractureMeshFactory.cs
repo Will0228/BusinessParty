@@ -10,10 +10,13 @@ namespace MixVerse.Fracture
         public Mesh Create(FractureShape shape, int resolution)
         {
             resolution = Mathf.Clamp(resolution, 2, 10);
+            // 頂点位置
             var vertices = new List<Vector3>();
+            // 面の向き
             var normals = new List<Vector3>();
             var centers = new List<Vector3>();
             var colors = new List<Color>();
+            // 三角形を構成する頂点番号
             var indices = new List<int>();
             for (var z = 0; z < resolution; z++)
             for (var y = 0; y < resolution; y++)
@@ -21,10 +24,11 @@ namespace MixVerse.Fracture
             {
                 var cell = new Vector3Int(x, y, z);
                 var center = Vector3.zero;
+                // それぞれ分裂させるマスの8つの角の位置より、該当マスの中心座標を求める
                 for (var corner = 0; corner < 8; corner++)
                 {
                     var offset = new Vector3(corner & 1, (corner >> 1) & 1, (corner >> 2) & 1);
-                    center += Map(((Vector3)cell + offset) * (2f / resolution) - Vector3.one, shape) / 8f;
+                    center += Map((cell + offset) * (2f / resolution) - Vector3.one, shape) / 8f;
                 }
                 for (var axis = 0; axis < 3; axis++)
                 for (var side = 0; side < 2; side++)
