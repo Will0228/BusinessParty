@@ -38,6 +38,7 @@ namespace MixVerse.Game.Kart
         public AudioClip AlertClip;
         public readonly List<Object> GeneratedAssets = new List<Object>();
         public readonly Dictionary<int, Transform> ObjectViews = new Dictionary<int, Transform>();
+        public readonly Dictionary<int, Material> ExplosionMaterials = new Dictionary<int, Material>();
         public readonly List<Vector3> Path = new List<Vector3>();
         public readonly List<KeyValuePair<float, GameObject>> Gates = new List<KeyValuePair<float, GameObject>>();
         public KartStageFactory Factory;
@@ -48,6 +49,7 @@ namespace MixVerse.Game.Kart
         private readonly HashSet<int> _seen = new HashSet<int>();
         private KartRaceSettings _settings;
         private bool _debug;
+        private static readonly int ExplosionProgressId = Shader.PropertyToID("_Progress");
         private readonly string[] _sectionNames = { "01  市街地", "02  峠の上り", "03  ギャラリー", "04  トンネル", "05  連続ヘアピン", "06  ゴール前直線" };
         private readonly string[] _racerNames = { "あなた", "上司", "部下" };
 
@@ -182,17 +184,29 @@ namespace MixVerse.Game.Kart
                 view.localPosition = Point(obj.Distance, obj.Lane) + Vector3.up * (obj.Kind == TrackObjectKind.Papers ? 0.08f : 0.8f);
                 view.localRotation = DirectionAt(obj.Distance);
                 if (obj.Kind == TrackObjectKind.ItemBox) view.localRotation *= Quaternion.Euler(0f, race.Time * 70f, 10f);
-                if (obj.Kind == TrackObjectKind.Explosion) view.localScale = Vector3.one * (1f - obj.Lifetime / 0.65f) * _settings.explosionRadius * 2f;
+                if (obj.Kind == TrackObjectKind.Explosion)
+                {
+                    var progress = 1f - obj.Lifetime / 0.65f;
+                    view.localScale = Vector3.one * progress * _settings.explosionRadius * 2f;
+                    if (ExplosionMaterials.TryGetValue(obj.Id, out var material)) material.SetFloat(ExplosionProgressId, progress);
+                }
             }
             _expired.Clear();
             foreach (var pair in ObjectViews) if (!_seen.Contains(pair.Key)) _expired.Add(pair.Key);
-            foreach (var id in _expired) { Destroy(ObjectViews[id].gameObject); ObjectViews.Remove(id); }
+            foreach (var id in _expired)
+            {
+                Destroy(ObjectViews[id].gameObject);
+                ObjectViews.Remove(id);
+                if (ExplosionMaterials.TryGetValue(id, out var material)) { Destroy(material); ExplosionMaterials.Remove(id); }
+            }
         }
 
         public void ResetObjects()
         {
             foreach (var view in ObjectViews.Values) if (view != null) Destroy(view.gameObject);
             ObjectViews.Clear();
+            foreach (var material in ExplosionMaterials.Values) if (material != null) Destroy(material);
+            ExplosionMaterials.Clear();
             _lastSlip = 0f;
             _lastAttacks = 0;
             _lastPhase = RacePhase.Racing;
@@ -201,6 +215,7 @@ namespace MixVerse.Game.Kart
         private void OnDestroy()
         {
             foreach (var asset in GeneratedAssets) if (asset != null) Destroy(asset);
+            foreach (var material in ExplosionMaterials.Values) if (material != null) Destroy(material);
         }
     }
 }

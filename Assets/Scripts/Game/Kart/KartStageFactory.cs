@@ -16,6 +16,7 @@ namespace MixVerse.Game.Kart
         private TMP_FontAsset _font;
         private KartStageView _stage;
         private Sprite _barSprite;
+        private Shader _explosionShader;
 
         public KartStageView Create(KartRaceSettings settings, Transform parent)
         {
@@ -188,12 +189,26 @@ namespace MixVerse.Game.Kart
             var scale = obj.Kind == TrackObjectKind.Papers ? new Vector3(2f, 0.1f, 2f) : obj.Kind == TrackObjectKind.Rocket ? new Vector3(0.35f, 0.35f, 1.4f) : Vector3.one * 1.5f;
             var shape = obj.Kind == TrackObjectKind.Explosion ? PrimitiveType.Sphere : PrimitiveType.Cube;
             var root = Shape(stage.transform, obj.Kind.ToString(), shape, Vector3.zero, scale, color).transform;
+            if (obj.Kind == TrackObjectKind.Explosion)
+            {
+                var material = ExplosionMaterial();
+                root.GetComponent<Renderer>().sharedMaterial = material;
+                stage.ExplosionMaterials.Add(obj.Id, material);
+            }
             if (obj.Kind == TrackObjectKind.ItemBox)
             {
                 var label = WorldLabel(root, obj.Item == KartItem.Papers ? "書" : obj.Item == KartItem.Rocket ? "弾" : "飲", _navy, 7f);
                 label.transform.localPosition = new Vector3(0f, 0f, -0.52f);
             }
             return root;
+        }
+
+        // 爆発ごとに専用のインスタンスを持たせる。マテリアルアセットを直接書き換えると
+        // 同時に起きている他の爆発の _Progress まで揃ってしまうため（KartStageView が個別に破棄する）
+        private Material ExplosionMaterial()
+        {
+            _explosionShader = _explosionShader != null ? _explosionShader : Shader.Find("MixVerse/ExplosionShaderURP");
+            return new Material(_explosionShader);
         }
 
         private void BuildHud()
