@@ -137,13 +137,18 @@ namespace MixVerse.Game.Kart
 
         private void Gate(float distance, string title, Color color, KartRaceSettings settings)
         {
+            var root = new GameObject("Gate " + title).transform;
+            root.SetParent(_stage.transform, false);
+            root.localPosition = _stage.Point(distance);
+            root.localRotation = _stage.DirectionAt(distance);
+            _stage.Gates.Add(new KeyValuePair<float, GameObject>(distance, root.gameObject));
             for (var side = -1; side <= 1; side += 2)
-                RoadBox("Gate post", _stage.Point(distance, side * (settings.roadHalfWidth + 0.6f)) + Vector3.up * 3.5f,
-                    new Vector3(0.3f, 7f, 0.3f), _stage.DirectionAt(distance), color);
-            RoadBox("Gate banner", _stage.Point(distance) + Vector3.up * 6.5f, new Vector3(settings.roadHalfWidth * 2f + 1.5f, 1.6f, 0.3f), _stage.DirectionAt(distance), _navy);
-            var label = WorldLabel(_stage.transform, title, Color.white, 7f);
-            label.transform.localPosition = _stage.Point(distance) + Vector3.up * 6.5f - (_stage.DirectionAt(distance) * Vector3.forward) * 0.2f;
-            label.transform.localRotation = _stage.DirectionAt(distance);
+                Shape(root, "Gate post", PrimitiveType.Cube, new Vector3(side * (settings.roadHalfWidth + 0.6f), 3.5f, 0f),
+                    new Vector3(0.3f, 7f, 0.3f), color);
+            Shape(root, "Gate banner", PrimitiveType.Cube, Vector3.up * 6.5f,
+                new Vector3(settings.roadHalfWidth * 2f + 1.5f, 1.6f, 0.3f), _navy);
+            var label = WorldLabel(root, title, Color.white, 7f);
+            label.transform.localPosition = new Vector3(0f, 6.5f, -0.2f);
             label.rectTransform.sizeDelta = new Vector2(13f, 2f);
         }
 
@@ -220,7 +225,7 @@ namespace MixVerse.Game.Kart
             _stage.DriftFill = Bar(parent, new Vector2(1f, 0f), new Vector2(-42f, 96f), new Vector2(292f, 5f), _cyan);
             _stage.Progress = Bar(parent, new Vector2(0.5f, 0f), new Vector2(0f, 65f), new Vector2(1552f, 5f), _gold);
             _stage.Controls = Label(parent, "", new Vector2(0.5f, 0f), new Vector2(0f, 17f), new Vector2(1560f, 35f), 19, Color.white, TextAlignmentOptions.Center);
-            var modal = Panel(parent, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1100f, 650f), _navy);
+            var modal = Panel(parent, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1100f, 650f), new Color(0.035f, 0.065f, 0.1f, 1f));
             _stage.Modal = modal.gameObject;
             _stage.ModalTitle = Label(modal.transform, "", new Vector2(0.5f, 1f), new Vector2(0f, -40f), new Vector2(1000f, 90f), 50, _gold, TextAlignmentOptions.Center);
             _stage.ModalBody = Label(modal.transform, "", new Vector2(0.5f, 0.5f), new Vector2(0f, 18f), new Vector2(1000f, 370f), 25, Color.white, TextAlignmentOptions.Center);

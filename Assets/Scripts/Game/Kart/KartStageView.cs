@@ -37,6 +37,7 @@ namespace MixVerse.Game.Kart
         public readonly List<Object> GeneratedAssets = new List<Object>();
         public readonly Dictionary<int, Transform> ObjectViews = new Dictionary<int, Transform>();
         public readonly List<Vector3> Path = new List<Vector3>();
+        public readonly List<KeyValuePair<float, GameObject>> Gates = new List<KeyValuePair<float, GameObject>>();
         public KartStageFactory Factory;
         private float _lastSlip;
         private int _lastAttacks;
@@ -82,6 +83,7 @@ namespace MixVerse.Game.Kart
             Camera.transform.localPosition = focus + direction * new Vector3(0f, 11f, -17f);
             Camera.transform.LookAt(transform.TransformPoint(focus + direction * new Vector3(0f, 0f, 13f)));
             Camera.backgroundColor = race.SectionAt(race.Player.Distance) == CourseSection.Tunnel ? new Color(0.025f, 0.035f, 0.06f) : new Color(0.28f, 0.48f, 0.62f);
+            foreach (var gate in Gates) gate.Value.SetActive(gate.Key > race.Player.Distance + 15f);
             RenderObjects(race);
             var ranks = new string[3];
             foreach (var racer in race.Racers)
@@ -105,6 +107,7 @@ namespace MixVerse.Game.Kart
             if (race.TailgateTime > 0.2f) Warning.text += $"   煽り注意！ {_settings.tailgateSeconds - race.TailgateTime:0.0}s";
             if (section == CourseSection.Gallery) Warning.text += "\n監視中：バック・壁衝突・スピン・横転は厳禁";
             else if (race.InCamera(race.Player.Distance)) Warning.text += "\n監視カメラ録画中：ゴール後に確認";
+            Radio.gameObject.SetActive(!ready && countdown <= 0f && race.Phase == RacePhase.Racing);
             Radio.text = race.SlipRemaining > 0f ? $"<color=#FFAA70>無線：課長、遅くないっすか？</color>\nあと <size=36>{race.SlipRemaining:0.0}</size> 秒以内に部下を攻撃！" : race.Message;
             Controls.text = "W/S 速度   A/D 操舵   Q/E ドリフト   X 前後切替   SPACE アイテム   TAB 判定範囲   ESC ホーム" + (midi ? "   • MIDI 接続中" : "");
             TailgateZone.gameObject.SetActive(_debug);
