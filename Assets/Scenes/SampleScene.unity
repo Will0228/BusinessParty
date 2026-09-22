@@ -916,7 +916,7 @@ MonoBehaviour:
     explosionRadius: 4.5
     paperLifetime: 14
     cameraReviewEnabled: 1
-    debugUnlimitedItem: 0
+    debugUnlimitedItem: 2
   _midiMapping:
     channel: 0
     gainControl: 9
@@ -1554,7 +1554,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: MixVerse.Fracture::MixVerse.Fracture.FractureObjectView
   _shape: 0
-  _resolution: 3
+  _resolution: 2
 --- !u!23 &569481975
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -2840,7 +2840,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &1298905864
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3674,7 +3674,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!20 &1496511215
 Camera:
   m_ObjectHideFlags: 0
