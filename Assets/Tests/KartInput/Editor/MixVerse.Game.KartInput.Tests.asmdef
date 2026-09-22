@@ -1,0 +1,10 @@
+{
+    "name": "MixVerse.Game.KartInput.Tests",
+    "rootNamespace": "MixVerse.Game.Tests",
+    "references": ["Assembly-CSharp", "MixVerse.Game.Model", "UnityEngine.TestRunner", "UnityEditor.TestRunner", "MixVerse.Game.Kart"],
+    "includePlatforms": ["Editor"],
+    "overrideReferences": true,
+    "precompiledReferences": ["nunit.framework.dll"],
+    "autoReferenced": false,
+    "defineConstraints": ["UNITY_INCLUDE_TESTS"]
+}

@@ -1,0 +1,6 @@
+{
+    "name": "MixVerse.Game.Kart",
+    "rootNamespace": "MixVerse.Game.Kart",
+    "references": ["MixVerse.Game.Model", "Minis", "Unity.InputSystem", "UnityEngine.UI", "Unity.TextMeshPro"],
+    "autoReferenced": true
+}

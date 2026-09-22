@@ -55,7 +55,6 @@ namespace MixVerse.Game
             if (!_ready && _race.Phase == RacePhase.Racing) return;
             _race = new KartRace(_settings);
             _view.ResetRace();
-            _input.Reset();
             _ready = false;
             _countdown = 3f;
         }
