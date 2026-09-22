@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eb141c178ce245aab52711c314c84f95, type: 3}
+  m_Name: NoteChart
+  m_EditorClassIdentifier: Assembly-CSharp::MixVerse.Game.NoteChartAsset
+  _bpm: 130
+  _beatsPerMeasure: 4
+  _divisionsPerBeat: 4
+  _measureCount: 8
+  _notes:
+  - step: 6
+    lane: 1
+  - step: 10
+    lane: 1
+  - step: 11
+    lane: 0
+  - step: 15
+    lane: 1
+  - step: 16
+    lane: 0
+  - step: 19
+    lane: 1
+  - step: 21
+    lane: 0
+  - step: 22
+    lane: 1
+  - step: 23
+    lane: 1
+  - step: 28
+    lane: 0
