@@ -16,7 +16,7 @@ namespace MixVerse.Game.Kart
         private TMP_FontAsset _font;
         private KartStageView _stage;
         private Sprite _barSprite;
-        private Shader _explosionShader;
+        private KartExplosionFactory _explosions;
 
         public KartStageView Create(KartRaceSettings settings, Transform parent)
         {
@@ -31,6 +31,7 @@ namespace MixVerse.Game.Kart
             _stage = root.AddComponent<KartStageView>();
             _stage.Factory = this;
             _stage.Initialize(settings);
+            _explosions = new KartExplosionFactory(_stage, _font, settings.explosionRadius);
             _barSprite = Sprite.Create(Texture2D.whiteTexture, new Rect(0f, 0f, 1f, 1f), new Vector2(0.5f, 0.5f));
             _stage.GeneratedAssets.Add(_barSprite);
             BuildPath(settings);
@@ -184,31 +185,23 @@ namespace MixVerse.Game.Kart
 
         public Transform CreateObject(KartStageView stage, TrackObject obj)
         {
-            var color = obj.Kind == TrackObjectKind.Crate ? new Color(0.65f, 0.39f, 0.17f) : obj.Kind == TrackObjectKind.Explosion ? _coral :
-                obj.Kind == TrackObjectKind.Rocket ? _coral : obj.Kind == TrackObjectKind.Papers ? Color.white : _cyan;
-            var scale = obj.Kind == TrackObjectKind.Papers ? new Vector3(2f, 0.1f, 2f) : obj.Kind == TrackObjectKind.Rocket ? new Vector3(0.35f, 0.35f, 1.4f) : Vector3.one * 1.5f;
-            var shape = obj.Kind == TrackObjectKind.Explosion ? PrimitiveType.Sphere : PrimitiveType.Cube;
-            var root = Shape(stage.transform, obj.Kind.ToString(), shape, Vector3.zero, scale, color).transform;
             if (obj.Kind == TrackObjectKind.Explosion)
             {
-                var material = ExplosionMaterial();
-                root.GetComponent<Renderer>().sharedMaterial = material;
-                stage.ExplosionMaterials.Add(obj.Id, material);
+                var effect = _explosions.Create(obj.Item == KartItem.Rocket, obj.Id);
+                stage.Explosions.Add(obj.Id, effect);
+                return effect.transform;
             }
+            var color = obj.Kind == TrackObjectKind.Crate ? new Color(0.65f, 0.39f, 0.17f) :
+                obj.Kind == TrackObjectKind.Rocket ? _coral : obj.Kind == TrackObjectKind.Papers ? Color.white : _cyan;
+            var scale = obj.Kind == TrackObjectKind.Papers ? new Vector3(2f, 0.1f, 2f) : obj.Kind == TrackObjectKind.Rocket ? new Vector3(0.35f, 0.35f, 1.4f) : Vector3.one * 1.5f;
+            var shape = PrimitiveType.Cube;
+            var root = Shape(stage.transform, obj.Kind.ToString(), shape, Vector3.zero, scale, color).transform;
             if (obj.Kind == TrackObjectKind.ItemBox)
             {
                 var label = WorldLabel(root, obj.Item == KartItem.Papers ? "書" : obj.Item == KartItem.Rocket ? "弾" : "飲", _navy, 7f);
                 label.transform.localPosition = new Vector3(0f, 0f, -0.52f);
             }
             return root;
-        }
-
-        // 爆発ごとに専用のインスタンスを持たせる。マテリアルアセットを直接書き換えると
-        // 同時に起きている他の爆発の _Progress まで揃ってしまうため（KartStageView が個別に破棄する）
-        private Material ExplosionMaterial()
-        {
-            _explosionShader = _explosionShader != null ? _explosionShader : Shader.Find("MixVerse/ExplosionShaderURP");
-            return new Material(_explosionShader);
         }
 
         private void BuildHud()

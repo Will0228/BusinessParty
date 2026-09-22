@@ -38,7 +38,7 @@ namespace MixVerse.Game.Kart
         public AudioClip AlertClip;
         public readonly List<Object> GeneratedAssets = new List<Object>();
         public readonly Dictionary<int, Transform> ObjectViews = new Dictionary<int, Transform>();
-        public readonly Dictionary<int, Material> ExplosionMaterials = new Dictionary<int, Material>();
+        public readonly Dictionary<int, KartExplosionView> Explosions = new Dictionary<int, KartExplosionView>();
         public readonly List<Vector3> Path = new List<Vector3>();
         public readonly List<KeyValuePair<float, GameObject>> Gates = new List<KeyValuePair<float, GameObject>>();
         public KartStageFactory Factory;
@@ -49,7 +49,6 @@ namespace MixVerse.Game.Kart
         private readonly HashSet<int> _seen = new HashSet<int>();
         private KartRaceSettings _settings;
         private bool _debug;
-        private static readonly int ExplosionProgressId = Shader.PropertyToID("_Progress");
         private readonly string[] _sectionNames = { "01  市街地", "02  峠の上り", "03  ギャラリー", "04  トンネル", "05  連続ヘアピン", "06  ゴール前直線" };
         private readonly string[] _racerNames = { "あなた", "上司", "部下" };
 
@@ -89,6 +88,7 @@ namespace MixVerse.Game.Kart
             Camera.backgroundColor = race.SectionAt(race.Player.Distance) == CourseSection.Tunnel ? new Color(0.025f, 0.035f, 0.06f) : new Color(0.28f, 0.48f, 0.62f);
             foreach (var gate in Gates) gate.Value.SetActive(gate.Key > race.Player.Distance + 15f);
             RenderObjects(race);
+            RenderExplosionImpact();
             var ranks = new string[3];
             foreach (var racer in race.Racers)
             {
@@ -184,29 +184,42 @@ namespace MixVerse.Game.Kart
                 view.localPosition = Point(obj.Distance, obj.Lane) + Vector3.up * (obj.Kind == TrackObjectKind.Papers ? 0.08f : 0.8f);
                 view.localRotation = DirectionAt(obj.Distance);
                 if (obj.Kind == TrackObjectKind.ItemBox) view.localRotation *= Quaternion.Euler(0f, race.Time * 70f, 10f);
-                if (obj.Kind == TrackObjectKind.Explosion)
-                {
-                    var progress = 1f - obj.Lifetime / 0.65f;
-                    view.localScale = Vector3.one * progress * _settings.explosionRadius * 2f;
-                    if (ExplosionMaterials.TryGetValue(obj.Id, out var material)) material.SetFloat(ExplosionProgressId, progress);
-                }
             }
             _expired.Clear();
-            foreach (var pair in ObjectViews) if (!_seen.Contains(pair.Key)) _expired.Add(pair.Key);
+            foreach (var pair in ObjectViews)
+            {
+                if (_seen.Contains(pair.Key)) continue;
+                if (Explosions.TryGetValue(pair.Key, out var effect) && effect.IsAlive) continue;
+                _expired.Add(pair.Key);
+            }
             foreach (var id in _expired)
             {
                 Destroy(ObjectViews[id].gameObject);
                 ObjectViews.Remove(id);
-                if (ExplosionMaterials.TryGetValue(id, out var material)) { Destroy(material); ExplosionMaterials.Remove(id); }
+                Explosions.Remove(id);
             }
+        }
+
+        private void RenderExplosionImpact()
+        {
+            var impact = 0f;
+            foreach (var effect in Explosions.Values)
+            {
+                var distance = Vector3.Distance(Camera.transform.position, effect.transform.position);
+                impact = Mathf.Max(impact, effect.Impact * Mathf.Clamp01(1f - distance / 65f));
+            }
+            Camera.fieldOfView = 58f + impact * 4f;
+            Camera.transform.position += Camera.transform.right * (Mathf.Sin(Time.time * 93f) * impact * 0.24f)
+                + Camera.transform.up * (Mathf.Cos(Time.time * 117f) * impact * 0.16f);
+            Camera.transform.Rotate(0f, 0f, Mathf.Sin(Time.time * 71f) * impact * 1.2f);
         }
 
         public void ResetObjects()
         {
             foreach (var view in ObjectViews.Values) if (view != null) Destroy(view.gameObject);
             ObjectViews.Clear();
-            foreach (var material in ExplosionMaterials.Values) if (material != null) Destroy(material);
-            ExplosionMaterials.Clear();
+            Explosions.Clear();
+            Camera.fieldOfView = 58f;
             _lastSlip = 0f;
             _lastAttacks = 0;
             _lastPhase = RacePhase.Racing;
@@ -215,7 +228,6 @@ namespace MixVerse.Game.Kart
         private void OnDestroy()
         {
             foreach (var asset in GeneratedAssets) if (asset != null) Destroy(asset);
-            foreach (var material in ExplosionMaterials.Values) if (material != null) Destroy(material);
         }
     }
 }

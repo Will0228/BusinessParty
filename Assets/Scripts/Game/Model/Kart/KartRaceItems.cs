@@ -167,7 +167,7 @@ namespace MixVerse.Game.Model.Kart
             }
             foreach (var obj in Objects)
                 if (obj.Kind == TrackObjectKind.Crate && DistanceSquared(obj.Distance, obj.Lane, rocket.Distance, rocket.Lane) <= _settings.explosionRadius * _settings.explosionRadius) obj.Active = false;
-            AddObject(TrackObjectKind.Explosion, rocket.Distance, rocket.Lane, 0.6f);
+            AddObject(TrackObjectKind.Explosion, rocket.Distance, rocket.Lane, 0.6f, rocket.Owner, KartItem.Rocket);
         }
 
         private void Disable(RacerState racer, bool spinning)

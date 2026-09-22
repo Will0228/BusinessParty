@@ -3,7 +3,6 @@ Shader "MixVerse/ExplosionShaderURP"
     Properties
     {
         [Header(Progress)]
-        // 0 が着弾直後、1 が燃え尽きて消えるところ。KartStageView が Lifetime から毎フレーム計算して渡す。
         _Progress ("Progress", Range(0, 1)) = 0
 
         [Header(Fireball Colors)]
