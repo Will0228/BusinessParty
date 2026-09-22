@@ -101,6 +101,7 @@ namespace MixVerse.Game.Model.Kart
                 }
             }
             var bossTarget = SectionAt(Boss.Distance) == CourseSection.Uphill ? 44f : 50f;
+            if (Boss.TurboSeconds > 0f) bossTarget *= 1.2f;
             var juniorTarget = 70f;
             var ahead = Player.Distance - Junior.Distance;
             var blocking = !Player.Finished && ahead > 0f && ahead < _settings.blockingDistance && Math.Abs(Player.Lane - Junior.Lane) < 1.45f && Player.Speed < 70f;
@@ -134,7 +135,7 @@ namespace MixVerse.Game.Model.Kart
                 racer.Speed = 0f;
                 return;
             }
-            racer.Speed = MoveTowards(racer.Speed, target, dt * (Math.Abs(target) < Math.Abs(racer.Speed) ? _settings.braking : _settings.acceleration));
+            racer.Speed = MoveTowards(racer.Speed, target, dt * (Math.Abs(target) < Math.Abs(racer.Speed) ? _settings.braking : _settings.acceleration * (racer.TurboSeconds > 0f ? 1.5f : 1f)));
             var previous = racer.Distance;
             racer.Distance = Math.Max(0f, previous + racer.Speed * _settings.metersPerSpeedUnit * dt);
             if (racer.Distance >= _settings.courseLength)
@@ -161,7 +162,7 @@ namespace MixVerse.Game.Model.Kart
         {
             if (!Player.Finished && !Boss.Finished && Math.Abs(Player.Distance - Boss.Distance) < 2.1f && Math.Abs(Player.Lane - Boss.Lane) < 1.35f)
                 Fail("上司のカートに接触しました");
-            if (!Player.Finished && !Junior.Finished && Math.Abs(Player.Distance - Junior.Distance) < 2f && Math.Abs(Player.Lane - Junior.Lane) < 1.4f)
+            if (!Player.Finished && !Junior.Finished && Math.Abs(Player.Distance - Junior.Distance) < 2f && Math.Abs(Player.Lane - Junior.Lane) < 1.4f && Math.Abs(Player.Lane - Junior.Lane) > 0.65f)
             {
                 var side = Junior.Lane >= Player.Lane ? 1f : -1f;
                 Junior.Lane = Clamp(Junior.Lane + side * dt * 6f, -_settings.roadHalfWidth + 0.7f, _settings.roadHalfWidth - 0.7f);

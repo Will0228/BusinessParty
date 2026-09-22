@@ -166,5 +166,95 @@ namespace MixVerse.Game.Model.Tests
             race.Tick(0.02f, Forward());
             Assert.That(race.ResultReason, Does.Contain("監視カメラ"));
         }
+
+        [Test] public void SidePushIntoCrateCountsAsAttack()
+        {
+            var race = NewRace();
+            race.Objects.Clear();
+            race.Player.Distance = 25f;
+            race.Player.Lane = 1f;
+            race.Junior.Distance = 25f;
+            race.Junior.Lane = 2f;
+            race.Boss.Distance = 40f;
+            race.Objects.Add(new TrackObject { Kind = TrackObjectKind.Crate, Distance = 25f, Lane = 3.3f });
+            Advance(race, 0.1f, Forward());
+            Assert.That(race.Attacks, Is.EqualTo(1));
+            Assert.That(race.Junior.DisabledSeconds, Is.GreaterThan(0f));
+        }
+        [Test] public void RearContactDoesNotReceivePushCredit()
+        {
+            var race = NewRace();
+            race.Objects.Clear();
+            race.Player.Distance = 23.5f;
+            race.Junior.Distance = 25f;
+            race.Boss.Distance = 40f;
+            race.Objects.Add(new TrackObject { Kind = TrackObjectKind.Crate, Distance = 25f, Lane = 2f });
+            race.Tick(0.02f, Forward());
+            Assert.That(race.Attacks, Is.Zero);
+        }
+        [Test] public void FollowingBossTooCloselyFails()
+        {
+            var race = NewRace();
+            race.Objects.Clear();
+            race.Player.Distance = 3f;
+            race.Player.Lane = -2f;
+            race.Junior.Distance = 0f;
+            Advance(race, 3.2f, Forward());
+            Assert.That(race.ResultReason, Does.Contain("煽"));
+        }
+        [Test] public void DriftReleaseAwardsTurboAndZeroGainStillStops()
+        {
+            var race = NewRace();
+            race.Objects.Clear();
+            race.Player.Lane = 0f;
+            race.Player.Speed = 50f;
+            var drift = Forward(); drift.Jog = 1;
+            Advance(race, 1f, drift);
+            Assert.That(race.DriftTier, Is.EqualTo(1));
+            race.Tick(0.02f, Forward());
+            Assert.That(race.Player.TurboSeconds, Is.GreaterThan(0f));
+            Advance(race, 1f, Forward(0f));
+            Assert.That(race.Player.Speed, Is.EqualTo(0f).Within(0.01f));
+        }
+        [Test] public void JuniorNeverExceedsSeventyWithDrink()
+        {
+            var race = NewRace();
+            race.Objects.Clear();
+            race.Junior.Item = KartItem.Drink;
+            race.Player.Lane = 0f;
+            Advance(race, 3f, Forward());
+            Assert.That(race.Junior.Speed, Is.LessThanOrEqualTo(70f));
+        }
+        [Test] public void FixedStepGivesSameOutcomeAtDifferentFrameRates()
+        {
+            var a = NewRace(); var b = NewRace();
+            a.Objects.Clear(); b.Objects.Clear();
+            a.Player.Lane = b.Player.Lane = 0f;
+            for (var i = 0; i < 300; i++) a.Tick(1f / 60f, Forward());
+            for (var i = 0; i < 150; i++) b.Tick(1f / 30f, Forward());
+            Assert.That(a.Player.Distance, Is.EqualTo(b.Player.Distance).Within(0.02f));
+            Assert.That(a.Boss.Distance, Is.EqualTo(b.Boss.Distance).Within(0.02f));
+        }
+        [Test] public void FullCourseCanBeClearedUsingOnlyNormalDrivingInputs()
+        {
+            var race = NewRace();
+            for (var frame = 0; frame < 18000 && race.Phase == RacePhase.Racing; frame++)
+            {
+                var target = race.Junior.Distance + 5f;
+                var gain = System.Math.Max(0f, System.Math.Min(1f, (50f + (target - race.Player.Distance) * 10f) / 100f));
+                if (race.Junior.Distance < race.Boss.Distance - 8f) gain = 0.7f;
+                if (race.Player.Distance > race.Junior.Distance && race.Player.Distance - race.Junior.Distance < 8f)
+                    gain = System.Math.Max(0.2f, System.Math.Min(0.7f, (50f - (race.Junior.Distance - race.Boss.Distance + 5f) * 3f) / 100f));
+                if (race.Boss.Distance > 1170f && race.Player.Distance > race.Boss.Distance - 4f) gain = 0.25f;
+                var lane = race.Junior.Lane;
+                if (System.Math.Abs(race.Player.Distance - race.Boss.Distance) < 10f && System.Math.Abs(lane - race.Boss.Lane) < 2f)
+                    lane = race.Boss.Lane > 0f ? -1f : 2f;
+                var steering = System.Math.Sign(lane - race.Player.Lane) * System.Math.Min(1d, System.Math.Sqrt(System.Math.Abs(lane - race.Player.Lane) * 2f));
+                race.Tick(1f / 120f, new KartInput { Gain = gain, Master = 1f, Steering = (float)steering });
+            }
+            Assert.That(race.Phase, Is.EqualTo(RacePhase.Cleared), race.ResultReason);
+            Assert.That(race.FinishGap, Is.LessThan(3f));
+            Assert.That(race.Attacks, Is.GreaterThan(0));
+        }
     }
 }
