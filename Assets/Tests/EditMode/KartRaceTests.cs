@@ -268,6 +268,20 @@ namespace MixVerse.Game.Model.Tests
             Assert.That(layout.TurnRateAt(910f), Is.LessThan(-0.07f));
         }
 
+        [Test] public void EverySectionContainsAVisibleCurveWithMatchingTurnRate()
+        {
+            var layout = new KartCourseLayout(1200f);
+            foreach (var distance in new[] { 55f, 240f, 450f, 640f, 830f, 1035f })
+            {
+                Assert.That(System.Math.Abs(layout.TurnRateAt(distance)), Is.GreaterThan(0.025f), $"Curve at {distance} m");
+                var headingChange = layout.HeadingAt(distance + 0.1f) - layout.HeadingAt(distance - 0.1f);
+                Assert.That(headingChange / 0.2f, Is.EqualTo(layout.TurnRateAt(distance)).Within(0.001f));
+            }
+            Assert.That(layout.HeadingAt(85f), Is.GreaterThan(1.2f));
+            Assert.That(layout.HeadingAt(270f), Is.LessThan(-1.4f));
+            Assert.That(layout.HeadingAt(1130f), Is.EqualTo(0f).Within(0.001f));
+        }
+
         [Test] public void SteeringAndDriftCounterOutwardSlipOnHairpin()
         {
             var unattended = NewRace();
@@ -288,6 +302,28 @@ namespace MixVerse.Game.Model.Tests
             Advance(assisted, 0.35f, input);
             Assert.That(unattended.Player.Lane, Is.LessThan(-2f));
             Assert.That(assisted.Player.Lane, Is.GreaterThan(-1f));
+        }
+
+        [Test] public void DriftAlsoCountersSlipOnUphillCurve()
+        {
+            var unattended = NewRace();
+            var assisted = NewRace();
+            foreach (var race in new[] { unattended, assisted })
+            {
+                race.Objects.Clear();
+                race.Player.Distance = 230f;
+                race.Player.Lane = 0f;
+                race.Player.Speed = 80f;
+                race.Boss.Distance = 300f;
+                race.Junior.Distance = 300f;
+            }
+            Advance(unattended, 0.45f, Forward(0.8f));
+            var input = Forward(0.8f);
+            input.Steering = -1f;
+            input.Jog = -1;
+            Advance(assisted, 0.45f, input);
+            Assert.That(unattended.Player.Lane, Is.GreaterThan(1f));
+            Assert.That(assisted.Player.Lane, Is.LessThan(0f));
         }
     }
 }
