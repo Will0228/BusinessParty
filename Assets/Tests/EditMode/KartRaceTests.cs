@@ -78,6 +78,19 @@ namespace MixVerse.Game.Model.Tests
             race.Tick(0.02f, new KartInput { Gain = 0.5f, Master = 0f });
             Assert.That(race.ResultReason, Does.Contain("バック"));
         }
+        [Test] public void WallContactInGallerySlowsPlayerWithoutFailing()
+        {
+            var race = NewRace();
+            race.Objects.Clear();
+            race.Player.Distance = 420f;
+            race.Boss.Distance = 430f;
+            race.Junior.Distance = 425f;
+            race.Player.Lane = 6f;
+            race.Player.Speed = 50f;
+            race.Tick(0.02f, Forward());
+            Assert.That(race.Phase, Is.EqualTo(RacePhase.Racing));
+            Assert.That(race.Player.Speed, Is.LessThan(50f));
+        }
         [Test] public void FirstPlaceJuniorTriggersAndUnansweredSlipFails()
         {
             var settings = new KartRaceSettings { slipMinSeconds = 1f, slipMaxSeconds = 1f, maximumBossDistance = 1000f };

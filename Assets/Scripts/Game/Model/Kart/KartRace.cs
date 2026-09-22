@@ -104,7 +104,7 @@ namespace MixVerse.Game.Model.Kart
                 {
                     Player.Lane = Clamp(Player.Lane, -_settings.roadHalfWidth + 0.7f, _settings.roadHalfWidth - 0.7f);
                     Player.Speed *= 0.6f;
-                    RecordMisconduct("壁に激突しました");
+                    RecordMisconduct("壁に激突しました", false);
                 }
             }
             var bossTarget = SectionAt(Boss.Distance) == CourseSection.Uphill ? 44f : 50f;
@@ -222,9 +222,9 @@ namespace MixVerse.Game.Model.Kart
             Message = message + " — 部下への妨害はセーフ";
             ScheduleSlip();
         }
-        private void RecordMisconduct(string reason)
+        private void RecordMisconduct(string reason, bool failInGallery = true)
         {
-            if (SectionAt(Player.Distance) == CourseSection.Gallery) Fail("ギャラリー区間：" + reason);
+            if (failInGallery && SectionAt(Player.Distance) == CourseSection.Gallery) Fail("ギャラリー区間：" + reason);
             if (InCamera(Player.Distance) && !CameraEvidence.Contains(reason)) CameraEvidence.Add(reason);
         }
         private void Fail(string reason)

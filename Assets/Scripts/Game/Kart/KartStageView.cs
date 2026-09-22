@@ -111,7 +111,7 @@ namespace MixVerse.Game.Kart
             Warning.color = distance > _settings.maximumBossDistance * 0.7f || race.TailgateTime > 0.2f ? new Color(1f, 0.42f, 0.3f) : new Color(0.65f, 0.87f, 0.87f);
             Warning.text = $"上司からの最大距離  {distance:0} / {_settings.maximumBossDistance:0} m";
             if (race.TailgateTime > 0.2f) Warning.text += $"   煽り注意！ {_settings.tailgateSeconds - race.TailgateTime:0.0}s";
-            if (section == CourseSection.Gallery) Warning.text += "\n監視中：バック・壁衝突・スピン・横転は厳禁";
+            if (section == CourseSection.Gallery) Warning.text += "\n監視中：バック・スピン・横転は厳禁";
             else if (race.InCamera(race.Player.Distance)) Warning.text += "\n監視カメラ録画中：ゴール後に確認";
             Radio.gameObject.SetActive(!ready && countdown <= 0f && race.Phase == RacePhase.Racing);
             Radio.text = race.SlipRemaining > 0f ? $"<color=#FFAA70>無線：課長、遅くないっすか？</color>\nあと <size=36>{race.SlipRemaining:0.0}</size> 秒以内に部下を攻撃！" : race.Message;
