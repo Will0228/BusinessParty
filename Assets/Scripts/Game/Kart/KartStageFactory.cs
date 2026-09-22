@@ -219,8 +219,12 @@ namespace MixVerse.Game.Kart
             Panel(parent, new Vector2(0f, 0f), new Vector2(24f, 82f), new Vector2(295f, 155f), _navy);
             _stage.Speed = Label(parent, "", new Vector2(0f, 0f), new Vector2(42f, 111f), new Vector2(260f, 120f), 24, _cyan);
             _stage.Gain = Bar(parent, new Vector2(0f, 0f), new Vector2(42f, 98f), new Vector2(258f, 6f), _cyan);
-            Panel(parent, new Vector2(1f, 0f), new Vector2(-24f, 82f), new Vector2(330f, 155f), _navy);
-            _stage.Item = Label(parent, "", new Vector2(1f, 0f), new Vector2(-42f, 130f), new Vector2(292f, 87f), 20, _gold);
+            var itemPanel = Panel(parent, new Vector2(1f, 1f), new Vector2(-24f, -150f), new Vector2(330f, 130f), _navy);
+            var iconFrame = Panel(itemPanel.transform, new Vector2(0f, 0.5f), new Vector2(16f, 0f), new Vector2(82f, 82f), _gold);
+            Panel(iconFrame.transform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(76f, 76f), new Color(0.1f, 0.18f, 0.23f));
+            BuildItemIcons(iconFrame.transform);
+            _stage.Item = Label(itemPanel.transform, "", new Vector2(0f, 0.5f), new Vector2(108f, 0f), new Vector2(210f, 92f), 19, _gold);
+            Panel(parent, new Vector2(1f, 0f), new Vector2(-24f, 82f), new Vector2(330f, 90f), _navy);
             _stage.Drift = Label(parent, "", new Vector2(1f, 0f), new Vector2(-42f, 102f), new Vector2(292f, 30f), 20, _cyan);
             _stage.DriftFill = Bar(parent, new Vector2(1f, 0f), new Vector2(-42f, 96f), new Vector2(292f, 5f), _cyan);
             _stage.Progress = Bar(parent, new Vector2(0.5f, 0f), new Vector2(0f, 65f), new Vector2(1552f, 5f), _gold);
@@ -233,6 +237,54 @@ namespace MixVerse.Game.Kart
             _stage.ActionLabel = action;
             _stage.ExitButton = Button(modal.transform, new Vector2(335f, 45f), new Vector2(235f, 60f), new Color(0.4f, 0.5f, 0.6f), out var exit);
             exit.text = "ホームへ [ ESC ]";
+        }
+
+        private void BuildItemIcons(Transform parent)
+        {
+            _stage.ItemIcons = new GameObject[4];
+            _stage.EmptyItemIcon = Label(parent, "—", new Vector2(0.5f, 0.5f), Vector2.zero,
+                new Vector2(70f, 70f), 46, new Color(0.45f, 0.58f, 0.61f), TextAlignmentOptions.Center).gameObject;
+
+            var papers = IconGroup(parent, "Papers icon");
+            _stage.ItemIcons[(int)KartItem.Papers] = papers.gameObject;
+            IconShape(papers, new Vector2(-7f, 2f), new Vector2(32f, 43f), _cyan, -13f);
+            IconShape(papers, new Vector2(5f, -2f), new Vector2(32f, 43f), _gold, 10f);
+            var page = IconShape(papers, new Vector2(-1f, 0f), new Vector2(32f, 43f), Color.white);
+            for (var i = 0; i < 3; i++) IconShape(page.transform, new Vector2(0f, 9f - i * 9f), new Vector2(22f, 3f), _navy);
+
+            var rocket = IconGroup(parent, "Rocket icon");
+            _stage.ItemIcons[(int)KartItem.Rocket] = rocket.gameObject;
+            IconShape(rocket, new Vector2(-12f, -14f), new Vector2(15f, 17f), _coral, 35f);
+            IconShape(rocket, new Vector2(12f, -14f), new Vector2(15f, 17f), _coral, -35f);
+            IconShape(rocket, new Vector2(0f, -27f), new Vector2(11f, 14f), _gold);
+            IconShape(rocket, new Vector2(0f, 0f), new Vector2(21f, 43f), Color.white);
+            IconShape(rocket, new Vector2(0f, 22f), new Vector2(17f, 17f), _coral, 45f);
+            IconShape(rocket, new Vector2(0f, 2f), new Vector2(9f, 9f), _cyan, 45f);
+
+            var drink = IconGroup(parent, "Drink icon");
+            _stage.ItemIcons[(int)KartItem.Drink] = drink.gameObject;
+            IconShape(drink, new Vector2(0f, -5f), new Vector2(29f, 42f), _cyan);
+            IconShape(drink, new Vector2(0f, 19f), new Vector2(17f, 10f), _cyan);
+            IconShape(drink, new Vector2(0f, 26f), new Vector2(24f, 7f), _gold);
+            IconShape(drink, new Vector2(0f, -5f), new Vector2(29f, 18f), Color.white);
+            IconShape(drink, new Vector2(0f, -5f), new Vector2(17f, 4f), _coral);
+            IconShape(drink, new Vector2(0f, -5f), new Vector2(4f, 14f), _coral);
+        }
+
+        private RectTransform IconGroup(Transform parent, string name)
+        {
+            var group = new GameObject(name, typeof(RectTransform));
+            group.transform.SetParent(parent, false);
+            var rect = (RectTransform)group.transform;
+            Rect(rect, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(76f, 76f));
+            return rect;
+        }
+
+        private Image IconShape(Transform parent, Vector2 position, Vector2 size, Color color, float angle = 0f)
+        {
+            var image = Panel(parent, new Vector2(0.5f, 0.5f), position, size, color);
+            image.transform.localRotation = Quaternion.Euler(0f, 0f, angle);
+            return image;
         }
 
         private Button Button(Transform parent, Vector2 position, Vector2 size, Color color, out TextMeshProUGUI label)

@@ -17,6 +17,8 @@ namespace MixVerse.Game.Kart
         public TextMeshProUGUI Section;
         public TextMeshProUGUI Speed;
         public TextMeshProUGUI Item;
+        public GameObject[] ItemIcons;
+        public GameObject EmptyItemIcon;
         public TextMeshProUGUI Warning;
         public TextMeshProUGUI Radio;
         public TextMeshProUGUI Drift;
@@ -96,7 +98,9 @@ namespace MixVerse.Game.Kart
             var section = race.SectionAt(race.Player.Distance);
             Section.text = _sectionNames[(int)section] + $"\n残り {Mathf.Max(0f, _settings.courseLength - race.Player.Distance):0} m";
             Speed.text = $"<size=64>{Mathf.Abs(race.Player.Speed):00}</size> <size=20>/ 100</size>\n{(race.Direction > 0 ? "DRIVE" : "REVERSE")}   GAIN {gain * 100f:0}%";
-            Item.text = "SYNC / SPACE\n<size=30>" + ItemName(race.Player.Item) + "</size>";
+            Item.text = "所持アイテム\n<size=25>" + ItemName(race.Player.Item) + "</size>\n<size=16>SYNC / SPACE で使用</size>";
+            EmptyItemIcon.SetActive(race.Player.Item == KartItem.None);
+            for (var i = 1; i < ItemIcons.Length; i++) ItemIcons[i].SetActive((int)race.Player.Item == i);
             Drift.text = race.Player.TurboSeconds > 0f ? "TURBO  加速中" : $"DRIFT  {race.DriftTier} / 2";
             DriftFill.fillAmount = Mathf.Clamp01(race.DriftTime / _settings.driftSecondSeconds);
             Gain.fillAmount = gain;

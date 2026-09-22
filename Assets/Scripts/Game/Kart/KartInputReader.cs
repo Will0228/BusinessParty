@@ -10,12 +10,12 @@ namespace MixVerse.Game.Kart
     [Serializable]
     public sealed class KartMidiMapping
     {
-        [Range(0, 16)] public int channel;
+        [Range(0, 16)] public int channel = 1;
         [Range(0, 127)] public int gainControl = 24;
         [Range(0, 127)] public int masterControl = 7;
         [Range(0, 127)] public int steeringControl = 10;
         [Range(0, 127)] public int jogControl = 27;
-        [Range(0, 127)] public int syncNote = 60;
+        [Range(0, 127)] public int syncControl = 71;
         public bool binaryOffsetJog;
         [Range(0.05f, 0.5f)] public float jogTimeout = 0.16f;
     }
@@ -30,13 +30,13 @@ namespace MixVerse.Game.Kart
         private float _jogAt = -10f;
         private int _jog;
         private bool _useItem;
+        private bool _syncPressed;
         private bool _bound;
         public float Gain => _gain;
         public bool HasMidi => _devices.Count > 0;
 
         private sealed class Handlers
         {
-            public Action<MidiNoteControl, float> Note;
             public Action<MidiValueControl, float> Control;
         }
 
@@ -54,8 +54,7 @@ namespace MixVerse.Game.Kart
         {
             if (!(device is MidiDevice midi) || _devices.ContainsKey(midi)) return;
             if (_mapping.channel > 0 && midi.channel != _mapping.channel - 1) return;
-            var handlers = new Handlers { Note = OnNote, Control = OnControl };
-            midi.onWillNoteOn += handlers.Note;
+            var handlers = new Handlers { Control = OnControl };
             midi.onWillControlChange += handlers.Control;
             _devices.Add(midi, handlers);
         }
@@ -71,18 +70,23 @@ namespace MixVerse.Game.Kart
                     _devices.Remove(midi);
                     _steering = 0f;
                     _jog = 0;
+                    _syncPressed = false;
                 }
             }
-        }
-
-        private void OnNote(MidiNoteControl note, float velocity)
-        {
-            if (velocity > 0f && note.noteNumber == _mapping.syncNote) _useItem = true;
         }
 
         private void OnControl(MidiValueControl control, float value)
         {
             var number = control.controlNumber;
+            if (number == _mapping.syncControl)
+            {
+                if (value >= 0.999f && !_syncPressed)
+                {
+                    _useItem = true;
+                    _syncPressed = true;
+                }
+                else if (value <= 0.5f) _syncPressed = false;
+            }
             if (number == _mapping.gainControl) _gain = Mathf.Clamp01(value);
             if (number == _mapping.masterControl) _master = Mathf.Clamp01(value);
             if (number == _mapping.steeringControl) _steering = value * 2f - 1f;
@@ -123,11 +127,11 @@ namespace MixVerse.Game.Kart
             _jog = 0;
             _jogAt = -10f;
             _useItem = false;
+            _syncPressed = false;
         }
 
         private void Unbind(MidiDevice device, Handlers handlers)
         {
-            device.onWillNoteOn -= handlers.Note;
             device.onWillControlChange -= handlers.Control;
         }
 
