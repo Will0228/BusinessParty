@@ -890,23 +890,42 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5e4d328cfdd7fb0428b2f7a5bfb8a0ab, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MixVerse.Game.GameView
-  _settings:
-    bpm: 130
-    leadInBeats: 8
-    noteLeadBeats: 4
-    perfectSeconds: 0.05
-    goodSeconds: 0.12
-    stageOrigin: {x: 0, y: 1000, z: 0}
-    laneLength: 32
-    laneWidth: 3
-    playerOffsetZ: -1.2
-    cpuSpacing: 3.5
-    cameraHeight: 10
-    cameraDistance: 6
-    cameraPitch: 45
-    fieldOfView: 60
-    fadeDuration: 0.6
-    playMetronome: 1
+  _raceSettings:
+    courseLength: 1200
+    roadHalfWidth: 6
+    metersPerSpeedUnit: 0.25
+    acceleration: 45
+    braking: 80
+    steeringSpeed: 5
+    steeringDeadZone: 0.08
+    maximumBossDistance: 95
+    tailgateDistance: 7
+    tailgateSeconds: 3
+    blockingDistance: 8
+    blockingSeconds: 0.65
+    pushCreditSeconds: 2
+    overturnSeconds: 2.2
+    spinSeconds: 1.4
+    driftFirstSeconds: 0.8
+    driftSecondSeconds: 1.8
+    turboSeconds: 1
+    slipMinSeconds: 9
+    slipMaxSeconds: 15
+    slipResponseSeconds: 10
+    rocketSpeed: 55
+    explosionRadius: 4.5
+    paperLifetime: 14
+    cameraReviewEnabled: 1
+    debugUnlimitedItem: 0
+  _midiMapping:
+    channel: 0
+    gainControl: 9
+    steeringControl: 10
+    driftControl: 24
+    syncControl: 71
+    driftMode: 0
+    binaryOffsetJog: 0
+    jogTimeout: 0.16
 --- !u!4 &368119409
 Transform:
   m_ObjectHideFlags: 0
