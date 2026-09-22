@@ -17,6 +17,7 @@ clone 直後のプロジェクトを、他のメンバーと同じ状態で開�
 3. `Window > TextMeshPro > Import TMP Essential Resources` を実行する。
 4. Asset Store のアセットを自分のアカウントから import する（[手動 import が必要なもの](#手動-import-が必要なもの)）。
 5. `MixVerse > Setup > セットアップ状況を確認` で不足がないか確認する。
+6. ターミナルから Editor を操作する場合は Unity CLI を入れる（[Docs/UnityPipeline.md](Docs/UnityPipeline.md)）。
 
 ## git だけで揃うもの（作業不要）
 
