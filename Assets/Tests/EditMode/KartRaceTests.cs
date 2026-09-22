@@ -202,7 +202,7 @@ namespace MixVerse.Game.Model.Tests
             Advance(race, 3.2f, Forward());
             Assert.That(race.ResultReason, Does.Contain("煽"));
         }
-        [Test] public void DriftReleaseAwardsTurboAndZeroGainStillStops()
+        [Test] public void DriftReleaseTracksTierWithoutAwardingTurbo()
         {
             var race = NewRace();
             race.Objects.Clear();
@@ -212,7 +212,7 @@ namespace MixVerse.Game.Model.Tests
             Advance(race, 1f, drift);
             Assert.That(race.DriftTier, Is.EqualTo(1));
             race.Tick(0.02f, Forward());
-            Assert.That(race.Player.TurboSeconds, Is.GreaterThan(0f));
+            Assert.That(race.Player.TurboSeconds, Is.EqualTo(0f));
             Advance(race, 1f, Forward(0f));
             Assert.That(race.Player.Speed, Is.EqualTo(0f).Within(0.01f));
         }

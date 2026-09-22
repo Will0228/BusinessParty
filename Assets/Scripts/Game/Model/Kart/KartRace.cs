@@ -155,11 +155,7 @@ namespace MixVerse.Game.Model.Kart
         {
             if (Player.DisabledSeconds > 0f || Player.Finished || Math.Abs(Player.Speed) < 20f) jog = 0;
             jog = Math.Sign(jog);
-            if (_driftDirection != 0 && jog != _driftDirection)
-            {
-                if (DriftTier > 0) Player.TurboSeconds = DriftTier * _settings.turboSeconds;
-                _driftTime = 0f;
-            }
+            if (_driftDirection != 0 && jog != _driftDirection) _driftTime = 0f;
             _driftDirection = jog;
             if (jog != 0) _driftTime += dt;
         }

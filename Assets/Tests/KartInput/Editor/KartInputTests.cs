@@ -69,7 +69,7 @@ namespace MixVerse.Game.Tests
         }
 
         [Test]
-        public void Cc24DriftBuildsAndReleasesTurboInRace()
+        public void Cc24DriftBuildsTierWithoutAffectingSpeed()
         {
             var reader = new KartInputReader(new KartMidiMapping());
             var race = new KartRace(new KartRaceSettings());
@@ -85,7 +85,7 @@ namespace MixVerse.Game.Tests
             Assert.That(race.DriftTier, Is.GreaterThanOrEqualTo(1));
             reader.ApplyControlChange(0, 24, 1f / 127f);
             race.Tick(1f / 60f, reader.Read(1f / 60f));
-            Assert.That(race.Player.TurboSeconds, Is.GreaterThan(0f));
+            Assert.That(race.Player.TurboSeconds, Is.EqualTo(0f));
         }
     }
 }
