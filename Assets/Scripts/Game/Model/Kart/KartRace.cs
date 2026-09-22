@@ -51,6 +51,7 @@ namespace MixVerse.Game.Model.Kart
             _random = new Random(seed);
             ScheduleSlip();
             BuildObjects();
+            if (_settings.debugUnlimitedItem != KartItem.None) Player.Item = _settings.debugUnlimitedItem;
         }
 
         public CourseSection SectionAt(float distance) => (CourseSection)Math.Min(5, Math.Max(0, (int)(distance / (_settings.courseLength / 6f))));

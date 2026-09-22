@@ -31,6 +31,8 @@ namespace MixVerse.Game.Model.Kart
         public float paperLifetime = 14f;
         public bool cameraReviewEnabled = true;
 
+        public KartItem debugUnlimitedItem = KartItem.None;
+
         public void Validate()
         {
             courseLength = Math.Max(300f, courseLength);

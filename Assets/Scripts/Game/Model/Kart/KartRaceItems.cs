@@ -114,7 +114,8 @@ namespace MixVerse.Game.Model.Kart
         private void UseItem(RacerState racer)
         {
             var item = racer.Item;
-            racer.Item = KartItem.None;
+            var isDebugUnlimited = racer.Id == RacerId.Player && item == _settings.debugUnlimitedItem && item != KartItem.None;
+            racer.Item = isDebugUnlimited ? item : KartItem.None;
             switch (item)
             {
                 case KartItem.Papers:
