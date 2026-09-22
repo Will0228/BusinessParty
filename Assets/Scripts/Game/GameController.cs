@@ -40,7 +40,7 @@ namespace MixVerse.Game
             try
             {
                 await _game.ShowAsync(token);
-                _game.StartSong(Time.time);
+                _game.StartRace(Time.time);
 
                 while (true)
                 {

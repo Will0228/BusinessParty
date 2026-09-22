@@ -1,6 +1,5 @@
 using MixVerse.Game;
-using MixVerse.Game.Model;
-using MixVerse.Game.Stage;
+using MixVerse.Game.Kart;
 using MixVerse.Home;
 using UnityEngine;
 using VContainer;
@@ -30,8 +29,9 @@ namespace MixVerse
             builder.RegisterComponent(_gameView);
             builder.Register<GamePresenter>(Lifetime.Singleton).As<IGamePresenter>();
             builder.RegisterInstance(_gameView.Settings);
-            builder.Register<RhythmStageFactory>(Lifetime.Singleton);
-            builder.Register<SteadyChartBuilder>(Lifetime.Singleton);
+            builder.RegisterInstance(_gameView.MidiMapping);
+            builder.Register<KartStageFactory>(Lifetime.Singleton);
+            builder.Register<KartInputReader>(Lifetime.Singleton);
         }
     }
 }

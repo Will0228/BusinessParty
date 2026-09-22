@@ -10,7 +10,7 @@ namespace MixVerse.Game
         void Prepare();
         void Bind(CompositeDisposable lifetime);
         UniTask ShowAsync(CancellationToken token);
-        void StartSong(float now);
+        void StartRace(float now);
         void Tick(float now);
         void Hide();
     }
