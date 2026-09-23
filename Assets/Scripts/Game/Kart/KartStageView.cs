@@ -44,7 +44,11 @@ namespace MixVerse.Game.Kart
         public readonly Dictionary<int, KartExplosionView> Explosions = new Dictionary<int, KartExplosionView>();
         public readonly List<Vector3> Path = new List<Vector3>();
         public readonly List<KeyValuePair<float, GameObject>> Gates = new List<KeyValuePair<float, GameObject>>();
+        public readonly List<KeyValuePair<float, GameObject>> Segments = new List<KeyValuePair<float, GameObject>>();
+        private const float SegmentVisibleBehind = 60f;
+        private const float SegmentVisibleAhead = 260f;
         public KartStageFactory Factory;
+        public Transform CityRoot;
         public float RoadHalfWidth => _settings.roadHalfWidth;
         private float _lastSlip;
         private int _lastAttacks;
@@ -169,6 +173,11 @@ namespace MixVerse.Game.Kart
             Camera.transform.LookAt(transform.TransformPoint(focus + direction * new Vector3(0f, 0f, race.Phase == RacePhase.Failed ? 2f : 13f)));
             Camera.backgroundColor = race.SectionAt(race.Player.Distance) == CourseSection.Tunnel ? new Color(0.025f, 0.035f, 0.06f) : new Color(0.28f, 0.48f, 0.62f);
             foreach (var gate in Gates) gate.Value.SetActive(gate.Key > race.Player.Distance + 15f);
+            foreach (var segment in Segments)
+            {
+                var offset = segment.Key - race.Player.Distance;
+                segment.Value.SetActive(offset >= -SegmentVisibleBehind && offset <= SegmentVisibleAhead);
+            }
             RenderObjects(race);
             RenderResultBarrage(race);
             RenderBossCrash(race);
@@ -260,7 +269,8 @@ namespace MixVerse.Game.Kart
         {
             if (_worldLabelsHidden == !visible) return;
             _worldLabelsHidden = !visible;
-            foreach (var label in GetComponentsInChildren<TextMeshPro>(true)) label.enabled = visible;
+            foreach (var label in GetComponentsInChildren<TextMeshPro>(true))
+                if (CityRoot == null || !label.transform.IsChildOf(CityRoot)) label.enabled = visible;
         }
 
         public string ItemName(KartItem item)

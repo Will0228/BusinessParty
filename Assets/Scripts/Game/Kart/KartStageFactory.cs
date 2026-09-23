@@ -8,7 +8,6 @@ namespace MixVerse.Game.Kart
 {
     public sealed class KartStageFactory
     {
-        private readonly Dictionary<Color, Material> _materials = new Dictionary<Color, Material>();
         private readonly Color _navy = new Color(0.035f, 0.065f, 0.1f, 0.96f);
         private readonly Color _cyan = new Color(0.23f, 0.94f, 0.88f);
         private readonly Color _gold = new Color(1f, 0.75f, 0.25f);
@@ -17,12 +16,13 @@ namespace MixVerse.Game.Kart
         private KartStageView _stage;
         private Sprite _barSprite;
         private KartExplosionFactory _explosions;
+        private KartPresentationAssets _assets;
+        private KartMaterialLibrary _materials;
 
         public KartStageView Create(KartRaceSettings settings, Transform parent)
         {
-            _materials.Clear();
-            var assets = Resources.Load<KartPresentationAssets>("KartPresentation");
-            _font = assets != null ? assets.japaneseFont : TMP_Settings.defaultFontAsset;
+            _assets = Resources.Load<KartPresentationAssets>("KartPresentation");
+            _font = _assets != null ? _assets.japaneseFont : TMP_Settings.defaultFontAsset;
             var root = new GameObject("SettaiKartStage");
             root.transform.SetParent(parent, false);
             root.transform.position = new Vector3(10000f, 0f, 10000f);
@@ -31,6 +31,7 @@ namespace MixVerse.Game.Kart
             _stage = root.AddComponent<KartStageView>();
             _stage.Factory = this;
             _stage.Initialize(settings);
+            _materials = new KartMaterialLibrary(_stage.GeneratedAssets);
             _explosions = new KartExplosionFactory(_stage, _font, settings.explosionRadius);
             _barSprite = Sprite.Create(Texture2D.whiteTexture, new Rect(0f, 0f, 1f, 1f), new Vector2(0.5f, 0.5f));
             _stage.GeneratedAssets.Add(_barSprite);
@@ -74,58 +75,7 @@ namespace MixVerse.Game.Kart
 
         private void BuildCourse(KartRaceSettings settings)
         {
-            var root = _stage.transform;
-            for (var d = 0f; d < settings.courseLength + 45f; d += 5f)
-            {
-                var section = Mathf.Min(5, (int)(d / (settings.courseLength / 6f)));
-                var point = _stage.Point(d + 2.5f);
-                var rotation = _stage.DirectionAt(d + 2.5f);
-                var groundColor = section == 0 ? new Color(0.19f, 0.26f, 0.28f) : new Color(0.18f, 0.34f, 0.27f);
-                RoadBox("Road", point - Vector3.up * 0.15f, new Vector3(settings.roadHalfWidth * 2f, 0.3f, 5.3f), rotation, new Color(0.13f, 0.17f, 0.22f));
-                RoadBox("Terrain", point - Vector3.up * 0.5f, new Vector3(100f, 0.4f, 5.4f), rotation, groundColor);
-                if ((int)d % 10 == 0) RoadBox("Center dash", point + Vector3.up * 0.015f, new Vector3(0.12f, 0.035f, 2.5f), rotation, new Color(0.72f, 0.76f, 0.68f));
-                for (var side = -1; side <= 1; side += 2)
-                {
-                    var border = _stage.Point(d + 2.5f, side * settings.roadHalfWidth);
-                    RoadBox("Curb", border + Vector3.up * 0.04f, new Vector3(0.35f, 0.15f, 5.2f), rotation,
-                        (int)d % 10 == 0 ? _gold : new Color(0.85f, 0.9f, 0.85f));
-                    if (section == 3)
-                    {
-                        RoadBox("Tunnel wall", _stage.Point(d + 2.5f, side * (settings.roadHalfWidth + 1f)) + Vector3.up * 5f,
-                            new Vector3(1f, 10f, 5.3f), rotation, new Color(0.09f, 0.13f, 0.19f));
-                    }
-                    else if ((int)d % 20 == 0)
-                    {
-                        var scenery = _stage.Point(d, side * (settings.roadHalfWidth + 5f));
-                        if (section == 0)
-                        {
-                            var height = 5f + (int)d % 7;
-                            RoadBox("Office", scenery + Vector3.up * height * 0.5f, new Vector3(6f, height, 7f), rotation, new Color(0.28f, 0.4f, 0.49f));
-                            RoadBox("Office window", scenery + Vector3.up * height * 0.6f + rotation * Vector3.back * 3.55f,
-                                new Vector3(4.5f, 1.2f, 0.1f), rotation, _gold);
-                        }
-                        else if (section == 2)
-                        {
-                            for (var n = 0; n < 3; n++)
-                            {
-                                var spectator = scenery + rotation * Vector3.forward * n * 2f;
-                                Shape(root, "Gallery suit", PrimitiveType.Capsule, spectator + Vector3.up * 0.8f, new Vector3(0.7f, 0.8f, 0.7f), n == 1 ? _gold : new Color(0.17f, 0.21f, 0.34f));
-                                Shape(root, "Gallery head", PrimitiveType.Sphere, spectator + Vector3.up * 1.8f, Vector3.one * 0.55f, new Color(0.95f, 0.74f, 0.58f));
-                            }
-                        }
-                        else if (section != 4)
-                        {
-                            Shape(root, "Tree trunk", PrimitiveType.Cylinder, scenery + Vector3.up * 1.5f, new Vector3(0.6f, 1.5f, 0.6f), new Color(0.3f, 0.22f, 0.15f));
-                            Shape(root, "Tree canopy", PrimitiveType.Sphere, scenery + Vector3.up * 4f, new Vector3(4f, 5f, 4f), new Color(0.12f, 0.39f, 0.3f));
-                        }
-                    }
-                }
-                if (section == 3)
-                {
-                    RoadBox("Tunnel ceiling", point + Vector3.up * 14f, new Vector3(settings.roadHalfWidth * 2f + 3f, 0.5f, 5.3f), rotation, new Color(0.09f, 0.13f, 0.19f));
-                    if ((int)d % 15 == 0) RoadBox("Tunnel strip", point + Vector3.up * 9f, new Vector3(10f, 0.1f, 0.3f), rotation, _cyan);
-                }
-            }
+            _stage.CityRoot = new KartCityBuilder(_stage, settings, _assets, _materials, _font).Build();
             for (var section = 0; section < 6; section++)
             {
                 var distance = section * settings.courseLength / 6f;
@@ -134,7 +84,7 @@ namespace MixVerse.Game.Kart
             }
             Gate(settings.courseLength, "FINISH  /  上司に花を", _gold, settings);
             for (var i = 0; i < 12; i++)
-                RoadBox("Finish check", _stage.Point(settings.courseLength, -5.5f + i), new Vector3(0.98f, 0.05f, 1.5f), _stage.DirectionAt(settings.courseLength), i % 2 == 0 ? Color.white : Color.black);
+                RoadBox("Finish check", _stage.Point(settings.courseLength, -5.5f + i) + Vector3.up * 0.02f, new Vector3(0.98f, 0.05f, 1.5f), _stage.DirectionAt(settings.courseLength), i % 2 == 0 ? Color.white : Color.black);
         }
 
         private void Gate(float distance, string title, Color color, KartRaceSettings settings)
@@ -473,22 +423,16 @@ namespace MixVerse.Game.Kart
             Shape(_stage.transform, name, PrimitiveType.Cube, position, scale, color).transform.localRotation = rotation;
         }
         private GameObject Shape(Transform parent, string name, PrimitiveType primitive, Vector3 position, Vector3 scale, Color color)
+            => Shape(parent, name, primitive, position, scale, _materials.Unlit(color));
+        private GameObject Shape(Transform parent, string name, PrimitiveType primitive, Vector3 position, Vector3 scale, Material material)
         {
             var obj = GameObject.CreatePrimitive(primitive);
             obj.name = name;
             Object.Destroy(obj.GetComponent<Collider>());
             obj.transform.SetParent(parent, false);
             obj.transform.localPosition = position; obj.transform.localScale = scale;
-            obj.GetComponent<Renderer>().sharedMaterial = Material(color);
+            obj.GetComponent<Renderer>().sharedMaterial = material;
             return obj;
-        }
-        private Material Material(Color color)
-        {
-            if (_materials.TryGetValue(color, out var material)) return material;
-            material = new Material(Shader.Find("Universal Render Pipeline/Unlit") ?? Shader.Find("Unlit/Color"));
-            material.color = color;
-            _materials.Add(color, material); _stage.GeneratedAssets.Add(material);
-            return material;
         }
         private AudioClip Tone(string name, float frequency, float duration)
         {

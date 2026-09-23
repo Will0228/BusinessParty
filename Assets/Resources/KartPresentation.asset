@@ -13,3 +13,35 @@ MonoBehaviour:
   m_Name: KartPresentation
   m_EditorClassIdentifier: 
   japaneseFont: {fileID: 11400000, guid: cd210d2d239f9874180579ad887daf58, type: 2}
+  buildingPrefabs:
+  - {fileID: 1030985120, guid: abc00000000007697059667391379289, type: 3}
+  - {fileID: 1030976532, guid: abc00000000003019689293317190372, type: 3}
+  - {fileID: 1030996685, guid: abc00000000008951643255559450725, type: 3}
+  - {fileID: 1030982094, guid: abc00000000013393326008967525564, type: 3}
+  - {fileID: 1030982905, guid: abc00000000004014468116563358598, type: 3}
+  - {fileID: 1030977886, guid: abc00000000005975602900816046697, type: 3}
+  - {fileID: 1030983948, guid: abc00000000005737826257156786016, type: 3}
+  - {fileID: 1030978938, guid: abc00000000012807579583985949738, type: 3}
+  streetLightPrefabs:
+  - {fileID: 1031048905, guid: abc00000000010199919232815599211, type: 3}
+  overheadCablePrefabs:
+  - {fileID: 1030988300, guid: abc00000000018081713189452864292, type: 3}
+  - {fileID: 1030974351, guid: abc00000000001793329327120471782, type: 3}
+  - {fileID: 1030984131, guid: abc00000000016055328474838978241, type: 3}
+  screenMaterials:
+  - {fileID: 2100000, guid: abc00000000007089101784837757800, type: 2}
+  - {fileID: 2100000, guid: abc00000000013026685399553270120, type: 2}
+  - {fileID: 2100000, guid: abc00000000011471722966291788319, type: 2}
+  - {fileID: 2100000, guid: abc00000000017829779388215855613, type: 2}
+  - {fileID: 2100000, guid: abc00000000002805741747376977615, type: 2}
+  - {fileID: 2100000, guid: abc00000000002191963997828374781, type: 2}
+  - {fileID: 2100000, guid: abc00000000006575309673801825575, type: 2}
+  - {fileID: 2100000, guid: abc00000000004387449814290637835, type: 2}
+  - {fileID: 2100000, guid: abc00000000018222550144378586755, type: 2}
+  - {fileID: 2100000, guid: b1a1930a188d33b4cb251d777d8341ee, type: 2}
+  - {fileID: 2100000, guid: 21a8f41c48a14fa4881508d8700d819b, type: 2}
+  - {fileID: 2100000, guid: 9bad2aadb7fea2d49a7d02ea4e9ad0b9, type: 2}
+  - {fileID: 2100000, guid: 01556e9d1737ae846959d750f1c5cd65, type: 2}
+  - {fileID: 2100000, guid: bc4dfc49b3e44ad42935e1c92fb6bc3c, type: 2}
+  pavementMaterial: {fileID: 2100000, guid: abc00000000013600010078466846187, type: 2}
+  skybox: {fileID: 2100000, guid: 1295f76fbce1ca546a0c7f8fc50dc2d2, type: 2}
