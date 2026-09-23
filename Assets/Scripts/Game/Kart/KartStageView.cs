@@ -44,11 +44,13 @@ namespace MixVerse.Game.Kart
         public readonly List<Vector3> Path = new List<Vector3>();
         public readonly List<KeyValuePair<float, GameObject>> Gates = new List<KeyValuePair<float, GameObject>>();
         public KartStageFactory Factory;
+        public float RoadHalfWidth => _settings.roadHalfWidth;
         private float _lastSlip;
         private int _lastAttacks;
         private RacePhase _lastPhase;
         private readonly List<int> _expired = new List<int>();
         private readonly HashSet<int> _seen = new HashSet<int>();
+        private readonly HashSet<int> _finishedExplosions = new HashSet<int>();
         private readonly List<Transform> _resultRockets = new List<Transform>();
         private readonly List<Vector3> _rocketStarts = new List<Vector3>();
         private readonly HashSet<int> _rocketImpacts = new HashSet<int>();
@@ -269,6 +271,12 @@ namespace MixVerse.Game.Kart
             foreach (var obj in race.Objects)
             {
                 if (!obj.Active || Mathf.Abs(obj.Distance - race.Player.Distance) > 160f) continue;
+                if (obj.Kind == TrackObjectKind.Explosion && _finishedExplosions.Contains(obj.Id)) continue;
+                if (Explosions.TryGetValue(obj.Id, out var finishedEffect) && !finishedEffect.IsAlive)
+                {
+                    _finishedExplosions.Add(obj.Id);
+                    continue;
+                }
                 _seen.Add(obj.Id);
                 if (!ObjectViews.TryGetValue(obj.Id, out var view))
                 {
@@ -389,6 +397,7 @@ namespace MixVerse.Game.Kart
             foreach (var view in ObjectViews.Values) if (view != null) Destroy(view.gameObject);
             ObjectViews.Clear();
             Explosions.Clear();
+            _finishedExplosions.Clear();
             Camera.fieldOfView = 58f;
             _lastSlip = 0f;
             _lastAttacks = 0;

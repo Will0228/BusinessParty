@@ -15,6 +15,7 @@ namespace MixVerse.Game.Kart
         private readonly Mesh _debrisMesh;
         private readonly Material _debrisMaterial;
         private readonly Material _crackMaterial;
+        private readonly KartCrackStampFactory _crackStamps;
         private readonly float _radius;
         private readonly Color _gold = new Color(1f, 0.62f, 0.08f);
 
@@ -34,6 +35,7 @@ namespace MixVerse.Game.Kart
             _debrisMaterial.SetColor("_BaseColor", new Color(0.24f, 0.21f, 0.17f));
             _debrisMaterial.SetFloat("_Smoothness", 0f);
             _crackMaterial = new Material(Resources.Load<Shader>("KartGroundCracks"));
+            _crackStamps = new KartCrackStampFactory(stage, _crackMaterial, radius, stage.RoadHalfWidth);
             _stage.GeneratedAssets.Add(_debrisMesh);
             _stage.GeneratedAssets.Add(_debrisMaterial);
             _stage.GeneratedAssets.Add(_crackMaterial);
@@ -98,38 +100,9 @@ namespace MixVerse.Game.Kart
             return mesh;
         }
 
-        public void AddGroundCracks(KartExplosionView effect, float distance, float lane, float roadHalfWidth)
+        public void AddGroundCracks(KartExplosionView effect, float distance, float lane, int seed)
         {
-            const int segments = 16;
-            var radius = _radius * 1.35f;
-            var vertices = new Vector3[(segments + 1) * (segments + 1)];
-            var uv = new Vector2[vertices.Length];
-            var triangles = new int[segments * segments * 6];
-            var origin = _stage.Point(distance, lane) + Vector3.up * 0.8f;
-            var inverse = Quaternion.Inverse(_stage.DirectionAt(distance));
-            for (var z = 0; z <= segments; z++)
-            for (var x = 0; x <= segments; x++)
-            {
-                var index = z * (segments + 1) + x;
-                var lateral = Mathf.Clamp(lane + (x / (float)segments * 2f - 1f) * radius, -roadHalfWidth + 0.2f, roadHalfWidth - 0.2f);
-                var along = (z / (float)segments * 2f - 1f) * radius;
-                vertices[index] = inverse * (_stage.Point(distance + along, lateral) + Vector3.up * 0.065f - origin);
-                uv[index] = new Vector2((lateral - lane) / (2f * radius) + 0.5f, z / (float)segments);
-                if (x == segments || z == segments) continue;
-                var t = (z * segments + x) * 6;
-                triangles[t] = index; triangles[t + 1] = index + segments + 1; triangles[t + 2] = index + 1;
-                triangles[t + 3] = index + 1; triangles[t + 4] = index + segments + 1; triangles[t + 5] = index + segments + 2;
-            }
-            var mesh = new Mesh { name = "Road conforming blast cracks", vertices = vertices, uv = uv, triangles = triangles };
-            mesh.RecalculateBounds();
-            var obj = new GameObject("Blast cracks and scorch", typeof(MeshFilter), typeof(MeshRenderer));
-            obj.transform.SetParent(effect.transform, false);
-            obj.GetComponent<MeshFilter>().sharedMesh = mesh;
-            var renderer = obj.GetComponent<MeshRenderer>();
-            renderer.sharedMaterial = _crackMaterial;
-            renderer.shadowCastingMode = ShadowCastingMode.Off;
-            renderer.receiveShadows = false;
-            effect.SetGroundCracks(renderer, mesh);
+            _crackStamps.Create(effect, distance, lane, seed);
         }
 
         private Material Material(Shader shader, bool ring, bool smoke)
