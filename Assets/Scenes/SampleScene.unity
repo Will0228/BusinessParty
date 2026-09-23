@@ -891,7 +891,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MixVerse.Game.GameView
   _raceSettings:
-    courseLength: 1200
+    courseLength: 1850
     roadHalfWidth: 6
     metersPerSpeedUnit: 0.25
     acceleration: 45

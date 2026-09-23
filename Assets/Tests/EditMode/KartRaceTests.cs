@@ -12,6 +12,8 @@ namespace MixVerse.Game.Model.Tests
         }
         private KartRace NewRace() => new KartRace(new KartRaceSettings());
         private static readonly float CourseLength = new KartRaceSettings().courseLength;
+        private static readonly float Gallery = CourseLength * 0.35f;
+        private static float Scaled(float baseDistance) => baseDistance * CourseLength / 1200f;
 
         [Test] public void CarsReachSpecifiedSpeeds()
         {
@@ -53,9 +55,9 @@ namespace MixVerse.Game.Model.Tests
         {
             var race = NewRace();
             race.Objects.Clear();
-            race.Player.Distance = 430f;
-            race.Junior.Distance = 425f;
-            race.Boss.Distance = 440f;
+            race.Player.Distance = Gallery + 10f;
+            race.Junior.Distance = Gallery + 5f;
+            race.Boss.Distance = Gallery + 20f;
             Advance(race, 0.8f, Forward(0.5f));
             Assert.That(race.Attacks, Is.GreaterThan(0));
             Assert.That(race.Phase, Is.EqualTo(RacePhase.Racing));
@@ -93,9 +95,9 @@ namespace MixVerse.Game.Model.Tests
         [Test] public void ReverseInGalleryFails()
         {
             var race = NewRace();
-            race.Player.Distance = 420f;
-            race.Boss.Distance = 430f;
-            race.Junior.Distance = 425f;
+            race.Player.Distance = Gallery;
+            race.Boss.Distance = Gallery + 10f;
+            race.Junior.Distance = Gallery + 5f;
             race.Player.Speed = -10f;
             race.Tick(0.02f, new KartInput { Gain = 0.5f, Master = 0f });
             Assert.That(race.ResultReason, Does.Contain("バック"));
@@ -104,9 +106,9 @@ namespace MixVerse.Game.Model.Tests
         {
             var race = NewRace();
             race.Objects.Clear();
-            race.Player.Distance = 420f;
-            race.Boss.Distance = 430f;
-            race.Junior.Distance = 425f;
+            race.Player.Distance = Gallery;
+            race.Boss.Distance = Gallery + 10f;
+            race.Junior.Distance = Gallery + 5f;
             race.Player.Lane = 6f;
             race.Player.Speed = 50f;
             race.Tick(0.02f, Forward());
@@ -246,9 +248,9 @@ namespace MixVerse.Game.Model.Tests
         {
             var race = NewRace();
             race.Objects.Clear();
-            race.Player.Distance = 840f;
-            race.Boss.Distance = 850f;
-            race.Junior.Distance = 845f;
+            race.Player.Distance = CourseLength * 0.7f;
+            race.Boss.Distance = CourseLength * 0.7f + 10f;
+            race.Junior.Distance = CourseLength * 0.7f + 5f;
             race.Player.Speed = -10f;
             race.Tick(0.02f, new KartInput { Gain = 0.5f, Master = 0f });
             Assert.That(race.Phase, Is.EqualTo(RacePhase.Racing));
@@ -438,11 +440,11 @@ namespace MixVerse.Game.Model.Tests
             foreach (var race in new[] { unattended, assisted })
             {
                 race.Objects.Clear();
-                race.Player.Distance = 830f;
+                race.Player.Distance = Scaled(830f);
                 race.Player.Lane = 0f;
                 race.Player.Speed = 80f;
-                race.Boss.Distance = 900f;
-                race.Junior.Distance = 900f;
+                race.Boss.Distance = Scaled(830f) + 70f;
+                race.Junior.Distance = Scaled(830f) + 70f;
             }
             Advance(unattended, 0.35f, Forward(0.8f));
             var input = Forward(0.8f);
@@ -460,11 +462,11 @@ namespace MixVerse.Game.Model.Tests
             foreach (var race in new[] { unattended, assisted })
             {
                 race.Objects.Clear();
-                race.Player.Distance = 230f;
+                race.Player.Distance = Scaled(230f);
                 race.Player.Lane = 0f;
                 race.Player.Speed = 80f;
-                race.Boss.Distance = 300f;
-                race.Junior.Distance = 300f;
+                race.Boss.Distance = Scaled(230f) + 70f;
+                race.Junior.Distance = Scaled(230f) + 70f;
             }
             Advance(unattended, 0.45f, Forward(0.8f));
             var input = Forward(0.8f);
