@@ -17,10 +17,12 @@ namespace MixVerse.Game.Kart
         private KartStageView _stage;
         private Sprite _barSprite;
         private KartExplosionFactory _explosions;
+        private float _roadHalfWidth;
 
         public KartStageView Create(KartRaceSettings settings, Transform parent)
         {
             _materials.Clear();
+            _roadHalfWidth = settings.roadHalfWidth;
             var assets = Resources.Load<KartPresentationAssets>("KartPresentation");
             _font = assets != null ? assets.japaneseFont : TMP_Settings.defaultFontAsset;
             var root = new GameObject("SettaiKartStage");
@@ -236,6 +238,7 @@ namespace MixVerse.Game.Kart
             if (obj.Kind == TrackObjectKind.Explosion)
             {
                 var effect = _explosions.Create(obj.Item == KartItem.Rocket, obj.Id);
+                if (obj.Item == KartItem.Rocket) _explosions.AddGroundCracks(effect, obj.Distance, obj.Lane, _roadHalfWidth);
                 stage.Explosions.Add(obj.Id, effect);
                 return effect.transform;
             }

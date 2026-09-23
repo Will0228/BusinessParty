@@ -12,12 +12,17 @@ namespace MixVerse.Game.Kart
         private float _radius;
         private float _age;
         private bool _rocket;
+        private KartExplosionDebrisView _debris;
+        private MeshRenderer _groundCracks;
+        private Mesh _groundMesh;
+        private MaterialPropertyBlock _groundProperties;
+        private static readonly int AgeId = Shader.PropertyToID("_Age");
         private static readonly int ProgressId = Shader.PropertyToID("_Progress");
 
-        public bool IsAlive => _age < (_rocket ? 2.8f : 0.9f);
+        public bool IsAlive => _age < (_groundCracks != null ? 8f : _rocket ? 5.5f : 0.9f);
         public float Impact => _rocket ? Mathf.Pow(Mathf.Clamp01(1f - _age / 0.42f), 2f) : 0f;
 
-        public void Initialize(Transform fireball, Material fireMaterial, TextMeshPro caption, Camera camera, float radius, bool rocket)
+        public void Initialize(Transform fireball, Material fireMaterial, TextMeshPro caption, Camera camera, float radius, bool rocket, KartExplosionDebrisView debris = null)
         {
             _fireball = fireball;
             _fireMaterial = fireMaterial;
@@ -25,6 +30,16 @@ namespace MixVerse.Game.Kart
             _camera = camera;
             _radius = radius;
             _rocket = rocket;
+            _debris = debris;
+            Render();
+        }
+
+        public void SetGroundCracks(MeshRenderer renderer, Mesh mesh)
+        {
+            _groundCracks = renderer;
+            _groundMesh = mesh;
+            _groundProperties = new MaterialPropertyBlock();
+            _groundProperties.SetFloat("_Seed", Mathf.Abs(transform.GetInstanceID() % 997));
             Render();
         }
 
@@ -36,6 +51,13 @@ namespace MixVerse.Game.Kart
 
         private void Render()
         {
+            if (_debris != null && _debris.gameObject.activeSelf) _debris.Render(_age);
+            if (_groundCracks != null)
+            {
+                _groundProperties.SetFloat(AgeId, _age);
+                _groundCracks.SetPropertyBlock(_groundProperties);
+                _groundCracks.enabled = _age < 8f;
+            }
             var progress = Mathf.Clamp01(_age / (_rocket ? 0.8f : 0.5f));
             _fireball.localScale = Vector3.one * Mathf.Lerp(0.3f, _radius * 2.2f, 1f - Mathf.Pow(1f - progress, 3f));
             _fireball.localPosition = Vector3.up * (_age * 1.5f);
@@ -57,6 +79,7 @@ namespace MixVerse.Game.Kart
 
         private void OnDestroy()
         {
+            if (_groundMesh != null) Destroy(_groundMesh);
             if (_fireMaterial != null) Destroy(_fireMaterial);
         }
     }

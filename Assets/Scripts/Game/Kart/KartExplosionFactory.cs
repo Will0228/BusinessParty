@@ -12,6 +12,9 @@ namespace MixVerse.Game.Kart
         private readonly Material _smoke;
         private readonly Material _ring;
         private readonly Shader _fireShader;
+        private readonly Mesh _debrisMesh;
+        private readonly Material _debrisMaterial;
+        private readonly Material _crackMaterial;
         private readonly float _radius;
         private readonly Color _gold = new Color(1f, 0.62f, 0.08f);
 
@@ -26,6 +29,14 @@ namespace MixVerse.Game.Kart
             _glow = Material(shader, false, false);
             _smoke = Material(shader, false, true);
             _ring = Material(shader, true, false);
+            _debrisMesh = DebrisMesh();
+            _debrisMaterial = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+            _debrisMaterial.SetColor("_BaseColor", new Color(0.24f, 0.21f, 0.17f));
+            _debrisMaterial.SetFloat("_Smoothness", 0f);
+            _crackMaterial = new Material(Resources.Load<Shader>("KartGroundCracks"));
+            _stage.GeneratedAssets.Add(_debrisMesh);
+            _stage.GeneratedAssets.Add(_debrisMaterial);
+            _stage.GeneratedAssets.Add(_crackMaterial);
             _fireShader = Shader.Find("MixVerse/ExplosionShaderURP");
         }
 
@@ -42,8 +53,13 @@ namespace MixVerse.Game.Kart
             fireball.GetComponent<Renderer>().sharedMaterial = fire;
             fire.SetFloat("_Intensity", 3.2f);
             TextMeshPro caption = null;
+            KartExplosionDebrisView debris = null;
             if (rocket)
             {
+                var debrisRoot = new GameObject("Flying road debris");
+                debrisRoot.transform.SetParent(root.transform, false);
+                debris = debrisRoot.AddComponent<KartExplosionDebrisView>();
+                debris.Initialize(_debrisMesh, _debrisMaterial, seed);
                 Burst(root.transform, "Ignition flash", _glow, 1, 0f, 0.16f, 0.18f, 0f, 0f, 8f, 12f, Color.white, 0f, seed);
                 var sparks = Burst(root.transform, "Outrageous radial sparks", _glow, 110, 0f, 0.55f, 1.25f, 12f, 27f, 0.1f, 0.23f, _gold, 0.6f, seed + 1);
                 Stretch(sparks, 2.8f);
@@ -58,8 +74,62 @@ namespace MixVerse.Game.Kart
                 if (showCaption) caption = Caption(root.transform);
             }
             var view = root.AddComponent<KartExplosionView>();
-            view.Initialize(fireball.transform, fire, caption, _stage.Camera, radius, rocket);
+            view.Initialize(fireball.transform, fire, caption, _stage.Camera, radius, rocket, debris);
             return view;
+        }
+
+        private Mesh DebrisMesh()
+        {
+            var corners = new[]
+            {
+                new Vector3(-0.5f, -0.5f, -0.38f), new Vector3(0.42f, -0.5f, -0.5f),
+                new Vector3(0.5f, -0.5f, 0.3f), new Vector3(-0.3f, -0.5f, 0.5f),
+                new Vector3(-0.38f, 0.5f, -0.3f), new Vector3(0.32f, 0.35f, -0.35f),
+                new Vector3(0.4f, 0.5f, 0.22f), new Vector3(-0.25f, 0.3f, 0.4f)
+            };
+            var faces = new[] { 0, 1, 2, 0, 2, 3, 4, 6, 5, 4, 7, 6, 0, 4, 5, 0, 5, 1,
+                1, 5, 6, 1, 6, 2, 2, 6, 7, 2, 7, 3, 3, 7, 4, 3, 4, 0 };
+            var vertices = new Vector3[faces.Length];
+            var indices = new int[faces.Length];
+            for (var i = 0; i < faces.Length; i++) { vertices[i] = corners[faces[i]]; indices[i] = i; }
+            var mesh = new Mesh { name = "Jagged asphalt slab", vertices = vertices, triangles = indices };
+            mesh.RecalculateNormals();
+            mesh.RecalculateBounds();
+            return mesh;
+        }
+
+        public void AddGroundCracks(KartExplosionView effect, float distance, float lane, float roadHalfWidth)
+        {
+            const int segments = 16;
+            var radius = _radius * 1.35f;
+            var vertices = new Vector3[(segments + 1) * (segments + 1)];
+            var uv = new Vector2[vertices.Length];
+            var triangles = new int[segments * segments * 6];
+            var origin = _stage.Point(distance, lane) + Vector3.up * 0.8f;
+            var inverse = Quaternion.Inverse(_stage.DirectionAt(distance));
+            for (var z = 0; z <= segments; z++)
+            for (var x = 0; x <= segments; x++)
+            {
+                var index = z * (segments + 1) + x;
+                var lateral = Mathf.Clamp(lane + (x / (float)segments * 2f - 1f) * radius, -roadHalfWidth + 0.2f, roadHalfWidth - 0.2f);
+                var along = (z / (float)segments * 2f - 1f) * radius;
+                vertices[index] = inverse * (_stage.Point(distance + along, lateral) + Vector3.up * 0.065f - origin);
+                uv[index] = new Vector2((lateral - lane) / (2f * radius) + 0.5f, z / (float)segments);
+                if (x == segments || z == segments) continue;
+                var t = (z * segments + x) * 6;
+                triangles[t] = index; triangles[t + 1] = index + segments + 1; triangles[t + 2] = index + 1;
+                triangles[t + 3] = index + 1; triangles[t + 4] = index + segments + 1; triangles[t + 5] = index + segments + 2;
+            }
+            var mesh = new Mesh { name = "Road conforming blast cracks", vertices = vertices, uv = uv, triangles = triangles };
+            mesh.RecalculateBounds();
+            var obj = new GameObject("Blast cracks and scorch", typeof(MeshFilter), typeof(MeshRenderer));
+            obj.transform.SetParent(effect.transform, false);
+            obj.GetComponent<MeshFilter>().sharedMesh = mesh;
+            var renderer = obj.GetComponent<MeshRenderer>();
+            renderer.sharedMaterial = _crackMaterial;
+            renderer.shadowCastingMode = ShadowCastingMode.Off;
+            renderer.receiveShadows = false;
+            effect.SetGroundCracks(renderer, mesh);
         }
 
         private Material Material(Shader shader, bool ring, bool smoke)
