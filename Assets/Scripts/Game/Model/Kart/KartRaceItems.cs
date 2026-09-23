@@ -160,7 +160,7 @@ namespace MixVerse.Game.Model.Kart
             foreach (var racer in Racers)
             {
                 if (racer.Finished || DistanceSquared(racer.Distance, racer.Lane, rocket.Distance, rocket.Lane) > _settings.explosionRadius * _settings.explosionRadius) continue;
-                Disable(racer, false);
+                Disable(racer, false, true);
                 if (rocket.Owner == RacerId.Player && racer.Id == RacerId.Boss) Fail("ロケランの爆発に上司を巻き込みました", FailureScene.BossHit);
                 if (rocket.Owner == RacerId.Player && racer.Id == RacerId.Junior) RegisterAttack("ロケランで部下を横転させました");
                 if (racer.Id == RacerId.Player) RecordMisconduct("爆発に巻き込まれて横転しました");
@@ -170,7 +170,7 @@ namespace MixVerse.Game.Model.Kart
             AddObject(TrackObjectKind.Explosion, rocket.Distance, rocket.Lane, 0.6f, rocket.Owner, KartItem.Rocket);
         }
 
-        private void Disable(RacerState racer, bool spinning)
+        private void Disable(RacerState racer, bool spinning, bool severe = false)
         {
             racer.IsSpinning = spinning;
             if (spinning)
@@ -180,7 +180,7 @@ namespace MixVerse.Game.Model.Kart
             }
             else
             {
-                racer.IsCourseOut = Math.Abs(racer.Lane) > _settings.roadHalfWidth - _settings.knockbackEdgeMargin;
+                racer.IsCourseOut = severe || Math.Abs(racer.Lane) > _settings.roadHalfWidth - _settings.knockbackEdgeMargin;
                 racer.DisabledSeconds = _settings.knockbackFlightSeconds + _settings.knockbackRecoverySeconds;
             }
             racer.Speed = 0f;
