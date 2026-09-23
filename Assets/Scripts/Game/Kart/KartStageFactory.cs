@@ -44,10 +44,11 @@ namespace MixVerse.Game.Kart
             _stage.Camera = camera.GetComponent<Camera>();
             _stage.Camera.nearClipPlane = 0.15f;
             _stage.Camera.farClipPlane = 420f;
-            _stage.Camera.fieldOfView = 58f;
+            _stage.Camera.fieldOfView = 60f;
             var cameraData = _stage.Camera.GetUniversalAdditionalCameraData();
             cameraData.renderPostProcessing = true;
             cameraData.antialiasing = AntialiasingMode.SubpixelMorphologicalAntiAliasing;
+            _stage.ChaseCamera = new KartChaseCamera(camera.transform);
             var atmosphere = root.AddComponent<KartAtmosphereView>();
             var skybox = _assets != null ? _assets.skybox : null;
             atmosphere.Apply(skybox);

@@ -35,6 +35,7 @@ namespace MixVerse.Game.Model.Kart
         public float DriftTime => _driftTime;
         public int DriftTier => _driftTime >= _settings.driftSecondSeconds ? 2 : _driftTime >= _settings.driftFirstSeconds ? 1 : 0;
         public bool IsDrifting => _driftDirection != 0;
+        public int DriftDirection => _driftDirection;
         public int Direction => _direction;
         public int Attacks { get; private set; }
         public float FinishGap { get; private set; }

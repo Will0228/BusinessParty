@@ -48,10 +48,13 @@ namespace MixVerse.Game.Kart
         private const float SegmentVisibleBehind = 60f;
         private const float SegmentVisibleAhead = 260f;
         public KartStageFactory Factory;
+        public KartChaseCamera ChaseCamera;
         public KartAtmosphereView Atmosphere;
         public Transform CityRoot;
         public float RoadHalfWidth => _settings.roadHalfWidth;
         private float _lastSlip;
+        private float _visualYaw;
+        private float _lastPlayerLane;
         private int _lastAttacks;
         private RacePhase _lastPhase;
         private readonly List<int> _expired = new List<int>();
@@ -88,6 +91,7 @@ namespace MixVerse.Game.Kart
 
         public void Render(KartRace race, float gain, bool ready, float countdown, bool midi)
         {
+            UpdateVisualYaw(race);
             for (var i = 0; i < race.Racers.Length; i++)
             {
                 var racer = race.Racers[i];
@@ -131,7 +135,8 @@ namespace MixVerse.Game.Kart
                     knockbackTumble = Quaternion.Euler(impact * 760f, impact * 320f, impact * 620f);
                 }
                 var kartPosition = position + Vector3.up * 0.45f + trackRotation * knockbackOffset;
-                var kartRotation = trackRotation * Quaternion.Euler(0f, spin, 0f) * knockbackTumble;
+                var yaw = i == (int)RacerId.Player && racer.DisabledSeconds <= 0f ? _visualYaw : 0f;
+                var kartRotation = trackRotation * Quaternion.Euler(0f, spin + yaw, 0f) * knockbackTumble;
                 if (race.ResultScene == FailureScene.BossHit && i == (int)RacerId.Boss)
                 {
                     var launch = Mathf.Clamp01(race.ResultTime / BossTurnTime);
@@ -161,17 +166,12 @@ namespace MixVerse.Game.Kart
                 Karts[i].localScale = racer.InvincibleSeconds > 0f
                     ? Vector3.one * (1f + Mathf.Sin(race.Time * 14f) * 0.08f)
                     : Vector3.one;
-                Tags[i].gameObject.SetActive(race.Phase == RacePhase.Racing);
+                Tags[i].gameObject.SetActive(race.Phase == RacePhase.Racing && i != (int)RacerId.Player);
                 Tags[i].localPosition = position + Vector3.up * 3.2f;
                 Tags[i].rotation = Camera.transform.rotation;
                 TagLabels[i].text = $"{race.Rank(racer)}  {_racerNames[i]}" + (racer.InvincibleSeconds > 0f ? "  <color=#FFD84A>★ 無敵</color>" : "");
             }
-            var followBoss = race.ResultScene == FailureScene.BossHit;
-            var focusRacer = followBoss ? race.Boss : race.Player;
-            var focus = race.Phase == RacePhase.Failed ? Karts[(int)focusRacer.Id].localPosition : Point(race.Player.Distance);
-            var direction = DirectionAt(focusRacer.Distance);
-            Camera.transform.localPosition = focus + direction * new Vector3(0f, 11f, -17f);
-            Camera.transform.LookAt(transform.TransformPoint(focus + direction * new Vector3(0f, 0f, race.Phase == RacePhase.Failed ? 2f : 13f)));
+            RenderCamera(race);
             Atmosphere.SetTunnel(race.SectionAt(race.Player.Distance) == CourseSection.Tunnel);
             foreach (var gate in Gates) gate.Value.SetActive(gate.Key > race.Player.Distance + 15f);
             foreach (var segment in Segments)
@@ -246,6 +246,32 @@ namespace MixVerse.Game.Kart
             _lastSlip = race.SlipRemaining;
             _lastAttacks = race.Attacks;
             _lastPhase = race.Phase;
+        }
+
+        private void UpdateVisualYaw(KartRace race)
+        {
+            var deltaTime = Mathf.Max(Time.deltaTime, 0.0001f);
+            var forwardSpeed = Mathf.Max(3f, Mathf.Abs(race.Player.Speed) * _settings.metersPerSpeedUnit);
+            var steer = Mathf.Atan2(race.Player.Lane - _lastPlayerLane, forwardSpeed * deltaTime) * Mathf.Rad2Deg;
+            _lastPlayerLane = race.Player.Lane;
+            var target = Mathf.Clamp(steer, -14f, 14f) * race.Direction + (race.IsDrifting ? race.DriftDirection * 24f : 0f);
+            if (race.Phase != RacePhase.Racing) target = 0f;
+            _visualYaw = Mathf.Lerp(_visualYaw, target, 1f - Mathf.Exp(-7f * deltaTime));
+        }
+
+        private void RenderCamera(KartRace race)
+        {
+            var deltaTime = Time.deltaTime;
+            if (race.Phase == RacePhase.Failed)
+            {
+                var focusRacer = race.ResultScene == FailureScene.BossHit ? race.Boss : race.Player;
+                ChaseCamera.Frame(Karts[(int)focusRacer.Id].localPosition, DirectionAt(focusRacer.Distance), deltaTime);
+                return;
+            }
+            var distance = race.Player.Distance;
+            var turn = Vector3.SignedAngle(DirectionAt(distance) * Vector3.forward, DirectionAt(distance + 14f) * Vector3.forward, Vector3.up);
+            var kart = Point(distance, race.Player.Lane) + Vector3.up * 0.45f;
+            ChaseCamera.Follow(kart, DirectionAt(distance), Mathf.Abs(race.Player.Speed) / 100f, turn, deltaTime);
         }
 
         private void ConfigureModal(bool result)
@@ -423,7 +449,7 @@ namespace MixVerse.Game.Kart
                 var distance = Vector3.Distance(Camera.transform.position, effect.transform.position);
                 impact = Mathf.Max(impact, effect.Impact * Mathf.Clamp01(1f - distance / 65f));
             }
-            Camera.fieldOfView = 58f + impact * 4f;
+            Camera.fieldOfView = ChaseCamera.FieldOfView + impact * 4f;
             Camera.transform.position += Camera.transform.right * (Mathf.Sin(Time.time * 93f) * impact * 0.24f)
                 + Camera.transform.up * (Mathf.Cos(Time.time * 117f) * impact * 0.16f);
             Camera.transform.Rotate(0f, 0f, Mathf.Sin(Time.time * 71f) * impact * 1.2f);
@@ -471,7 +497,10 @@ namespace MixVerse.Game.Kart
             ObjectViews.Clear();
             Explosions.Clear();
             _finishedExplosions.Clear();
-            Camera.fieldOfView = 58f;
+            ChaseCamera.Reset();
+            Camera.fieldOfView = ChaseCamera.FieldOfView;
+            _visualYaw = 0f;
+            _lastPlayerLane = 0f;
             _lastSlip = 0f;
             _lastAttacks = 0;
             _lastPhase = RacePhase.Racing;
