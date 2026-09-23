@@ -15,6 +15,10 @@ namespace MixVerse.Game.Model.Kart
         public RacerId Owner;
         public bool Active = true;
         public KartItem Item;
+        public int VisualIndex;
+        public float CreatedAt;
+        public float StartDistance;
+        public float StartLane;
     }
 
     public sealed partial class KartRace
@@ -22,6 +26,9 @@ namespace MixVerse.Game.Model.Kart
         private int _objectId;
         private readonly float[] _cpuUseAt = new float[3];
         public List<TrackObject> Objects { get; } = new List<TrackObject>();
+        public float PlayerBlindSeconds { get; private set; }
+        public int PaperAttackSerial { get; private set; }
+        public RacerId PaperAttackSource { get; private set; }
 
         private void BuildObjects()
         {
@@ -36,7 +43,19 @@ namespace MixVerse.Game.Model.Kart
 
         private TrackObject AddObject(TrackObjectKind kind, float distance, float lane, float lifetime = 0f, RacerId owner = RacerId.Player, KartItem item = KartItem.None)
         {
-            var obj = new TrackObject { Id = ++_objectId, Kind = kind, Distance = distance, Lane = lane, Lifetime = lifetime, Owner = owner, Item = item };
+            var obj = new TrackObject
+            {
+                Id = ++_objectId,
+                Kind = kind,
+                Distance = distance,
+                Lane = lane,
+                Lifetime = lifetime,
+                Owner = owner,
+                Item = item,
+                CreatedAt = Time,
+                StartDistance = distance,
+                StartLane = lane
+            };
             Objects.Add(obj);
             return obj;
         }
@@ -57,6 +76,7 @@ namespace MixVerse.Game.Model.Kart
         private void UpdateItems(float dt, bool useItem)
         {
             if (Phase != RacePhase.Racing) return;
+            PlayerBlindSeconds = Math.Max(0f, PlayerBlindSeconds - dt);
             if (useItem && !Player.Finished && Player.DisabledSeconds <= 0f) UseItem(Player);
             for (var i = 1; i < Racers.Length; i++)
             {
@@ -97,14 +117,6 @@ namespace MixVerse.Game.Model.Kart
                         if (racer.Id == RacerId.Junior && Time - _lastPush <= _settings.pushCreditSeconds) RegisterAttack("箱への押し出し成功");
                         if (racer.Id == RacerId.Player) RecordMisconduct("障害物に衝突して横転しました");
                     }
-                    else if (obj.Kind == TrackObjectKind.Papers && (obj.Owner != racer.Id || obj.Lifetime < _settings.paperLifetime - 1f))
-                    {
-                        obj.Active = false;
-                        Disable(racer, racer.Id != RacerId.Boss);
-                        if (obj.Owner == RacerId.Player && racer.Id == RacerId.Junior) RegisterAttack("書類でスピンさせました");
-                        if (obj.Owner == RacerId.Player && racer.Id == RacerId.Boss) Fail("上司があなたの書類で吹き飛びました", FailureScene.BossHit);
-                        if (racer.Id == RacerId.Player) RecordMisconduct("スピンが見つかりました");
-                    }
                     if (!obj.Active) break;
                 }
             }
@@ -119,7 +131,7 @@ namespace MixVerse.Game.Model.Kart
             switch (item)
             {
                 case KartItem.Papers:
-                    AddObject(TrackObjectKind.Papers, racer.Distance - 3f, racer.Lane, _settings.paperLifetime, racer.Id);
+                    UsePapers(racer);
                     break;
                 case KartItem.Rocket:
                     AddObject(TrackObjectKind.Rocket, racer.Distance + 2.5f, racer.Lane, 4f, racer.Id);
@@ -128,6 +140,26 @@ namespace MixVerse.Game.Model.Kart
                     racer.TurboSeconds = 3f;
                     break;
             }
+        }
+
+        private void UsePapers(RacerState racer)
+        {
+            const int sheetCount = 5;
+            for (var i = 0; i < sheetCount; i++)
+            {
+                var sheet = AddObject(TrackObjectKind.Papers, racer.Distance, racer.Lane, _settings.paperEffectSeconds, racer.Id, KartItem.Papers);
+                sheet.VisualIndex = i;
+            }
+            if (racer.Id == RacerId.Player)
+            {
+                Boss.SlowedSeconds = Math.Max(Boss.SlowedSeconds, _settings.cpuPaperSlowSeconds);
+                Junior.SlowedSeconds = Math.Max(Junior.SlowedSeconds, _settings.cpuPaperSlowSeconds);
+                return;
+            }
+            if (racer.Distance <= Player.Distance) return;
+            PlayerBlindSeconds = Math.Max(PlayerBlindSeconds, _settings.paperEffectSeconds);
+            PaperAttackSource = racer.Id;
+            PaperAttackSerial++;
         }
 
         private void MoveRocket(TrackObject rocket, float dt)

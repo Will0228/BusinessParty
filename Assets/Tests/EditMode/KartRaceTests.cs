@@ -11,6 +11,7 @@ namespace MixVerse.Game.Model.Tests
             for (var i = 0; i < (int)(seconds * 120); i++) race.Tick(1f / 120f, input);
         }
         private KartRace NewRace() => new KartRace(new KartRaceSettings());
+        private static readonly float CourseLength = new KartRaceSettings().courseLength;
 
         [Test] public void CarsReachSpecifiedSpeeds()
         {
@@ -127,7 +128,7 @@ namespace MixVerse.Game.Model.Tests
         [Test] public void BossWinWithGapUnderThreeSecondsClears()
         {
             var race = NewRace();
-            foreach (var racer in race.Racers) racer.Distance = 1200f;
+            foreach (var racer in race.Racers) racer.Distance = CourseLength;
             race.Boss.FinishTime = 1f;
             race.Player.FinishTime = 3.99f;
             race.Junior.FinishTime = 4f;
@@ -137,7 +138,7 @@ namespace MixVerse.Game.Model.Tests
         [Test] public void ExactlyThreeSecondGapFails()
         {
             var race = NewRace();
-            foreach (var racer in race.Racers) racer.Distance = 1200f;
+            foreach (var racer in race.Racers) racer.Distance = CourseLength;
             race.Boss.FinishTime = 1f;
             race.Player.FinishTime = 4f;
             race.Junior.FinishTime = 5f;
@@ -147,7 +148,7 @@ namespace MixVerse.Game.Model.Tests
         [Test] public void JuniorWinningFails()
         {
             var race = NewRace();
-            foreach (var racer in race.Racers) racer.Distance = 1200f;
+            foreach (var racer in race.Racers) racer.Distance = CourseLength;
             race.Boss.FinishTime = 2f;
             race.Junior.FinishTime = 1f;
             race.Player.FinishTime = 3f;
@@ -184,23 +185,28 @@ namespace MixVerse.Game.Model.Tests
             var input = Forward(); input.UseItem = true;
             race.Tick(0.02f, input);
             Assert.That(race.Player.Item, Is.EqualTo(KartItem.None));
-            Assert.That(race.Junior.DisabledSeconds, Is.GreaterThan(0f));
-            Assert.That(race.Attacks, Is.EqualTo(1));
+            Assert.That(race.Junior.SlowedSeconds, Is.GreaterThan(0f));
+            Assert.That(race.Boss.SlowedSeconds, Is.GreaterThan(0f));
+            Assert.That(race.Objects.FindAll(value => value.Kind == TrackObjectKind.Papers), Has.Count.EqualTo(5));
         }
-        [Test] public void OwnPapersLaunchBossAndContinueResultAnimation()
+        [Test] public void CpuPapersBlindPlayerOnlyWhenUsedFromAhead()
         {
             var race = NewRace();
             race.Objects.Clear();
-            race.Player.Distance = 32f;
-            race.Player.Lane = -2f;
-            race.Boss.Distance = 29f;
-            race.Junior.Distance = 25f;
-            race.Player.Item = KartItem.Papers;
-            var input = Forward(0f); input.UseItem = true;
-            race.Tick(0.02f, input);
-            Assert.That(race.ResultScene, Is.EqualTo(FailureScene.BossHit));
-            Assert.That(race.Boss.IsSpinning, Is.False);
-            Assert.That(race.Boss.DisabledSeconds, Is.GreaterThan(0f));
+            race.Player.Distance = 30f;
+            race.Boss.Distance = 40f;
+            race.Boss.Item = KartItem.Papers;
+            Advance(race, 1f, Forward(0f));
+            Assert.That(race.PlayerBlindSeconds, Is.GreaterThan(0f));
+            Assert.That(race.PaperAttackSource, Is.EqualTo(RacerId.Boss));
+
+            var behind = NewRace();
+            behind.Objects.Clear();
+            behind.Player.Distance = 40f;
+            behind.Junior.Distance = 30f;
+            behind.Junior.Item = KartItem.Papers;
+            Advance(behind, 1f, Forward(0f));
+            Assert.That(behind.PlayerBlindSeconds, Is.Zero);
         }
         [Test] public void CameraMisconductIsReviewedOnlyAtFinish()
         {
@@ -213,7 +219,7 @@ namespace MixVerse.Game.Model.Tests
             race.Tick(0.02f, new KartInput { Gain = 0.5f, Master = 0f });
             Assert.That(race.Phase, Is.EqualTo(RacePhase.Racing));
             Assert.That(race.CameraEvidence.Count, Is.EqualTo(1));
-            foreach (var racer in race.Racers) racer.Distance = 1200f;
+            foreach (var racer in race.Racers) racer.Distance = CourseLength;
             race.Boss.FinishTime = 1f;
             race.Player.FinishTime = 2f;
             race.Junior.FinishTime = 3f;
@@ -306,14 +312,15 @@ namespace MixVerse.Game.Model.Tests
         {
             var race = NewRace();
             race.Objects.Clear();
-            for (var frame = 0; frame < 18000 && race.Phase == RacePhase.Racing; frame++)
+            var frameCap = (int)(18000 * (CourseLength / 1200f) * 1.1f);
+            for (var frame = 0; frame < frameCap && race.Phase == RacePhase.Racing; frame++)
             {
                 var target = race.Junior.Distance + 5f;
                 var gain = System.Math.Max(0f, System.Math.Min(1f, (50f + (target - race.Player.Distance) * 10f) / 100f));
                 if (race.Junior.Distance < race.Boss.Distance - 8f) gain = 0.7f;
                 if (race.Player.Distance > race.Junior.Distance && race.Player.Distance - race.Junior.Distance < 8f)
                     gain = System.Math.Max(0.2f, System.Math.Min(0.7f, (50f - (race.Junior.Distance - race.Boss.Distance + 5f) * 3f) / 100f));
-                if (race.Boss.Distance > 1170f && race.Player.Distance > race.Boss.Distance - 4f) gain = 0.25f;
+                if (race.Boss.Distance > CourseLength - 30f && race.Player.Distance > race.Boss.Distance - 4f) gain = 0.25f;
                 var lane = race.Junior.Lane;
                 if (System.Math.Abs(race.Player.Distance - race.Boss.Distance) < 10f && System.Math.Abs(lane - race.Boss.Lane) < 2f)
                     lane = race.Boss.Lane > 0f ? -1f : 2f;

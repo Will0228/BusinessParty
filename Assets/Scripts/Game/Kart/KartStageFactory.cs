@@ -313,6 +313,7 @@ namespace MixVerse.Game.Kart
             _stage.DriftFill = Bar(parent, new Vector2(1f, 0f), new Vector2(-42f, 96f), new Vector2(292f, 5f), _cyan);
             _stage.Progress = Bar(parent, new Vector2(0.5f, 0f), new Vector2(0f, 65f), new Vector2(1552f, 5f), _gold);
             _stage.Controls = Label(parent, "", new Vector2(0.5f, 0f), new Vector2(0f, 17f), new Vector2(1560f, 35f), 19, Color.white, TextAlignmentOptions.Center);
+            BuildPaperBlind(canvasObject.transform);
             var modal = Panel(canvasObject.transform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1100f, 650f), new Color(0.035f, 0.065f, 0.1f, 0.94f));
             _stage.Modal = modal.gameObject;
             _stage.ModalTitle = Label(modal.transform, "", new Vector2(0.5f, 1f), new Vector2(0f, -40f), new Vector2(1000f, 90f), 50, _gold, TextAlignmentOptions.Center);
@@ -321,6 +322,23 @@ namespace MixVerse.Game.Kart
             _stage.ActionLabel = action;
             _stage.ExitButton = Button(modal.transform, new Vector2(335f, 45f), new Vector2(235f, 60f), new Color(0.4f, 0.5f, 0.6f), out var exit);
             exit.text = "ホームへ [ ESC ]";
+        }
+
+        private void BuildPaperBlind(Transform parent)
+        {
+            _stage.PaperBlinds = new RectTransform[5];
+            for (var i = 0; i < _stage.PaperBlinds.Length; i++)
+            {
+                var page = Panel(parent, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(285f, 350f), new Color(0.94f, 0.92f, 0.82f));
+                page.gameObject.name = "社内報 blind " + i;
+                var rect = page.rectTransform;
+                _stage.PaperBlinds[i] = rect;
+                Label(rect, "社 内 報", new Vector2(0.5f, 1f), new Vector2(0f, -20f), new Vector2(250f, 50f), 31, _navy, TextAlignmentOptions.Center);
+                Label(rect, "今月の躍進\n全社で共有！", new Vector2(0.5f, 0.5f), new Vector2(0f, 30f), new Vector2(235f, 110f), 25, _coral, TextAlignmentOptions.Center);
+                for (var line = 0; line < 6; line++)
+                    Panel(rect, new Vector2(0.5f, 0f), new Vector2(0f, 28f + line * 15f), new Vector2(225f - line % 2 * 35f, 5f), new Color(0.27f, 0.29f, 0.27f));
+                page.gameObject.SetActive(false);
+            }
         }
 
         private void BuildItemIcons(Transform parent)

@@ -38,6 +38,7 @@ namespace MixVerse.Game.Kart
         public AudioClip RadioClip;
         public AudioClip AlertClip;
         public ParticleSystem[] DriftSparks;
+        public RectTransform[] PaperBlinds;
         public readonly List<Object> GeneratedAssets = new List<Object>();
         public readonly Dictionary<int, Transform> ObjectViews = new Dictionary<int, Transform>();
         public readonly Dictionary<int, KartExplosionView> Explosions = new Dictionary<int, KartExplosionView>();
@@ -60,6 +61,8 @@ namespace MixVerse.Game.Kart
         private bool _debug;
         private bool _worldLabelsHidden;
         private bool _bossCrashExploded;
+        private int _lastPaperAttackSerial;
+        private float _paperAttackStartedAt;
         private readonly string[] _sectionNames = { "01  市街地", "02  峠の上り", "03  ギャラリー", "04  トンネル", "05  連続ヘアピン", "06  ゴール前直線" };
         private readonly string[] _racerNames = { "あなた", "上司", "部下" };
 
@@ -167,6 +170,7 @@ namespace MixVerse.Game.Kart
             RenderResultBarrage(race);
             RenderBossCrash(race);
             RenderExplosionImpact();
+            RenderPaperBlind(race);
             UpdateDriftSparks(race);
             var ranks = new string[3];
             foreach (var racer in race.Racers)
@@ -258,7 +262,7 @@ namespace MixVerse.Game.Kart
         {
             switch (item)
             {
-                case KartItem.Papers: return "書類ばら撒き";
+                case KartItem.Papers: return "社内報で目隠し";
                 case KartItem.Rocket: return "ロケラン";
                 case KartItem.Drink: return "栄養ドリンク";
                 default: return "アイテムなし";
@@ -283,8 +287,21 @@ namespace MixVerse.Game.Kart
                     view = Factory.CreateObject(this, obj);
                     ObjectViews.Add(obj.Id, view);
                 }
-                view.localPosition = Point(obj.Distance, obj.Lane) + Vector3.up * (obj.Kind == TrackObjectKind.Papers ? 0.08f : 0.8f);
-                view.localRotation = DirectionAt(obj.Distance);
+                if (obj.Kind == TrackObjectKind.Papers)
+                {
+                    var t = Mathf.Clamp01((race.Time - obj.CreatedAt) / _settings.paperEffectSeconds);
+                    var offset = obj.VisualIndex - 2f;
+                    var targetDistance = obj.Owner == RacerId.Player ? obj.StartDistance + 7f + Mathf.Abs(offset) : race.Player.Distance;
+                    var targetLane = obj.Owner == RacerId.Player ? obj.StartLane + offset * 1.5f : race.Player.Lane + offset * 0.35f;
+                    view.localPosition = Point(Mathf.Lerp(obj.StartDistance, targetDistance, t), Mathf.Lerp(obj.StartLane, targetLane, t))
+                        + Vector3.up * (0.8f + Mathf.Sin(t * Mathf.PI) * (2.5f + Mathf.Abs(offset) * 0.3f));
+                    view.localRotation = DirectionAt(obj.Distance) * Quaternion.Euler(t * (360f + obj.VisualIndex * 67f), offset * 28f, offset * 95f);
+                }
+                else
+                {
+                    view.localPosition = Point(obj.Distance, obj.Lane) + Vector3.up * 0.8f;
+                    view.localRotation = DirectionAt(obj.Distance);
+                }
                 if (obj.Kind == TrackObjectKind.ItemBox) view.localRotation *= Quaternion.Euler(0f, race.Time * 70f, 10f);
             }
             _expired.Clear();
@@ -387,6 +404,37 @@ namespace MixVerse.Game.Kart
             Camera.transform.Rotate(0f, 0f, Mathf.Sin(Time.time * 71f) * impact * 1.2f);
         }
 
+        private void RenderPaperBlind(KartRace race)
+        {
+            if (PaperBlinds == null) return;
+            if (race.PaperAttackSerial != _lastPaperAttackSerial)
+            {
+                _lastPaperAttackSerial = race.PaperAttackSerial;
+                _paperAttackStartedAt = race.Time;
+            }
+            var active = race.PlayerBlindSeconds > 0f;
+            var flight = Mathf.Clamp01((race.Time - _paperAttackStartedAt) / 0.65f);
+            var source = race.Racers[(int)race.PaperAttackSource];
+            var sourceViewport = Camera.WorldToViewportPoint(transform.TransformPoint(Point(source.Distance, source.Lane) + Vector3.up));
+            var start = new Vector2((sourceViewport.x - 0.5f) * 1600f, (sourceViewport.y - 0.5f) * 900f);
+            var targets = new[]
+            {
+                new Vector2(-520f, 235f), new Vector2(-250f, -145f), new Vector2(35f, 180f),
+                new Vector2(340f, -165f), new Vector2(550f, 210f)
+            };
+            for (var i = 0; i < PaperBlinds.Length; i++)
+            {
+                var paper = PaperBlinds[i];
+                paper.gameObject.SetActive(active);
+                if (!active) continue;
+                var localFlight = Mathf.Clamp01(flight * 1.35f - i * 0.09f);
+                localFlight = 1f - Mathf.Pow(1f - localFlight, 3f);
+                paper.anchoredPosition = Vector2.Lerp(start, targets[i], localFlight);
+                paper.localScale = Vector3.one * Mathf.Lerp(0.08f, 1f, localFlight);
+                paper.localRotation = Quaternion.Euler(0f, 0f, (i - 2f) * 11f + Mathf.Sin(race.Time * 2.5f + i) * 2f);
+            }
+        }
+
         public void ResetObjects()
         {
             foreach (var rocket in _resultRockets) if (rocket != null) Destroy(rocket.gameObject);
@@ -402,6 +450,7 @@ namespace MixVerse.Game.Kart
             _lastSlip = 0f;
             _lastAttacks = 0;
             _lastPhase = RacePhase.Racing;
+            _lastPaperAttackSerial = 0;
         }
 
         private void OnDestroy()

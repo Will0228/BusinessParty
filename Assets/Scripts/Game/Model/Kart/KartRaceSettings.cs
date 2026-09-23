@@ -5,7 +5,7 @@ namespace MixVerse.Game.Model.Kart
     [Serializable]
     public sealed class KartRaceSettings
     {
-        public float courseLength = 1200f;
+        public float courseLength = 3800f;
         public float roadHalfWidth = 6f;
         public float metersPerSpeedUnit = 0.25f;
         public float acceleration = 45f;
@@ -31,6 +31,9 @@ namespace MixVerse.Game.Model.Kart
         public float rocketSpeed = 55f;
         public float explosionRadius = 4.5f;
         public float paperLifetime = 14f;
+        public float paperEffectSeconds = 2.2f;
+        public float cpuPaperSlowSeconds = 3f;
+        public float cpuPaperSpeedMultiplier = 0.65f;
         public bool cameraReviewEnabled = true;
 
         public KartItem debugUnlimitedItem = KartItem.None;
@@ -63,6 +66,9 @@ namespace MixVerse.Game.Model.Kart
             rocketSpeed = Math.Max(30f, rocketSpeed);
             explosionRadius = Math.Max(1f, explosionRadius);
             paperLifetime = Math.Max(1f, paperLifetime);
+            paperEffectSeconds = Math.Max(0.5f, paperEffectSeconds);
+            cpuPaperSlowSeconds = Math.Max(0.1f, cpuPaperSlowSeconds);
+            cpuPaperSpeedMultiplier = Math.Max(0.1f, Math.Min(1f, cpuPaperSpeedMultiplier));
         }
     }
 
@@ -89,6 +95,7 @@ namespace MixVerse.Game.Model.Kart
         public float Speed;
         public float DisabledSeconds;
         public float TurboSeconds;
+        public float SlowedSeconds;
         public float FinishTime = -1f;
         public KartItem Item;
         public bool IsSpinning;
