@@ -323,14 +323,15 @@ namespace MixVerse.Game.Model.Tests
             race.Tick(0.02f, Forward());
             Assert.That(race.IsDrifting, Is.False);
         }
-        [Test] public void JuniorNeverExceedsSeventyWithDrink()
+        [Test] public void MushroomTemporarilyBoostsSpeed()
         {
             var race = NewRace();
             race.Objects.Clear();
-            race.Junior.Item = KartItem.Drink;
+            race.Junior.Item = KartItem.Mushroom;
             race.Player.Lane = 0f;
             Advance(race, 3f, Forward());
-            Assert.That(race.Junior.Speed, Is.LessThanOrEqualTo(70f));
+            Assert.That(race.Junior.Speed, Is.GreaterThan(70f));
+            Assert.That(race.Junior.Speed, Is.LessThanOrEqualTo(84f));
         }
         [Test] public void FixedStepGivesSameOutcomeAtDifferentFrameRates()
         {

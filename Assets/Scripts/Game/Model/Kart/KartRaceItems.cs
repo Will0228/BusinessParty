@@ -144,8 +144,8 @@ namespace MixVerse.Game.Model.Kart
                 case KartItem.Mine:
                     UseMines(racer);
                     break;
-                case KartItem.Drink:
-                    racer.TurboSeconds = 3f;
+                case KartItem.Mushroom:
+                    racer.TurboSeconds = Math.Max(racer.TurboSeconds, _settings.mushroomSeconds);
                     break;
             }
         }

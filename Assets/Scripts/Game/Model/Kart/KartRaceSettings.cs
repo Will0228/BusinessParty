@@ -39,6 +39,8 @@ namespace MixVerse.Game.Model.Kart
         public float mineFanWidth = 4.5f;
         public float mineFlightSeconds = 0.65f;
         public float mineLifetime = 16f;
+        public float mushroomSeconds = 3f;
+        public float mushroomSpeedMultiplier = 1.2f;
         public bool cameraReviewEnabled = true;
 
         public KartItem debugUnlimitedItem = KartItem.None;
@@ -79,6 +81,8 @@ namespace MixVerse.Game.Model.Kart
             mineFanWidth = Math.Max(1f, Math.Min(roadHalfWidth * 2f - 1f, mineFanWidth));
             mineFlightSeconds = Math.Max(0.1f, mineFlightSeconds);
             mineLifetime = Math.Max(1f, mineLifetime);
+            mushroomSeconds = Math.Max(0.1f, mushroomSeconds);
+            mushroomSpeedMultiplier = Math.Max(1f, mushroomSpeedMultiplier);
         }
     }
 
@@ -86,7 +90,7 @@ namespace MixVerse.Game.Model.Kart
     public enum RacePhase { Racing, Cleared, Failed }
     public enum FailureScene { None, Distance, BossHit }
     public enum CourseSection { City, Uphill, Gallery, Tunnel, Hairpins, FinishStraight }
-    public enum KartItem { None, Papers, Rocket, Mine, Drink }
+    public enum KartItem { None, Papers, Rocket, Mine, Mushroom }
 
     public struct KartInput
     {

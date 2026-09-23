@@ -13,16 +13,19 @@ namespace MixVerse.Game.Kart
         private readonly Color _cyan = new Color(0.23f, 0.94f, 0.88f);
         private readonly Color _gold = new Color(1f, 0.75f, 0.25f);
         private readonly Color _coral = new Color(1f, 0.36f, 0.3f);
+        private readonly Color _neonCyan = new Color(0.2f, 3.5f, 3.3f);
+        private readonly Color _neonMagenta = new Color(3.4f, 0.3f, 3.6f);
         private TMP_FontAsset _font;
         private KartStageView _stage;
         private Sprite _barSprite;
         private KartExplosionFactory _explosions;
+        private KartPresentationAssets _assets;
 
         public KartStageView Create(KartRaceSettings settings, Transform parent)
         {
             _materials.Clear();
-            var assets = Resources.Load<KartPresentationAssets>("KartPresentation");
-            _font = assets != null ? assets.japaneseFont : TMP_Settings.defaultFontAsset;
+            _assets = Resources.Load<KartPresentationAssets>("KartPresentation");
+            _font = _assets != null ? _assets.japaneseFont : TMP_Settings.defaultFontAsset;
             var root = new GameObject("SettaiKartStage");
             root.transform.SetParent(parent, false);
             root.transform.position = new Vector3(10000f, 0f, 10000f);
@@ -44,6 +47,12 @@ namespace MixVerse.Game.Kart
             _stage.Camera.farClipPlane = 240f;
             _stage.Camera.fieldOfView = 72f;
             _stage.Camera.clearFlags = CameraClearFlags.SolidColor;
+            RenderSettings.fog = true;
+            RenderSettings.fogMode = FogMode.ExponentialSquared;
+            RenderSettings.fogColor = new Color(0.04f, 0.05f, 0.09f);
+            RenderSettings.fogDensity = 0.012f;
+            RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
+            RenderSettings.ambientLight = new Color(0.05f, 0.07f, 0.12f);
             _stage.Listener = camera.GetComponent<AudioListener>();
             _stage.Listener.enabled = false;
             _stage.Audio = camera.GetComponent<AudioSource>();
@@ -81,14 +90,15 @@ namespace MixVerse.Game.Kart
                 var point = _stage.Point(d + 2.5f);
                 var rotation = _stage.DirectionAt(d + 2.5f);
                 var groundColor = section == 0 ? new Color(0.19f, 0.26f, 0.28f) : new Color(0.18f, 0.34f, 0.27f);
-                RoadBox("Road", point - Vector3.up * 0.15f, new Vector3(settings.roadHalfWidth * 2f, 0.3f, 5.3f), rotation, new Color(0.13f, 0.17f, 0.22f));
+                RoadBox("Road", point - Vector3.up * 0.15f, new Vector3(settings.roadHalfWidth * 2f, 0.3f, 5.3f), rotation, new Color(0.05f, 0.055f, 0.07f));
                 RoadBox("Terrain", point - Vector3.up * 0.5f, new Vector3(100f, 0.4f, 5.4f), rotation, groundColor);
-                if ((int)d % 10 == 0) RoadBox("Center dash", point + Vector3.up * 0.015f, new Vector3(0.12f, 0.035f, 2.5f), rotation, new Color(0.72f, 0.76f, 0.68f));
+                if ((int)d % 10 == 0) RoadBox("Center dash", point + Vector3.up * 0.015f, new Vector3(0.12f, 0.035f, 2.5f), rotation, _neonCyan);
+                if (section != 3 && (int)d % 40 == 0) PlaceStreetLight(d, settings);
                 for (var side = -1; side <= 1; side += 2)
                 {
                     var border = _stage.Point(d + 2.5f, side * settings.roadHalfWidth);
                     RoadBox("Curb", border + Vector3.up * 0.04f, new Vector3(0.35f, 0.15f, 5.2f), rotation,
-                        (int)d % 10 == 0 ? _gold : new Color(0.85f, 0.9f, 0.85f));
+                        (int)d % 10 == 0 ? _neonMagenta : new Color(0.4f, 0.42f, 0.45f));
                     if (section == 3)
                     {
                         RoadBox("Tunnel wall", _stage.Point(d + 2.5f, side * (settings.roadHalfWidth + 1f)) + Vector3.up * 5f,
@@ -99,10 +109,13 @@ namespace MixVerse.Game.Kart
                         var scenery = _stage.Point(d, side * (settings.roadHalfWidth + 5f));
                         if (section == 0)
                         {
-                            var height = 5f + (int)d % 7;
-                            RoadBox("Office", scenery + Vector3.up * height * 0.5f, new Vector3(6f, height, 7f), rotation, new Color(0.28f, 0.4f, 0.49f));
-                            RoadBox("Office window", scenery + Vector3.up * height * 0.6f + rotation * Vector3.back * 3.55f,
-                                new Vector3(4.5f, 1.2f, 0.1f), rotation, _gold);
+                            if (!PlaceBuilding(scenery, rotation, d, side))
+                            {
+                                var height = 5f + (int)d % 7;
+                                RoadBox("Office", scenery + Vector3.up * height * 0.5f, new Vector3(6f, height, 7f), rotation, new Color(0.28f, 0.4f, 0.49f));
+                                RoadBox("Office window", scenery + Vector3.up * height * 0.6f + rotation * Vector3.back * 3.55f,
+                                    new Vector3(4.5f, 1.2f, 0.1f), rotation, _gold);
+                            }
                         }
                         else if (section == 2)
                         {
@@ -123,7 +136,8 @@ namespace MixVerse.Game.Kart
                 if (section == 3)
                 {
                     RoadBox("Tunnel ceiling", point + Vector3.up * 14f, new Vector3(settings.roadHalfWidth * 2f + 3f, 0.5f, 5.3f), rotation, new Color(0.09f, 0.13f, 0.19f));
-                    if ((int)d % 15 == 0) RoadBox("Tunnel strip", point + Vector3.up * 9f, new Vector3(10f, 0.1f, 0.3f), rotation, _cyan);
+                    if ((int)d % 15 == 0 && !PlaceTunnelLight(point, rotation, d))
+                        RoadBox("Tunnel strip", point + Vector3.up * 9f, new Vector3(10f, 0.1f, 0.3f), rotation, _neonCyan);
                 }
             }
             for (var section = 0; section < 6; section++)
@@ -262,7 +276,7 @@ namespace MixVerse.Game.Kart
             var root = Shape(stage.transform, obj.Kind.ToString(), shape, Vector3.zero, scale, color).transform;
             if (obj.Kind == TrackObjectKind.ItemBox)
             {
-                var label = WorldLabel(root, obj.Item == KartItem.Papers ? "書" : obj.Item == KartItem.Rocket ? "弾" : obj.Item == KartItem.Mine ? "地" : "飲", _navy, 7f);
+                var label = WorldLabel(root, obj.Item == KartItem.Papers ? "書" : obj.Item == KartItem.Rocket ? "弾" : obj.Item == KartItem.Mine ? "地" : "茸", _navy, 7f);
                 label.transform.localPosition = new Vector3(0f, 0f, -0.52f);
             }
             return root;
@@ -388,14 +402,11 @@ namespace MixVerse.Game.Kart
                 IconShape(mine, new Vector2(-Mathf.Sin(radians), Mathf.Cos(radians)) * 28f, new Vector2(8f, 25f), _coral, angle);
             }
 
-            var drink = IconGroup(parent, "Drink icon");
-            _stage.ItemIcons[(int)KartItem.Drink] = drink.gameObject;
-            IconShape(drink, new Vector2(0f, -5f), new Vector2(29f, 42f), _cyan);
-            IconShape(drink, new Vector2(0f, 19f), new Vector2(17f, 10f), _cyan);
-            IconShape(drink, new Vector2(0f, 26f), new Vector2(24f, 7f), _gold);
-            IconShape(drink, new Vector2(0f, -5f), new Vector2(29f, 18f), Color.white);
-            IconShape(drink, new Vector2(0f, -5f), new Vector2(17f, 4f), _coral);
-            IconShape(drink, new Vector2(0f, -5f), new Vector2(4f, 14f), _coral);
+            var mushroom = IconGroup(parent, "Real mushroom icon");
+            _stage.ItemIcons[(int)KartItem.Mushroom] = mushroom.gameObject;
+            var mushroomImage = IconShape(mushroom, Vector2.zero, new Vector2(72f, 72f), Color.white);
+            mushroomImage.sprite = Resources.Load<Sprite>("KartItems/RealMushroom");
+            mushroomImage.preserveAspect = true;
         }
 
         private RectTransform IconGroup(Transform parent, string name)

@@ -266,7 +266,7 @@ namespace MixVerse.Game.Kart
                 case KartItem.Papers: return "社内報で目隠し";
                 case KartItem.Rocket: return "ロケラン";
                 case KartItem.Mine: return "地雷";
-                case KartItem.Drink: return "栄養ドリンク";
+                case KartItem.Mushroom: return "リアルなキノコ";
                 default: return "アイテムなし";
             }
         }

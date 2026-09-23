@@ -136,7 +136,6 @@ namespace MixVerse.Game.Model.Kart
                 }
             }
             var bossTarget = SectionAt(Boss.Distance) == CourseSection.Uphill ? 44f : 50f;
-            if (Boss.TurboSeconds > 0f) bossTarget *= 1.2f;
             var juniorTarget = 70f;
             var ahead = Player.Distance - Junior.Distance;
             var blocking = !Player.Finished && ahead > 0f && ahead < _settings.blockingDistance && Math.Abs(Player.Lane - Junior.Lane) < 1.45f && Player.Speed < 70f;
@@ -150,7 +149,7 @@ namespace MixVerse.Game.Model.Kart
             else _blockingTime = 0f;
             AvoidObstacles(Boss, dt);
             if (!blocking && Time - _lastPush > _settings.pushCreditSeconds) AvoidObstacles(Junior, dt);
-            Move(Player, Clamp(input.Gain, 0f, 1f) * (Player.TurboSeconds > 0f ? 120f : 100f) * _direction, dt);
+            Move(Player, Clamp(input.Gain, 0f, 1f) * 100f * _direction, dt);
             Move(Boss, bossTarget, dt);
             Move(Junior, juniorTarget, dt);
             if (Phase != RacePhase.Racing) return;
@@ -165,6 +164,7 @@ namespace MixVerse.Game.Model.Kart
             if (racer.Finished) return;
             racer.TurboSeconds = Math.Max(0f, racer.TurboSeconds - dt);
             racer.SlowedSeconds = Math.Max(0f, racer.SlowedSeconds - dt);
+            if (racer.TurboSeconds > 0f) target *= _settings.mushroomSpeedMultiplier;
             if (racer.Id != RacerId.Player && racer.SlowedSeconds > 0f) target *= _settings.cpuPaperSpeedMultiplier;
             if (racer.DisabledSeconds > 0f)
             {
