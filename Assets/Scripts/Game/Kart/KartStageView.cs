@@ -52,9 +52,12 @@ namespace MixVerse.Game.Kart
         private readonly List<Transform> _resultRockets = new List<Transform>();
         private readonly List<Vector3> _rocketStarts = new List<Vector3>();
         private readonly HashSet<int> _rocketImpacts = new HashSet<int>();
+        private const float BossTurnTime = 0.85f;
+        private const float BossCrashTime = 1.55f;
         private KartRaceSettings _settings;
         private bool _debug;
         private bool _worldLabelsHidden;
+        private bool _bossCrashExploded;
         private readonly string[] _sectionNames = { "01  市街地", "02  峠の上り", "03  ギャラリー", "04  トンネル", "05  連続ヘアピン", "06  ゴール前直線" };
         private readonly string[] _racerNames = { "あなた", "上司", "部下" };
 
@@ -111,14 +114,40 @@ namespace MixVerse.Game.Kart
                     knockbackOffset = new Vector3(14f * flight, Mathf.Sin(flight * Mathf.PI) * 12f, -8f * flight);
                     knockbackTumble = Quaternion.Euler(flight * 1440f, flight * 550f, flight * 1080f);
                 }
+                if (race.ResultScene == FailureScene.BossHit && i == (int)RacerId.Player && race.ResultTime >= BossCrashTime)
+                {
+                    var impact = Mathf.Clamp01((race.ResultTime - BossCrashTime) / 1.1f);
+                    knockbackOffset = new Vector3(5f * impact, Mathf.Sin(impact * Mathf.PI) * 4.5f, -7f * impact);
+                    knockbackTumble = Quaternion.Euler(impact * 760f, impact * 320f, impact * 620f);
+                }
+                var kartPosition = position + Vector3.up * 0.45f + trackRotation * knockbackOffset;
+                var kartRotation = trackRotation * Quaternion.Euler(0f, spin, 0f) * knockbackTumble;
                 if (race.ResultScene == FailureScene.BossHit && i == (int)RacerId.Boss)
                 {
-                    var flight = Mathf.Clamp01(race.ResultTime / 1.5f);
-                    knockbackOffset = new Vector3(-11f * flight, Mathf.Sin(flight * Mathf.PI) * 9f, -5f * flight);
-                    knockbackTumble = Quaternion.Euler(flight * 900f, flight * 340f, -flight * 720f);
+                    var launch = Mathf.Clamp01(race.ResultTime / BossTurnTime);
+                    var launchOffset = new Vector3(-11f * launch, Mathf.Sin(launch * Mathf.PI * 0.5f) * 9f, -5f * launch);
+                    kartPosition = position + Vector3.up * 0.45f + trackRotation * launchOffset;
+                    kartRotation = trackRotation * Quaternion.Euler(launch * 760f, launch * 300f, -launch * 620f);
+                    if (race.ResultTime >= BossTurnTime)
+                    {
+                        var chase = Mathf.Clamp01((race.ResultTime - BossTurnTime) / (BossCrashTime - BossTurnTime));
+                        var easedChase = chase * chase * (3f - 2f * chase);
+                        var launchEnd = position + Vector3.up * 0.45f + trackRotation * new Vector3(-11f, 9f, -5f);
+                        var target = Karts[(int)RacerId.Player].localPosition + Vector3.up * 0.25f;
+                        kartPosition = Vector3.Lerp(launchEnd, target, easedChase) + Vector3.up * (Mathf.Sin(chase * Mathf.PI) * 5f);
+                        var approach = target - kartPosition;
+                        if (approach.sqrMagnitude > 0.001f)
+                            kartRotation = Quaternion.LookRotation(approach.normalized, Vector3.up) * Quaternion.Euler(0f, 0f, chase * 900f);
+                        if (race.ResultTime >= BossCrashTime)
+                        {
+                            var rebound = Mathf.Clamp01((race.ResultTime - BossCrashTime) / 1.1f);
+                            kartPosition = target + trackRotation * new Vector3(-3f * rebound, Mathf.Sin(rebound * Mathf.PI) * 2.5f, -4f * rebound);
+                            kartRotation = trackRotation * Quaternion.Euler(rebound * 680f, rebound * 260f, -rebound * 780f);
+                        }
+                    }
                 }
-                Karts[i].localPosition = position + Vector3.up * 0.45f + trackRotation * knockbackOffset;
-                Karts[i].localRotation = trackRotation * Quaternion.Euler(0f, spin, 0f) * knockbackTumble;
+                Karts[i].localPosition = kartPosition;
+                Karts[i].localRotation = kartRotation;
                 Tags[i].gameObject.SetActive(race.Phase == RacePhase.Racing);
                 Tags[i].localPosition = position + Vector3.up * 3.2f;
                 Tags[i].rotation = Camera.transform.rotation;
@@ -134,6 +163,7 @@ namespace MixVerse.Game.Kart
             foreach (var gate in Gates) gate.Value.SetActive(gate.Key > race.Player.Distance + 15f);
             RenderObjects(race);
             RenderResultBarrage(race);
+            RenderBossCrash(race);
             RenderExplosionImpact();
             UpdateDriftSparks(race);
             var ranks = new string[3];
@@ -301,6 +331,17 @@ namespace MixVerse.Game.Kart
             }
         }
 
+        private void RenderBossCrash(KartRace race)
+        {
+            if (race.ResultScene != FailureScene.BossHit || race.ResultTime < BossCrashTime || _bossCrashExploded) return;
+            _bossCrashExploded = true;
+            const int id = -500;
+            var collision = Vector3.Lerp(Karts[(int)RacerId.Player].localPosition, Karts[(int)RacerId.Boss].localPosition, 0.5f) + Vector3.up * 0.5f;
+            var explosion = Factory.CreateResultExplosion(id, collision);
+            ObjectViews.Add(id, explosion.transform);
+            Explosions.Add(id, explosion);
+        }
+
         // マリオカート同様、ドリフトの溜め具合（DriftTier）で火花の色を白→水色→オレンジと変える
         private static readonly Color[] DriftSparkColors =
         {
@@ -344,6 +385,7 @@ namespace MixVerse.Game.Kart
             _resultRockets.Clear();
             _rocketStarts.Clear();
             _rocketImpacts.Clear();
+            _bossCrashExploded = false;
             foreach (var view in ObjectViews.Values) if (view != null) Destroy(view.gameObject);
             ObjectViews.Clear();
             Explosions.Clear();
