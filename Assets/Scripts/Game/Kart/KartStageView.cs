@@ -216,13 +216,13 @@ namespace MixVerse.Game.Kart
             if (ready)
             {
                 ModalTitle.text = "接待カートレース";
-                ModalBody.text = "上司を、僅差で1位に。\n\nあなた 100  /  部下 70  /  上司 50\n部下の前で減速してブロック。箱・書類・ロケランでも妨害できます。\n上司への接触・煽りは禁止。離れすぎても失敗です。\n失言には10秒以内に攻撃。ゴールは上司1位・着差3秒未満！\n\nW/Sで速度を調節  •  A/Dで左右へ  •  SPACEでアイテム\n最初はGAIN 0%。WかCC #9で加速して部下の前へ。\nDJ: CC #10は0で右・1で左、CC #24でドリフト。";
+                ModalBody.text = string.Empty;
                 ActionLabel.text = "接待を始める  [ ENTER / SYNC ]";
             }
             else if (countdown > 0f)
             {
                 ModalTitle.text = Mathf.CeilToInt(countdown).ToString();
-                ModalBody.text = "上司には触れず、部下の前へ。";
+                ModalBody.text = string.Empty;
             }
             else if (race.Phase != RacePhase.Racing)
             {
@@ -240,18 +240,19 @@ namespace MixVerse.Game.Kart
 
         private void ConfigureModal(bool result)
         {
-            ((RectTransform)Modal.transform).sizeDelta = result ? new Vector2(650f, 290f) : new Vector2(1100f, 650f);
-            ModalTitle.rectTransform.sizeDelta = result ? new Vector2(600f, 65f) : new Vector2(1000f, 90f);
-            ModalTitle.rectTransform.anchoredPosition = result ? new Vector2(0f, -26f) : new Vector2(0f, -40f);
+            ModalBody.gameObject.SetActive(result);
+            ((RectTransform)Modal.transform).sizeDelta = result ? new Vector2(650f, 290f) : new Vector2(760f, 240f);
+            ModalTitle.rectTransform.sizeDelta = result ? new Vector2(600f, 65f) : new Vector2(700f, 75f);
+            ModalTitle.rectTransform.anchoredPosition = result ? new Vector2(0f, -26f) : new Vector2(0f, -28f);
             ModalBody.rectTransform.sizeDelta = result ? new Vector2(600f, 90f) : new Vector2(1000f, 370f);
             ModalBody.rectTransform.anchoredPosition = result ? new Vector2(0f, 12f) : new Vector2(0f, 18f);
-            ((RectTransform)ActionButton.transform).sizeDelta = result ? new Vector2(260f, 58f) : new Vector2(610f, 60f);
-            ((RectTransform)ActionButton.transform).anchoredPosition = result ? new Vector2(-145f, 22f) : new Vector2(-145f, 45f);
-            ActionLabel.rectTransform.sizeDelta = result ? new Vector2(250f, 58f) : new Vector2(610f, 60f);
-            ((RectTransform)ExitButton.transform).sizeDelta = result ? new Vector2(260f, 58f) : new Vector2(235f, 60f);
-            ((RectTransform)ExitButton.transform).anchoredPosition = result ? new Vector2(145f, 22f) : new Vector2(335f, 45f);
+            ((RectTransform)ActionButton.transform).sizeDelta = result ? new Vector2(260f, 58f) : new Vector2(440f, 60f);
+            ((RectTransform)ActionButton.transform).anchoredPosition = result ? new Vector2(-145f, 22f) : new Vector2(-120f, -50f);
+            ActionLabel.rectTransform.sizeDelta = result ? new Vector2(250f, 58f) : new Vector2(440f, 60f);
+            ((RectTransform)ExitButton.transform).sizeDelta = result ? new Vector2(260f, 58f) : new Vector2(220f, 60f);
+            ((RectTransform)ExitButton.transform).anchoredPosition = result ? new Vector2(145f, 22f) : new Vector2(230f, -50f);
             var exitLabel = ExitButton.GetComponentInChildren<TextMeshProUGUI>();
-            exitLabel.rectTransform.sizeDelta = result ? new Vector2(250f, 58f) : new Vector2(235f, 60f);
+            exitLabel.rectTransform.sizeDelta = result ? new Vector2(250f, 58f) : new Vector2(220f, 60f);
             exitLabel.text = result ? "ホームに戻る" : "ホームへ [ ESC ]";
         }
 
