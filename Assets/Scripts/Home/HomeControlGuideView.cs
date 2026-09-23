@@ -85,8 +85,8 @@ namespace MixVerse.Home
                 "フェーダーを上へ → 加速\n下へ → 減速", font);
             CreateLegend(legend, new Vector2(0f, 83f), Magenta, "2", "左右操作  CC #10",
                 "中央フェーダーを左右へ\n動かして走行ラインを変更", font);
-            CreateLegend(legend, new Vector2(0f, -84f), Orange, "3", "ドリフト  CC #24",
-                "ジョグ / DRIFTを入力しながら\n左右操作 → ドリフト", font);
+            CreateLegend(legend, new Vector2(0f, -84f), Orange, "3", "ドリフト  ch1 CC",
+                "左 #25 / 右 #24 で開始\n左 #78 / 右 #77 で解除・ターボ", font);
             CreateLegend(legend, new Vector2(0f, -251f), Green, "4", "アイテム  SYNC #71",
                 "ボタンを押す → 所持中の\nアイテムを使用", font);
 

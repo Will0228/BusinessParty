@@ -200,7 +200,7 @@ namespace MixVerse.Game.Kart
             EmptyItemIcon.SetActive(race.Player.Item == KartItem.None);
             for (var i = 1; i < ItemIcons.Length; i++) ItemIcons[i].SetActive((int)race.Player.Item == i);
             Drift.text = race.Player.InvincibleSeconds > 0f ? $"昇給辞令  無敵 +10%  {race.Player.InvincibleSeconds:0.0}s" :
-                race.Player.TurboSeconds > 0f ? "MUSHROOM  加速中" : $"DRIFT  {race.DriftTier} / 2";
+                race.Player.TurboSeconds > 0f ? "TURBO  加速中" : $"DRIFT  {race.DriftTier} / 2";
             DriftFill.fillAmount = Mathf.Clamp01(race.DriftTime / _settings.driftSecondSeconds);
             Gain.fillAmount = gain;
             Progress.fillAmount = race.Player.Distance / _settings.courseLength;
@@ -433,9 +433,10 @@ namespace MixVerse.Game.Kart
             var color = DriftSparkColors[race.DriftTier];
             foreach (var spark in DriftSparks)
             {
+                var wheelActive = active && Mathf.Sign(spark.transform.localPosition.x) == race.DriftDirection;
                 var emission = spark.emission;
-                emission.enabled = active;
-                if (!active) continue;
+                emission.enabled = wheelActive;
+                if (!wheelActive) continue;
                 var main = spark.main;
                 main.startColor = color;
             }

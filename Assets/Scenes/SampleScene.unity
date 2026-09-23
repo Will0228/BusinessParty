@@ -932,12 +932,15 @@ MonoBehaviour:
     cameraReviewEnabled: 1
     debugUnlimitedItem: 2
   _midiMapping:
-    channel: 0
+    channel: 1
     gainControl: 9
     steeringControl: 10
     driftControl: 24
     syncControl: 71
-    driftMode: 0
+    leftDriftControl: 25
+    leftDriftReleaseControl: 78
+    rightDriftReleaseControl: 77
+    driftMode: 3
     binaryOffsetJog: 0
     jogTimeout: 0.16
 --- !u!4 &368119409
