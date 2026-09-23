@@ -13,19 +13,16 @@ namespace MixVerse.Game.Kart
         private readonly Color _cyan = new Color(0.23f, 0.94f, 0.88f);
         private readonly Color _gold = new Color(1f, 0.75f, 0.25f);
         private readonly Color _coral = new Color(1f, 0.36f, 0.3f);
-        private readonly Color _neonCyan = new Color(0.2f, 3.5f, 3.3f);
-        private readonly Color _neonMagenta = new Color(3.4f, 0.3f, 3.6f);
         private TMP_FontAsset _font;
         private KartStageView _stage;
         private Sprite _barSprite;
         private KartExplosionFactory _explosions;
-        private KartPresentationAssets _assets;
 
         public KartStageView Create(KartRaceSettings settings, Transform parent)
         {
             _materials.Clear();
-            _assets = Resources.Load<KartPresentationAssets>("KartPresentation");
-            _font = _assets != null ? _assets.japaneseFont : TMP_Settings.defaultFontAsset;
+            var assets = Resources.Load<KartPresentationAssets>("KartPresentation");
+            _font = assets != null ? assets.japaneseFont : TMP_Settings.defaultFontAsset;
             var root = new GameObject("SettaiKartStage");
             root.transform.SetParent(parent, false);
             root.transform.position = new Vector3(10000f, 0f, 10000f);
@@ -45,14 +42,8 @@ namespace MixVerse.Game.Kart
             _stage.Camera = camera.GetComponent<Camera>();
             _stage.Camera.nearClipPlane = 0.15f;
             _stage.Camera.farClipPlane = 240f;
-            _stage.Camera.fieldOfView = 72f;
+            _stage.Camera.fieldOfView = 58f;
             _stage.Camera.clearFlags = CameraClearFlags.SolidColor;
-            RenderSettings.fog = true;
-            RenderSettings.fogMode = FogMode.ExponentialSquared;
-            RenderSettings.fogColor = new Color(0.04f, 0.05f, 0.09f);
-            RenderSettings.fogDensity = 0.012f;
-            RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
-            RenderSettings.ambientLight = new Color(0.05f, 0.07f, 0.12f);
             _stage.Listener = camera.GetComponent<AudioListener>();
             _stage.Listener.enabled = false;
             _stage.Audio = camera.GetComponent<AudioSource>();
@@ -90,15 +81,14 @@ namespace MixVerse.Game.Kart
                 var point = _stage.Point(d + 2.5f);
                 var rotation = _stage.DirectionAt(d + 2.5f);
                 var groundColor = section == 0 ? new Color(0.19f, 0.26f, 0.28f) : new Color(0.18f, 0.34f, 0.27f);
-                RoadBox("Road", point - Vector3.up * 0.15f, new Vector3(settings.roadHalfWidth * 2f, 0.3f, 5.3f), rotation, new Color(0.05f, 0.055f, 0.07f));
+                RoadBox("Road", point - Vector3.up * 0.15f, new Vector3(settings.roadHalfWidth * 2f, 0.3f, 5.3f), rotation, new Color(0.13f, 0.17f, 0.22f));
                 RoadBox("Terrain", point - Vector3.up * 0.5f, new Vector3(100f, 0.4f, 5.4f), rotation, groundColor);
-                if ((int)d % 10 == 0) RoadBox("Center dash", point + Vector3.up * 0.015f, new Vector3(0.12f, 0.035f, 2.5f), rotation, _neonCyan);
-                if (section != 3 && (int)d % 40 == 0) PlaceStreetLight(d, settings);
+                if ((int)d % 10 == 0) RoadBox("Center dash", point + Vector3.up * 0.015f, new Vector3(0.12f, 0.035f, 2.5f), rotation, new Color(0.72f, 0.76f, 0.68f));
                 for (var side = -1; side <= 1; side += 2)
                 {
                     var border = _stage.Point(d + 2.5f, side * settings.roadHalfWidth);
                     RoadBox("Curb", border + Vector3.up * 0.04f, new Vector3(0.35f, 0.15f, 5.2f), rotation,
-                        (int)d % 10 == 0 ? _neonMagenta : new Color(0.4f, 0.42f, 0.45f));
+                        (int)d % 10 == 0 ? _gold : new Color(0.85f, 0.9f, 0.85f));
                     if (section == 3)
                     {
                         RoadBox("Tunnel wall", _stage.Point(d + 2.5f, side * (settings.roadHalfWidth + 1f)) + Vector3.up * 5f,
@@ -109,13 +99,10 @@ namespace MixVerse.Game.Kart
                         var scenery = _stage.Point(d, side * (settings.roadHalfWidth + 5f));
                         if (section == 0)
                         {
-                            if (!PlaceBuilding(scenery, rotation, d, side))
-                            {
-                                var height = 5f + (int)d % 7;
-                                RoadBox("Office", scenery + Vector3.up * height * 0.5f, new Vector3(6f, height, 7f), rotation, new Color(0.28f, 0.4f, 0.49f));
-                                RoadBox("Office window", scenery + Vector3.up * height * 0.6f + rotation * Vector3.back * 3.55f,
-                                    new Vector3(4.5f, 1.2f, 0.1f), rotation, _gold);
-                            }
+                            var height = 5f + (int)d % 7;
+                            RoadBox("Office", scenery + Vector3.up * height * 0.5f, new Vector3(6f, height, 7f), rotation, new Color(0.28f, 0.4f, 0.49f));
+                            RoadBox("Office window", scenery + Vector3.up * height * 0.6f + rotation * Vector3.back * 3.55f,
+                                new Vector3(4.5f, 1.2f, 0.1f), rotation, _gold);
                         }
                         else if (section == 2)
                         {
@@ -136,8 +123,7 @@ namespace MixVerse.Game.Kart
                 if (section == 3)
                 {
                     RoadBox("Tunnel ceiling", point + Vector3.up * 14f, new Vector3(settings.roadHalfWidth * 2f + 3f, 0.5f, 5.3f), rotation, new Color(0.09f, 0.13f, 0.19f));
-                    if ((int)d % 15 == 0 && !PlaceTunnelLight(point, rotation, d))
-                        RoadBox("Tunnel strip", point + Vector3.up * 9f, new Vector3(10f, 0.1f, 0.3f), rotation, _neonCyan);
+                    if ((int)d % 15 == 0) RoadBox("Tunnel strip", point + Vector3.up * 9f, new Vector3(10f, 0.1f, 0.3f), rotation, _cyan);
                 }
             }
             for (var section = 0; section < 6; section++)
@@ -149,48 +135,6 @@ namespace MixVerse.Game.Kart
             Gate(settings.courseLength, "FINISH  /  上司に花を", _gold, settings);
             for (var i = 0; i < 12; i++)
                 RoadBox("Finish check", _stage.Point(settings.courseLength, -5.5f + i), new Vector3(0.98f, 0.05f, 1.5f), _stage.DirectionAt(settings.courseLength), i % 2 == 0 ? Color.white : Color.black);
-        }
-
-        private bool PlaceBuilding(Vector3 position, Quaternion rotation, float distance, int side)
-        {
-            var slots = _assets != null ? _assets.cityBuildingPrefabs : null;
-            if (slots == null || slots.Length == 0) return false;
-            var slot = slots[new System.Random((int)(distance * 4f) + side).Next(slots.Length)];
-            if (slot.prefab == null) return false;
-            SpawnScenery(slot, "Cyberpunk building", position, rotation, false);
-            return true;
-        }
-
-        private bool PlaceTunnelLight(Vector3 position, Quaternion rotation, float distance)
-        {
-            var slots = _assets != null ? _assets.tunnelLightPrefabs : null;
-            if (slots == null || slots.Length == 0) return false;
-            var slot = slots[new System.Random((int)distance).Next(slots.Length)];
-            if (slot.prefab == null) return false;
-            SpawnScenery(slot, "Cyberpunk tunnel light", position + Vector3.up * 9f, rotation, true);
-            return true;
-        }
-
-        private void PlaceStreetLight(float distance, KartRaceSettings settings)
-        {
-            var slots = _assets != null ? _assets.streetLightPrefabs : null;
-            if (slots == null || slots.Length == 0) return;
-            var slot = slots[new System.Random((int)distance + 5).Next(slots.Length)];
-            if (slot.prefab == null) return;
-            var side = (int)(distance / 40f) % 2 == 0 ? -1f : 1f;
-            var position = _stage.Point(distance, side * (settings.roadHalfWidth + 1.5f));
-            SpawnScenery(slot, "Cyberpunk street light", position, _stage.DirectionAt(distance), true);
-        }
-
-        private void SpawnScenery(ScenerySlot slot, string name, Vector3 position, Quaternion rotation, bool disableShadows)
-        {
-            var instance = Object.Instantiate(slot.prefab, _stage.transform);
-            instance.name = name;
-            instance.transform.localPosition = position;
-            instance.transform.localRotation = rotation * Quaternion.Euler(0f, slot.yawOffset, 0f);
-            instance.transform.localScale = Vector3.one * (slot.scale > 0f ? slot.scale : 1f);
-            if (disableShadows)
-                foreach (var renderer in instance.GetComponentsInChildren<Renderer>()) renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
         }
 
         private void Gate(float distance, string title, Color color, KartRaceSettings settings)

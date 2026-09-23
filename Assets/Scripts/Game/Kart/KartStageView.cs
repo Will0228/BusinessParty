@@ -165,10 +165,9 @@ namespace MixVerse.Game.Kart
             var focusRacer = followBoss ? race.Boss : race.Player;
             var focus = race.Phase == RacePhase.Failed ? Karts[(int)focusRacer.Id].localPosition : Point(race.Player.Distance);
             var direction = DirectionAt(focusRacer.Distance);
-            Camera.transform.localPosition = focus + direction * new Vector3(0f, 3.2f, -7.2f);
-            Camera.transform.LookAt(transform.TransformPoint(focus + direction * new Vector3(0f, 1f, race.Phase == RacePhase.Failed ? 2f : 20f)));
-            Camera.backgroundColor = race.SectionAt(race.Player.Distance) == CourseSection.Tunnel ? new Color(0.025f, 0.035f, 0.06f) : new Color(0.05f, 0.04f, 0.12f);
-            RenderSettings.fogColor = Camera.backgroundColor;
+            Camera.transform.localPosition = focus + direction * new Vector3(0f, 11f, -17f);
+            Camera.transform.LookAt(transform.TransformPoint(focus + direction * new Vector3(0f, 0f, race.Phase == RacePhase.Failed ? 2f : 13f)));
+            Camera.backgroundColor = race.SectionAt(race.Player.Distance) == CourseSection.Tunnel ? new Color(0.025f, 0.035f, 0.06f) : new Color(0.28f, 0.48f, 0.62f);
             foreach (var gate in Gates) gate.Value.SetActive(gate.Key > race.Player.Distance + 15f);
             RenderObjects(race);
             RenderResultBarrage(race);
@@ -412,7 +411,7 @@ namespace MixVerse.Game.Kart
                 var distance = Vector3.Distance(Camera.transform.position, effect.transform.position);
                 impact = Mathf.Max(impact, effect.Impact * Mathf.Clamp01(1f - distance / 65f));
             }
-            Camera.fieldOfView = 72f + impact * 4f;
+            Camera.fieldOfView = 58f + impact * 4f;
             Camera.transform.position += Camera.transform.right * (Mathf.Sin(Time.time * 93f) * impact * 0.24f)
                 + Camera.transform.up * (Mathf.Cos(Time.time * 117f) * impact * 0.16f);
             Camera.transform.Rotate(0f, 0f, Mathf.Sin(Time.time * 71f) * impact * 1.2f);
@@ -460,7 +459,7 @@ namespace MixVerse.Game.Kart
             ObjectViews.Clear();
             Explosions.Clear();
             _finishedExplosions.Clear();
-            Camera.fieldOfView = 72f;
+            Camera.fieldOfView = 58f;
             _lastSlip = 0f;
             _lastAttacks = 0;
             _lastPhase = RacePhase.Racing;
