@@ -904,7 +904,9 @@ MonoBehaviour:
     blockingDistance: 8
     blockingSeconds: 0.65
     pushCreditSeconds: 2
-    overturnSeconds: 2.2
+    knockbackFlightSeconds: 0.9
+    knockbackRecoverySeconds: 1
+    knockbackEdgeMargin: 0.75
     spinSeconds: 1.4
     driftFirstSeconds: 0.8
     driftSecondSeconds: 1.8
@@ -915,6 +917,18 @@ MonoBehaviour:
     rocketSpeed: 55
     explosionRadius: 4.5
     paperLifetime: 14
+    paperEffectSeconds: 2.2
+    cpuPaperSlowSeconds: 3
+    cpuPaperSpeedMultiplier: 0.65
+    mineCount: 5
+    mineFanDistance: 12
+    mineFanWidth: 4.5
+    mineFlightSeconds: 0.65
+    mineLifetime: 16
+    mushroomSeconds: 3
+    mushroomSpeedMultiplier: 1.2
+    salaryOrderSeconds: 5
+    salaryOrderSpeedMultiplier: 1.1
     cameraReviewEnabled: 1
     debugUnlimitedItem: 2
   _midiMapping:
@@ -2514,6 +2528,7 @@ GameObject:
   - component: {fileID: 1213348288}
   - component: {fileID: 1213348292}
   - component: {fileID: 1213348293}
+  - component: {fileID: 1213348294}
   m_Layer: 5
   m_Name: HomeScreen
   m_TagString: Untagged
@@ -2644,6 +2659,18 @@ CanvasGroup:
   m_Interactable: 1
   m_BlocksRaycasts: 1
   m_IgnoreParentGroups: 0
+--- !u!114 &1213348294
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1213348287}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 669d74c223a646b3a84437136ac18437, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MixVerse.Home.HomeControlGuideView
 --- !u!1 &1217365761
 GameObject:
   m_ObjectHideFlags: 0
