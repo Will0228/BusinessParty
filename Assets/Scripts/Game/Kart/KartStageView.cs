@@ -48,6 +48,7 @@ namespace MixVerse.Game.Kart
         private const float SegmentVisibleBehind = 60f;
         private const float SegmentVisibleAhead = 260f;
         public KartStageFactory Factory;
+        public KartAtmosphereView Atmosphere;
         public Transform CityRoot;
         public float RoadHalfWidth => _settings.roadHalfWidth;
         private float _lastSlip;
@@ -171,7 +172,7 @@ namespace MixVerse.Game.Kart
             var direction = DirectionAt(focusRacer.Distance);
             Camera.transform.localPosition = focus + direction * new Vector3(0f, 11f, -17f);
             Camera.transform.LookAt(transform.TransformPoint(focus + direction * new Vector3(0f, 0f, race.Phase == RacePhase.Failed ? 2f : 13f)));
-            Camera.backgroundColor = race.SectionAt(race.Player.Distance) == CourseSection.Tunnel ? new Color(0.025f, 0.035f, 0.06f) : new Color(0.28f, 0.48f, 0.62f);
+            Atmosphere.SetTunnel(race.SectionAt(race.Player.Distance) == CourseSection.Tunnel);
             foreach (var gate in Gates) gate.Value.SetActive(gate.Key > race.Player.Distance + 15f);
             foreach (var segment in Segments)
             {

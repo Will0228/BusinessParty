@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using MixVerse.Game.Model.Kart;
 using TMPro;
 using UnityEngine;
+using UnityEngine.Rendering.Universal;
 using UnityEngine.UI;
 
 namespace MixVerse.Game.Kart
@@ -42,9 +43,18 @@ namespace MixVerse.Game.Kart
             camera.transform.SetParent(root.transform, false);
             _stage.Camera = camera.GetComponent<Camera>();
             _stage.Camera.nearClipPlane = 0.15f;
-            _stage.Camera.farClipPlane = 240f;
+            _stage.Camera.farClipPlane = 420f;
             _stage.Camera.fieldOfView = 58f;
-            _stage.Camera.clearFlags = CameraClearFlags.SolidColor;
+            var cameraData = _stage.Camera.GetUniversalAdditionalCameraData();
+            cameraData.renderPostProcessing = true;
+            cameraData.antialiasing = AntialiasingMode.SubpixelMorphologicalAntiAliasing;
+            var atmosphere = root.AddComponent<KartAtmosphereView>();
+            var skybox = _assets != null ? _assets.skybox : null;
+            atmosphere.Apply(skybox);
+            atmosphere.Rain = Rain(camera.transform);
+            _stage.Atmosphere = atmosphere;
+            _stage.Camera.clearFlags = skybox != null ? CameraClearFlags.Skybox : CameraClearFlags.SolidColor;
+            _stage.Camera.backgroundColor = atmosphere.CityFog;
             _stage.Listener = camera.GetComponent<AudioListener>();
             _stage.Listener.enabled = false;
             _stage.Audio = camera.GetComponent<AudioSource>();
@@ -85,6 +95,44 @@ namespace MixVerse.Game.Kart
             Gate(settings.courseLength, "FINISH  /  上司に花を", _gold, settings);
             for (var i = 0; i < 12; i++)
                 RoadBox("Finish check", _stage.Point(settings.courseLength, -5.5f + i) + Vector3.up * 0.02f, new Vector3(0.98f, 0.05f, 1.5f), _stage.DirectionAt(settings.courseLength), i % 2 == 0 ? Color.white : Color.black);
+        }
+
+        private ParticleSystem Rain(Transform camera)
+        {
+            var obj = new GameObject("Rain");
+            obj.transform.SetParent(camera, false);
+            obj.transform.localPosition = new Vector3(0f, 9f, 16f);
+            var rain = obj.AddComponent<ParticleSystem>();
+            rain.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            var main = rain.main;
+            main.loop = true;
+            main.playOnAwake = false;
+            main.startLifetime = 0.8f;
+            main.startSpeed = 0f;
+            main.startSize = new ParticleSystem.MinMaxCurve(0.018f, 0.032f);
+            main.startColor = new Color(0.6f, 0.72f, 1f, 0.28f);
+            main.simulationSpace = ParticleSystemSimulationSpace.World;
+            main.maxParticles = 2500;
+            var emission = rain.emission;
+            emission.rateOverTime = 2600f;
+            var shape = rain.shape;
+            shape.shapeType = ParticleSystemShapeType.Box;
+            shape.scale = new Vector3(36f, 1f, 44f);
+            var velocity = rain.velocityOverLifetime;
+            velocity.enabled = true;
+            velocity.space = ParticleSystemSimulationSpace.World;
+            velocity.x = new ParticleSystem.MinMaxCurve(1.5f);
+            velocity.y = new ParticleSystem.MinMaxCurve(-30f);
+            velocity.z = new ParticleSystem.MinMaxCurve(0f);
+            var renderer = rain.GetComponent<ParticleSystemRenderer>();
+            renderer.sharedMaterial = _explosions.Glow;
+            renderer.renderMode = ParticleSystemRenderMode.Stretch;
+            renderer.lengthScale = 1f;
+            renderer.velocityScale = 0.035f;
+            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            renderer.receiveShadows = false;
+            rain.Play();
+            return rain;
         }
 
         private void Gate(float distance, string title, Color color, KartRaceSettings settings)
