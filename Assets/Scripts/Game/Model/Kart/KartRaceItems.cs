@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace MixVerse.Game.Model.Kart
 {
-    public enum TrackObjectKind { Crate, ItemBox, Papers, Rocket, Explosion }
+    public enum TrackObjectKind { Crate, ItemBox, Papers, Rocket, Mine, Explosion }
 
     public sealed class TrackObject
     {
@@ -36,7 +36,7 @@ namespace MixVerse.Game.Model.Kart
             {
                 var index = (int)((distance - 45f) / 60f);
                 for (var lane = -1; lane <= 1; lane++)
-                    AddObject(TrackObjectKind.ItemBox, distance, lane * 3.4f, 0f, RacerId.Player, (KartItem)(1 + (index + lane + 3) % 3));
+                    AddObject(TrackObjectKind.ItemBox, distance, lane * 3.4f, 0f, RacerId.Player, (KartItem)(1 + (index + lane + 4) % 4));
                 AddObject(TrackObjectKind.Crate, distance + 26f, index % 2 == 0 ? 3.7f : -3.7f);
             }
         }
@@ -89,12 +89,13 @@ namespace MixVerse.Game.Model.Kart
                 var obj = Objects[i];
                 if (!obj.Active) continue;
                 if (obj.Kind == TrackObjectKind.Rocket) { MoveRocket(obj, dt); continue; }
-                if (obj.Kind == TrackObjectKind.Papers || obj.Kind == TrackObjectKind.Explosion)
+                if (obj.Kind == TrackObjectKind.Papers || obj.Kind == TrackObjectKind.Mine || obj.Kind == TrackObjectKind.Explosion)
                 {
                     obj.Lifetime -= dt;
                     if (obj.Lifetime <= 0f) { obj.Active = false; continue; }
                 }
                 if (obj.Kind == TrackObjectKind.Explosion) continue;
+                if (obj.Kind == TrackObjectKind.Mine && Time - obj.CreatedAt < _settings.mineFlightSeconds) continue;
                 for (var j = 0; j < Racers.Length; j++)
                 {
                     var racer = Racers[j];
@@ -117,6 +118,10 @@ namespace MixVerse.Game.Model.Kart
                         if (racer.Id == RacerId.Junior && Time - _lastPush <= _settings.pushCreditSeconds) RegisterAttack("箱への押し出し成功");
                         if (racer.Id == RacerId.Player) RecordMisconduct("障害物に衝突して横転しました");
                     }
+                    else if (obj.Kind == TrackObjectKind.Mine)
+                    {
+                        Explode(obj, KartItem.Mine);
+                    }
                     if (!obj.Active) break;
                 }
             }
@@ -136,9 +141,27 @@ namespace MixVerse.Game.Model.Kart
                 case KartItem.Rocket:
                     AddObject(TrackObjectKind.Rocket, racer.Distance + 2.5f, racer.Lane, 4f, racer.Id);
                     break;
+                case KartItem.Mine:
+                    UseMines(racer);
+                    break;
                 case KartItem.Drink:
                     racer.TurboSeconds = 3f;
                     break;
+            }
+        }
+
+        private void UseMines(RacerState racer)
+        {
+            var half = (_settings.mineCount - 1) * 0.5f;
+            for (var i = 0; i < _settings.mineCount; i++)
+            {
+                var spread = half <= 0f ? 0f : (i - half) / half;
+                var forward = _settings.mineFanDistance - Math.Abs(spread) * 3f;
+                var lane = Clamp(racer.Lane + spread * _settings.mineFanWidth, -_settings.roadHalfWidth + 0.7f, _settings.roadHalfWidth - 0.7f);
+                var mine = AddObject(TrackObjectKind.Mine, racer.Distance + forward, lane, _settings.mineLifetime, racer.Id, KartItem.Mine);
+                mine.StartDistance = racer.Distance + 1f;
+                mine.StartLane = racer.Lane;
+                mine.VisualIndex = i;
             }
         }
 
@@ -181,25 +204,26 @@ namespace MixVerse.Game.Model.Kart
             if (hitDistance < float.MaxValue)
             {
                 rocket.Distance = hitDistance;
-                Explode(rocket);
+                Explode(rocket, KartItem.Rocket);
             }
             else if (rocket.Lifetime <= 0f || rocket.Distance > _settings.courseLength) rocket.Active = false;
         }
 
-        private void Explode(TrackObject rocket)
+        private void Explode(TrackObject explosive, KartItem item)
         {
-            rocket.Active = false;
+            explosive.Active = false;
             foreach (var racer in Racers)
             {
-                if (racer.Finished || DistanceSquared(racer.Distance, racer.Lane, rocket.Distance, rocket.Lane) > _settings.explosionRadius * _settings.explosionRadius) continue;
+                if (racer.Finished || DistanceSquared(racer.Distance, racer.Lane, explosive.Distance, explosive.Lane) > _settings.explosionRadius * _settings.explosionRadius) continue;
                 Disable(racer, false, true);
-                if (rocket.Owner == RacerId.Player && racer.Id == RacerId.Boss) Fail("ロケランの爆発に上司を巻き込みました", FailureScene.BossHit);
-                if (rocket.Owner == RacerId.Player && racer.Id == RacerId.Junior) RegisterAttack("ロケランで部下を横転させました");
+                var itemName = item == KartItem.Mine ? "地雷" : "ロケラン";
+                if (explosive.Owner == RacerId.Player && racer.Id == RacerId.Boss) Fail(itemName + "の爆発に上司を巻き込みました", FailureScene.BossHit);
+                if (explosive.Owner == RacerId.Player && racer.Id == RacerId.Junior) RegisterAttack(itemName + "で部下を横転させました");
                 if (racer.Id == RacerId.Player) RecordMisconduct("爆発に巻き込まれて横転しました");
             }
             foreach (var obj in Objects)
-                if (obj.Kind == TrackObjectKind.Crate && DistanceSquared(obj.Distance, obj.Lane, rocket.Distance, rocket.Lane) <= _settings.explosionRadius * _settings.explosionRadius) obj.Active = false;
-            AddObject(TrackObjectKind.Explosion, rocket.Distance, rocket.Lane, 0.6f, rocket.Owner, KartItem.Rocket);
+                if (obj.Kind == TrackObjectKind.Crate && DistanceSquared(obj.Distance, obj.Lane, explosive.Distance, explosive.Lane) <= _settings.explosionRadius * _settings.explosionRadius) obj.Active = false;
+            AddObject(TrackObjectKind.Explosion, explosive.Distance, explosive.Lane, 0.6f, explosive.Owner, item);
         }
 
         private void Disable(RacerState racer, bool spinning, bool severe = false)

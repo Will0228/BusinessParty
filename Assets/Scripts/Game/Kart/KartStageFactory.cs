@@ -42,7 +42,7 @@ namespace MixVerse.Game.Kart
             _stage.Camera = camera.GetComponent<Camera>();
             _stage.Camera.nearClipPlane = 0.15f;
             _stage.Camera.farClipPlane = 240f;
-            _stage.Camera.fieldOfView = 58f;
+            _stage.Camera.fieldOfView = 72f;
             _stage.Camera.clearFlags = CameraClearFlags.SolidColor;
             _stage.Listener = camera.GetComponent<AudioListener>();
             _stage.Listener.enabled = false;
@@ -235,10 +235,25 @@ namespace MixVerse.Game.Kart
         {
             if (obj.Kind == TrackObjectKind.Explosion)
             {
-                var effect = _explosions.Create(obj.Item == KartItem.Rocket, obj.Id);
-                if (obj.Item == KartItem.Rocket) _explosions.AddGroundCracks(effect, obj.Distance, obj.Lane, obj.Id);
+                var severe = obj.Item == KartItem.Rocket || obj.Item == KartItem.Mine;
+                var effect = _explosions.Create(severe, obj.Id);
+                if (severe) _explosions.AddGroundCracks(effect, obj.Distance, obj.Lane, obj.Id);
                 stage.Explosions.Add(obj.Id, effect);
                 return effect.transform;
+            }
+            if (obj.Kind == TrackObjectKind.Mine)
+            {
+                var mine = new GameObject("Mine").transform;
+                mine.SetParent(stage.transform, false);
+                Shape(mine, "Core", PrimitiveType.Sphere, Vector3.zero, Vector3.one * 1.1f, new Color(0.12f, 0.13f, 0.16f));
+                for (var axis = 0; axis < 6; axis++)
+                {
+                    var direction = axis < 2 ? Vector3.right * (axis == 0 ? 1f : -1f) :
+                        axis < 4 ? Vector3.up * (axis == 2 ? 1f : -1f) : Vector3.forward * (axis == 4 ? 1f : -1f);
+                    var spike = Shape(mine, "Spike", PrimitiveType.Cube, direction * 0.65f, new Vector3(0.18f, 0.18f, 0.65f), _coral);
+                    spike.transform.localRotation = Quaternion.LookRotation(direction, direction == Vector3.up || direction == Vector3.down ? Vector3.forward : Vector3.up);
+                }
+                return mine;
             }
             var color = obj.Kind == TrackObjectKind.Crate ? new Color(0.65f, 0.39f, 0.17f) :
                 obj.Kind == TrackObjectKind.Rocket ? _coral : obj.Kind == TrackObjectKind.Papers ? Color.white : _cyan;
@@ -247,7 +262,7 @@ namespace MixVerse.Game.Kart
             var root = Shape(stage.transform, obj.Kind.ToString(), shape, Vector3.zero, scale, color).transform;
             if (obj.Kind == TrackObjectKind.ItemBox)
             {
-                var label = WorldLabel(root, obj.Item == KartItem.Papers ? "書" : obj.Item == KartItem.Rocket ? "弾" : "飲", _navy, 7f);
+                var label = WorldLabel(root, obj.Item == KartItem.Papers ? "書" : obj.Item == KartItem.Rocket ? "弾" : obj.Item == KartItem.Mine ? "地" : "飲", _navy, 7f);
                 label.transform.localPosition = new Vector3(0f, 0f, -0.52f);
             }
             return root;
@@ -343,7 +358,7 @@ namespace MixVerse.Game.Kart
 
         private void BuildItemIcons(Transform parent)
         {
-            _stage.ItemIcons = new GameObject[4];
+            _stage.ItemIcons = new GameObject[5];
             _stage.EmptyItemIcon = Label(parent, "—", new Vector2(0.5f, 0.5f), Vector2.zero,
                 new Vector2(70f, 70f), 46, new Color(0.45f, 0.58f, 0.61f), TextAlignmentOptions.Center).gameObject;
 
@@ -362,6 +377,16 @@ namespace MixVerse.Game.Kart
             IconShape(rocket, new Vector2(0f, 0f), new Vector2(21f, 43f), Color.white);
             IconShape(rocket, new Vector2(0f, 22f), new Vector2(17f, 17f), _coral, 45f);
             IconShape(rocket, new Vector2(0f, 2f), new Vector2(9f, 9f), _cyan, 45f);
+
+            var mine = IconGroup(parent, "Mine icon");
+            _stage.ItemIcons[(int)KartItem.Mine] = mine.gameObject;
+            IconShape(mine, Vector2.zero, new Vector2(43f, 43f), new Color(0.12f, 0.13f, 0.16f), 45f);
+            for (var i = 0; i < 8; i++)
+            {
+                var angle = i * 45f;
+                var radians = angle * Mathf.Deg2Rad;
+                IconShape(mine, new Vector2(-Mathf.Sin(radians), Mathf.Cos(radians)) * 28f, new Vector2(8f, 25f), _coral, angle);
+            }
 
             var drink = IconGroup(parent, "Drink icon");
             _stage.ItemIcons[(int)KartItem.Drink] = drink.gameObject;

@@ -208,6 +208,40 @@ namespace MixVerse.Game.Model.Tests
             Advance(behind, 1f, Forward(0f));
             Assert.That(behind.PlayerBlindSeconds, Is.Zero);
         }
+
+        [Test] public void MineItemThrowsAForwardFan()
+        {
+            var race = NewRace();
+            race.Objects.Clear();
+            race.Player.Distance = 30f;
+            race.Player.Lane = 0f;
+            race.Player.Item = KartItem.Mine;
+            var input = Forward(0f); input.UseItem = true;
+            race.Tick(0.02f, input);
+            var mines = race.Objects.FindAll(value => value.Kind == TrackObjectKind.Mine);
+            Assert.That(mines, Has.Count.EqualTo(5));
+            Assert.That(mines[0].Lane, Is.LessThan(mines[2].Lane));
+            Assert.That(mines[2].Lane, Is.LessThan(mines[4].Lane));
+            Assert.That(mines[2].Distance, Is.GreaterThan(mines[0].Distance));
+        }
+
+        [Test] public void PlayerCanTriggerOwnMineWithRocketStrengthExplosion()
+        {
+            var settings = new KartRaceSettings { maximumBossDistance = 1000f, mineFlightSeconds = 0.1f };
+            var race = new KartRace(settings);
+            race.Objects.Clear();
+            race.Player.Distance = 30f;
+            race.Player.Lane = 0f;
+            race.Player.Item = KartItem.Mine;
+            var input = Forward(0f); input.UseItem = true;
+            race.Tick(0.02f, input);
+            var mine = race.Objects.Find(value => value.Kind == TrackObjectKind.Mine);
+            race.Player.Distance = mine.Distance;
+            race.Player.Lane = mine.Lane;
+            Advance(race, 0.15f, Forward(0f));
+            Assert.That(race.Player.DisabledSeconds, Is.GreaterThan(0f));
+            Assert.That(race.Objects.Exists(value => value.Kind == TrackObjectKind.Explosion && value.Item == KartItem.Mine), Is.True);
+        }
         [Test] public void CameraMisconductIsReviewedOnlyAtFinish()
         {
             var race = NewRace();
