@@ -333,6 +333,46 @@ namespace MixVerse.Game.Model.Tests
             Assert.That(race.Junior.Speed, Is.GreaterThan(70f));
             Assert.That(race.Junior.Speed, Is.LessThanOrEqualTo(84f));
         }
+
+        [Test] public void SalaryOrderRaisesTopSpeedByTenPercent()
+        {
+            var race = NewRace();
+            race.Objects.Clear();
+            race.Player.Lane = 0f;
+            race.Player.Item = KartItem.SalaryOrder;
+            var input = Forward(1f); input.UseItem = true;
+            race.Tick(0.02f, input);
+            Assert.That(race.Player.InvincibleSeconds, Is.GreaterThan(0f));
+            Advance(race, 3f, Forward(1f));
+            Assert.That(race.Player.Speed, Is.EqualTo(110f).Within(0.01f));
+        }
+
+        [Test] public void SalaryOrderInvincibilityPreventsMineKnockback()
+        {
+            var settings = new KartRaceSettings { maximumBossDistance = 1000f };
+            var race = new KartRace(settings);
+            race.Objects.Clear();
+            race.Player.Distance = 30f;
+            race.Player.Lane = 0f;
+            race.Player.Item = KartItem.SalaryOrder;
+            var input = Forward(0f); input.UseItem = true;
+            race.Tick(0.02f, input);
+            race.Objects.Add(new TrackObject
+            {
+                Id = 999,
+                Kind = TrackObjectKind.Mine,
+                Item = KartItem.Mine,
+                Owner = RacerId.Player,
+                Distance = race.Player.Distance,
+                Lane = race.Player.Lane,
+                Lifetime = 2f,
+                CreatedAt = -1f
+            });
+            race.Tick(0.02f, Forward(0f));
+            Assert.That(race.Player.DisabledSeconds, Is.Zero);
+            Assert.That(race.Player.InvincibleSeconds, Is.GreaterThan(0f));
+            Assert.That(race.Objects.Exists(value => value.Kind == TrackObjectKind.Explosion && value.Item == KartItem.Mine), Is.True);
+        }
         [Test] public void FixedStepGivesSameOutcomeAtDifferentFrameRates()
         {
             var a = NewRace(); var b = NewRace();

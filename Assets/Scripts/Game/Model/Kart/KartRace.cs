@@ -164,7 +164,9 @@ namespace MixVerse.Game.Model.Kart
             if (racer.Finished) return;
             racer.TurboSeconds = Math.Max(0f, racer.TurboSeconds - dt);
             racer.SlowedSeconds = Math.Max(0f, racer.SlowedSeconds - dt);
+            racer.InvincibleSeconds = Math.Max(0f, racer.InvincibleSeconds - dt);
             if (racer.TurboSeconds > 0f) target *= _settings.mushroomSpeedMultiplier;
+            if (racer.InvincibleSeconds > 0f) target *= _settings.salaryOrderSpeedMultiplier;
             if (racer.Id != RacerId.Player && racer.SlowedSeconds > 0f) target *= _settings.cpuPaperSpeedMultiplier;
             if (racer.DisabledSeconds > 0f)
             {

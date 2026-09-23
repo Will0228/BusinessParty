@@ -153,10 +153,13 @@ namespace MixVerse.Game.Kart
                 }
                 Karts[i].localPosition = kartPosition;
                 Karts[i].localRotation = kartRotation;
+                Karts[i].localScale = racer.InvincibleSeconds > 0f
+                    ? Vector3.one * (1f + Mathf.Sin(race.Time * 14f) * 0.08f)
+                    : Vector3.one;
                 Tags[i].gameObject.SetActive(race.Phase == RacePhase.Racing);
                 Tags[i].localPosition = position + Vector3.up * 3.2f;
                 Tags[i].rotation = Camera.transform.rotation;
-                TagLabels[i].text = $"{race.Rank(racer)}  {_racerNames[i]}";
+                TagLabels[i].text = $"{race.Rank(racer)}  {_racerNames[i]}" + (racer.InvincibleSeconds > 0f ? "  <color=#FFD84A>★ 無敵</color>" : "");
             }
             var followBoss = race.ResultScene == FailureScene.BossHit;
             var focusRacer = followBoss ? race.Boss : race.Player;
@@ -187,7 +190,8 @@ namespace MixVerse.Game.Kart
             Item.text = "所持アイテム\n<size=25>" + ItemName(race.Player.Item) + "</size>\n<size=16>SYNC / SPACE で使用</size>";
             EmptyItemIcon.SetActive(race.Player.Item == KartItem.None);
             for (var i = 1; i < ItemIcons.Length; i++) ItemIcons[i].SetActive((int)race.Player.Item == i);
-            Drift.text = race.Player.TurboSeconds > 0f ? "TURBO  加速中" : $"DRIFT  {race.DriftTier} / 2";
+            Drift.text = race.Player.InvincibleSeconds > 0f ? $"昇給辞令  無敵 +10%  {race.Player.InvincibleSeconds:0.0}s" :
+                race.Player.TurboSeconds > 0f ? "MUSHROOM  加速中" : $"DRIFT  {race.DriftTier} / 2";
             DriftFill.fillAmount = Mathf.Clamp01(race.DriftTime / _settings.driftSecondSeconds);
             Gain.fillAmount = gain;
             Progress.fillAmount = race.Player.Distance / _settings.courseLength;
@@ -267,6 +271,7 @@ namespace MixVerse.Game.Kart
                 case KartItem.Rocket: return "ロケラン";
                 case KartItem.Mine: return "地雷";
                 case KartItem.Mushroom: return "リアルなキノコ";
+                case KartItem.SalaryOrder: return "昇給辞令";
                 default: return "アイテムなし";
             }
         }

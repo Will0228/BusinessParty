@@ -151,6 +151,48 @@ namespace MixVerse.Game.Kart
                 RoadBox("Finish check", _stage.Point(settings.courseLength, -5.5f + i), new Vector3(0.98f, 0.05f, 1.5f), _stage.DirectionAt(settings.courseLength), i % 2 == 0 ? Color.white : Color.black);
         }
 
+        private bool PlaceBuilding(Vector3 position, Quaternion rotation, float distance, int side)
+        {
+            var slots = _assets != null ? _assets.cityBuildingPrefabs : null;
+            if (slots == null || slots.Length == 0) return false;
+            var slot = slots[new System.Random((int)(distance * 4f) + side).Next(slots.Length)];
+            if (slot.prefab == null) return false;
+            SpawnScenery(slot, "Cyberpunk building", position, rotation, false);
+            return true;
+        }
+
+        private bool PlaceTunnelLight(Vector3 position, Quaternion rotation, float distance)
+        {
+            var slots = _assets != null ? _assets.tunnelLightPrefabs : null;
+            if (slots == null || slots.Length == 0) return false;
+            var slot = slots[new System.Random((int)distance).Next(slots.Length)];
+            if (slot.prefab == null) return false;
+            SpawnScenery(slot, "Cyberpunk tunnel light", position + Vector3.up * 9f, rotation, true);
+            return true;
+        }
+
+        private void PlaceStreetLight(float distance, KartRaceSettings settings)
+        {
+            var slots = _assets != null ? _assets.streetLightPrefabs : null;
+            if (slots == null || slots.Length == 0) return;
+            var slot = slots[new System.Random((int)distance + 5).Next(slots.Length)];
+            if (slot.prefab == null) return;
+            var side = (int)(distance / 40f) % 2 == 0 ? -1f : 1f;
+            var position = _stage.Point(distance, side * (settings.roadHalfWidth + 1.5f));
+            SpawnScenery(slot, "Cyberpunk street light", position, _stage.DirectionAt(distance), true);
+        }
+
+        private void SpawnScenery(ScenerySlot slot, string name, Vector3 position, Quaternion rotation, bool disableShadows)
+        {
+            var instance = Object.Instantiate(slot.prefab, _stage.transform);
+            instance.name = name;
+            instance.transform.localPosition = position;
+            instance.transform.localRotation = rotation * Quaternion.Euler(0f, slot.yawOffset, 0f);
+            instance.transform.localScale = Vector3.one * (slot.scale > 0f ? slot.scale : 1f);
+            if (disableShadows)
+                foreach (var renderer in instance.GetComponentsInChildren<Renderer>()) renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        }
+
         private void Gate(float distance, string title, Color color, KartRaceSettings settings)
         {
             var root = new GameObject("Gate " + title).transform;
@@ -276,7 +318,8 @@ namespace MixVerse.Game.Kart
             var root = Shape(stage.transform, obj.Kind.ToString(), shape, Vector3.zero, scale, color).transform;
             if (obj.Kind == TrackObjectKind.ItemBox)
             {
-                var label = WorldLabel(root, obj.Item == KartItem.Papers ? "書" : obj.Item == KartItem.Rocket ? "弾" : obj.Item == KartItem.Mine ? "地" : "茸", _navy, 7f);
+                var label = WorldLabel(root, obj.Item == KartItem.Papers ? "書" : obj.Item == KartItem.Rocket ? "弾" :
+                    obj.Item == KartItem.Mine ? "地" : obj.Item == KartItem.Mushroom ? "茸" : "給", _navy, 7f);
                 label.transform.localPosition = new Vector3(0f, 0f, -0.52f);
             }
             return root;
@@ -372,7 +415,7 @@ namespace MixVerse.Game.Kart
 
         private void BuildItemIcons(Transform parent)
         {
-            _stage.ItemIcons = new GameObject[5];
+            _stage.ItemIcons = new GameObject[6];
             _stage.EmptyItemIcon = Label(parent, "—", new Vector2(0.5f, 0.5f), Vector2.zero,
                 new Vector2(70f, 70f), 46, new Color(0.45f, 0.58f, 0.61f), TextAlignmentOptions.Center).gameObject;
 
@@ -407,6 +450,11 @@ namespace MixVerse.Game.Kart
             var mushroomImage = IconShape(mushroom, Vector2.zero, new Vector2(72f, 72f), Color.white);
             mushroomImage.sprite = Resources.Load<Sprite>("KartItems/RealMushroom");
             mushroomImage.preserveAspect = true;
+
+            var salary = IconGroup(parent, "Salary order icon");
+            _stage.ItemIcons[(int)KartItem.SalaryOrder] = salary.gameObject;
+            IconShape(salary, Vector2.zero, new Vector2(54f, 66f), new Color(1f, 0.94f, 0.67f), -5f);
+            Label(salary, "昇給\n辞令", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(52f, 58f), 20, _coral, TextAlignmentOptions.Center);
         }
 
         private RectTransform IconGroup(Transform parent, string name)
