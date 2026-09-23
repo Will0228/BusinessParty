@@ -298,7 +298,7 @@ namespace MixVerse.Game.Model.Tests
             Advance(race, 3.2f, Forward());
             Assert.That(race.ResultReason, Does.Contain("煽"));
         }
-        [Test] public void DriftReleaseTracksTierWithoutAwardingTurbo()
+        [Test] public void DriftReleaseAwardsTurboAndThenBrakesWhenGainIsZero()
         {
             var race = NewRace();
             race.Objects.Clear();
@@ -308,9 +308,40 @@ namespace MixVerse.Game.Model.Tests
             Advance(race, 1f, drift);
             Assert.That(race.DriftTier, Is.EqualTo(1));
             race.Tick(0.02f, Forward());
-            Assert.That(race.Player.TurboSeconds, Is.EqualTo(0f));
+            Assert.That(race.Player.TurboSeconds, Is.GreaterThan(0.9f));
+            Assert.That(race.DriftTier, Is.Zero);
             Advance(race, 1f, Forward(0f));
             Assert.That(race.Player.Speed, Is.EqualTo(0f).Within(0.01f));
+        }
+        [TestCase(false)]
+        [TestCase(true)]
+        public void ForcedDriftCancellationDoesNotAwardTurbo(bool disabled)
+        {
+            var race = NewRace();
+            race.Objects.Clear();
+            race.Player.Speed = 50f;
+            var input = Forward(); input.Jog = 1;
+            Advance(race, 1f, input);
+            Assert.That(race.DriftTier, Is.EqualTo(1));
+            if (disabled) race.Player.DisabledSeconds = 1f;
+            else race.Player.Speed = 0f;
+            race.Tick(0.02f, Forward());
+            Assert.That(race.IsDrifting, Is.False);
+            Assert.That(race.DriftTier, Is.Zero);
+            Assert.That(race.Player.TurboSeconds, Is.Zero);
+        }
+        [Test] public void SwitchingDriftDirectionResetsChargeWithoutTurbo()
+        {
+            var race = NewRace();
+            race.Objects.Clear();
+            race.Player.Speed = 50f;
+            var input = Forward(); input.Jog = 1;
+            Advance(race, 1f, input);
+            input.Jog = -1;
+            race.Tick(0.02f, input);
+            Assert.That(race.DriftDirection, Is.EqualTo(-1));
+            Assert.That(race.DriftTier, Is.Zero);
+            Assert.That(race.Player.TurboSeconds, Is.Zero);
         }
         [Test] public void IsDriftingReflectsActiveJogAndClearsOnRelease()
         {

@@ -17,6 +17,7 @@ namespace MixVerse.Game.Model.Kart
         private float _driftTime;
         private float _accumulator;
         private bool _pendingItem;
+        private int _pendingDriftRelease;
         private readonly float[] _previousDistances = new float[3];
 
         public RacerState[] Racers { get; } =
@@ -82,13 +83,16 @@ namespace MixVerse.Game.Model.Kart
             }
             if (Phase != RacePhase.Racing) return;
             _pendingItem |= input.UseItem;
+            if (input.ReleasedDriftDirection != 0) _pendingDriftRelease = input.ReleasedDriftDirection;
             _accumulator += Math.Min(deltaTime, 0.25f);
             const float step = 1f / 120f;
             while (_accumulator >= step && Phase == RacePhase.Racing)
             {
                 input.UseItem = _pendingItem;
+                input.ReleasedDriftDirection = _pendingDriftRelease;
                 Step(step, input);
                 _pendingItem = false;
+                _pendingDriftRelease = 0;
                 _accumulator -= step;
             }
         }
@@ -118,7 +122,7 @@ namespace MixVerse.Game.Model.Kart
             for (var i = 0; i < Racers.Length; i++) _previousDistances[i] = Racers[i].Distance;
             if (input.Master < 0.35f) _direction = -1;
             else if (input.Master > 0.65f) _direction = 1;
-            UpdateDrift(dt, input.Jog);
+            UpdateDrift(dt, input.Jog, input.ReleasedDriftDirection);
             var steer = Math.Abs(input.Steering) < _settings.steeringDeadZone ? 0f : input.Steering;
             steer = Math.Sign(steer) * steer * steer;
             if (Player.DisabledSeconds <= 0f && !Player.Finished)
@@ -185,11 +189,14 @@ namespace MixVerse.Game.Model.Kart
             }
         }
 
-        private void UpdateDrift(float dt, int jog)
+        private void UpdateDrift(float dt, int jog, int releasedDirection)
         {
-            if (Player.DisabledSeconds > 0f || Player.Finished || Math.Abs(Player.Speed) < 20f) jog = 0;
-            jog = Math.Sign(jog);
-            if (_driftDirection != 0 && jog != _driftDirection) _driftTime = 0f;
+            var canDrift = Player.DisabledSeconds <= 0f && !Player.Finished && Player.Speed >= 20f && _direction > 0;
+            jog = canDrift ? Math.Sign(jog) : 0;
+            var released = _driftDirection != 0 && (jog == 0 || releasedDirection == _driftDirection);
+            if (released && canDrift && DriftTier > 0)
+                Player.TurboSeconds = Math.Max(Player.TurboSeconds, _settings.turboSeconds * DriftTier);
+            if (_driftDirection != jog || released) _driftTime = 0f;
             _driftDirection = jog;
             if (jog != 0) _driftTime += dt;
         }

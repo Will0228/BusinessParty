@@ -7,7 +7,7 @@ using UnityEngine.InputSystem;
 
 namespace MixVerse.Game.Kart
 {
-    public enum KartDriftControlMode { Gate, Relative, Absolute }
+    public enum KartDriftControlMode { Gate, Relative, Absolute, PairedControls }
 
     [Serializable]
     public sealed class KartMidiMapping
@@ -17,7 +17,10 @@ namespace MixVerse.Game.Kart
         [Range(0, 127)] public int steeringControl = 10;
         [Range(0, 127)] public int driftControl = 24;
         [Range(0, 127)] public int syncControl = 71;
-        public KartDriftControlMode driftMode = KartDriftControlMode.Gate;
+        [Range(0, 127)] public int leftDriftControl = 25;
+        [Range(0, 127)] public int leftDriftReleaseControl = 78;
+        [Range(0, 127)] public int rightDriftReleaseControl = 77;
+        public KartDriftControlMode driftMode = KartDriftControlMode.PairedControls;
         public bool binaryOffsetJog;
         [Range(0.05f, 0.5f)] public float jogTimeout = 0.16f;
     }
@@ -31,6 +34,7 @@ namespace MixVerse.Game.Kart
         private float _steering;
         private float _jogAt = -10f;
         private int _jog;
+        private int _releasedDriftDirection;
         private bool _driftHeld;
         private bool _useItem;
         private bool _syncPressed;
@@ -79,6 +83,7 @@ namespace MixVerse.Game.Kart
                     _devices.Remove(midi);
                     _steering = 0f;
                     _jog = 0;
+                    _releasedDriftDirection = 0;
                     _driftHeld = false;
                     _syncPressed = false;
                 }
@@ -108,6 +113,18 @@ namespace MixVerse.Game.Kart
             }
             if (controlNumber == _mapping.gainControl) _gain = value;
             if (controlNumber == _mapping.steeringControl) _steering = 1f - value * 2f;
+            if (_mapping.driftMode == KartDriftControlMode.PairedControls)
+            {
+                if (controlNumber == _mapping.leftDriftControl) _jog = -1;
+                else if (controlNumber == _mapping.driftControl) _jog = 1;
+                else if ((_jog == -1 && controlNumber == _mapping.leftDriftReleaseControl) ||
+                         (_jog == 1 && controlNumber == _mapping.rightDriftReleaseControl))
+                {
+                    _releasedDriftDirection = _jog;
+                    _jog = 0;
+                }
+                return;
+            }
             if (controlNumber != _mapping.driftControl) return;
             var raw = Mathf.RoundToInt(value * 127f);
             switch (_mapping.driftMode)
@@ -130,7 +147,8 @@ namespace MixVerse.Game.Kart
         {
             var keyboard = Keyboard.current;
             var steering = _steering;
-            var jog = _mapping.driftMode == KartDriftControlMode.Absolute ? _jog :
+            var jog = _mapping.driftMode == KartDriftControlMode.Absolute ||
+                      _mapping.driftMode == KartDriftControlMode.PairedControls ? _jog :
                 Time.unscaledTime - _jogAt <= _mapping.jogTimeout ? _jog : 0;
             var use = _useItem;
             _useItem = false;
@@ -150,7 +168,13 @@ namespace MixVerse.Game.Kart
                 if (keyboard.qKey.isPressed) jog = -1;
                 if (keyboard.eKey.isPressed) jog = 1;
             }
-            return new KartInput { Gain = _gain, Master = _master, Steering = steering, Jog = jog, UseItem = use };
+            var releasedDriftDirection = _releasedDriftDirection;
+            _releasedDriftDirection = 0;
+            return new KartInput
+            {
+                Gain = _gain, Master = _master, Steering = steering, Jog = jog, UseItem = use,
+                ReleasedDriftDirection = releasedDriftDirection
+            };
         }
 
         public void Reset()
@@ -159,6 +183,7 @@ namespace MixVerse.Game.Kart
             _master = 1f;
             _steering = 0f;
             _jog = 0;
+            _releasedDriftDirection = 0;
             _jogAt = -10f;
             _driftHeld = false;
             _useItem = false;

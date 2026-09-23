@@ -102,6 +102,7 @@ namespace MixVerse.Game.Model.Kart
         public float Steering;
         public float Master;
         public int Jog;
+        public int ReleasedDriftDirection;
         public bool UseItem;
     }
 
