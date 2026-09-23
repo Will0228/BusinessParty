@@ -10,7 +10,15 @@ namespace MixVerse.Home
 
         Observable<Unit> OnQuitButtonClicked { get; }
 
+        Observable<Unit> OnGuideButtonClicked { get; }
+
+        Observable<Unit> OnGuideCloseButtonClicked { get; }
+
         void Show();
+
+        void ShowControlGuide();
+
+        void HideControlGuide();
 
         UniTask StartGameAsync(CancellationToken token);
     }

@@ -14,6 +14,8 @@ namespace MixVerse.Home
         [SerializeField] private Button _startButton;
         [SerializeField] private Button _quitButton;
 
+        private HomeControlGuideView _controlGuideView;
+
         [Header("Scratch Transition")]
         // 左上から自動でスクラッチしていく演出。未設定ならフェードのみの従来動作にフォールバックする
         [SerializeField] private GameObject _scratchOverlayRoot;
@@ -31,6 +33,23 @@ namespace MixVerse.Home
 
         public Observable<Unit> OnStartButtonClicked => _startButton.OnClickAsObservable();
         public Observable<Unit> OnQuitButtonClicked => _quitButton.OnClickAsObservable();
+        public Observable<Unit> OnGuideButtonClicked
+        {
+            get
+            {
+                EnsureControlGuide();
+                return _controlGuideView.GuideButton.OnClickAsObservable();
+            }
+        }
+
+        public Observable<Unit> OnGuideCloseButtonClicked
+        {
+            get
+            {
+                EnsureControlGuide();
+                return _controlGuideView.CloseButton.OnClickAsObservable();
+            }
+        }
 
         private bool _isFading;
 
@@ -41,6 +60,24 @@ namespace MixVerse.Home
         private Texture2D _screenshotTexture;
 
         private TweenUtility _tweenUtility;
+
+        private void Awake() => EnsureControlGuide();
+
+        private void EnsureControlGuide()
+        {
+            if (_controlGuideView != null)
+            {
+                return;
+            }
+
+            _controlGuideView = GetComponent<HomeControlGuideView>();
+            if (_controlGuideView == null)
+            {
+                _controlGuideView = gameObject.AddComponent<HomeControlGuideView>();
+            }
+
+            _controlGuideView.Initialize(_startButton);
+        }
 
         [Inject]
         public void Construct(TweenUtility tweenUtility)
@@ -56,6 +93,8 @@ namespace MixVerse.Home
             _isFading = false;
             gameObject.SetActive(true);
             _canvasGroup.alpha = 1.0f;
+            EnsureControlGuide();
+            _controlGuideView.HideGuide();
 
             if (_scratchOverlayRoot != null)
             {
@@ -63,6 +102,18 @@ namespace MixVerse.Home
             }
 
             RestoreHiddenContents();
+        }
+
+        public void ShowControlGuide()
+        {
+            EnsureControlGuide();
+            _controlGuideView.ShowGuide();
+        }
+
+        public void HideControlGuide()
+        {
+            EnsureControlGuide();
+            _controlGuideView.HideGuide();
         }
 
         public async UniTask StartGameAsync(CancellationToken token)
@@ -74,6 +125,7 @@ namespace MixVerse.Home
 
             _isFading = true;
             _canvasGroup.alpha = 1.0f;
+            EnsureControlGuide();
 
             var fadeTask = UniTask.CompletedTask;
 
@@ -83,6 +135,7 @@ namespace MixVerse.Home
                 // スクショを撮る前に消して、そのまま画面から消えたように見せる。
                 Hide(_startButton.gameObject);
                 Hide(_quitButton.gameObject);
+                Hide(_controlGuideView.GuideButton.gameObject);
 
                 // 描画が終わったフレーム末尾でないと画面を取り込めない
                 await UniTask.WaitForEndOfFrame(this, token);

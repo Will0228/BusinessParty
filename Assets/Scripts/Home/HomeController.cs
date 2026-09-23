@@ -19,7 +19,7 @@ namespace MixVerse.Home
             _navigator = navigator;
         }
 
-        private void SetEvent()
+        private void Bind()
         {
             _presenter.OnStartButtonClicked
                 .SubscribeAwait((_, ct) => StartGameAsync(ct))
@@ -28,13 +28,21 @@ namespace MixVerse.Home
             _presenter.OnQuitButtonClicked
                 .Subscribe(_ => QuitGame())
                 .AddTo(disposable);
+
+            _presenter.OnGuideButtonClicked
+                .Subscribe(_ => _presenter.ShowControlGuide())
+                .AddTo(disposable);
+
+            _presenter.OnGuideCloseButtonClicked
+                .Subscribe(_ => _presenter.HideControlGuide())
+                .AddTo(disposable);
         }
 
         public override void ChangeController()
         {
             base.ChangeController();
             _presenter.Show();
-            SetEvent();
+            Bind();
         }
 
         private async UniTask StartGameAsync(CancellationToken token)
