@@ -17,6 +17,10 @@ namespace MixVerse.Game.Model.Kart
         public float tailgateSeconds = 3f;
         public float blockingDistance = 8f;
         public float blockingSeconds = 0.65f;
+        public float juniorOvertakeLaneOffset = 1.5f;
+        public float juniorOvertakeSteeringSpeed = 3.2f;
+        public float racerContactLength = 2f;
+        public float racerContactWidth = 1.4f;
         public float pushCreditSeconds = 2f;
         public float knockbackFlightSeconds = 0.9f;
         public float knockbackRecoverySeconds = 1f;
@@ -61,6 +65,10 @@ namespace MixVerse.Game.Model.Kart
             tailgateSeconds = Math.Max(0.5f, tailgateSeconds);
             blockingDistance = Math.Max(3f, blockingDistance);
             blockingSeconds = Math.Max(0.1f, blockingSeconds);
+            juniorOvertakeLaneOffset = Math.Max(1f, juniorOvertakeLaneOffset);
+            juniorOvertakeSteeringSpeed = Math.Max(0.5f, juniorOvertakeSteeringSpeed);
+            racerContactLength = Math.Max(0.5f, racerContactLength);
+            racerContactWidth = Math.Max(0.5f, racerContactWidth);
             pushCreditSeconds = Math.Max(0.1f, pushCreditSeconds);
             knockbackFlightSeconds = Math.Max(0.2f, knockbackFlightSeconds);
             knockbackRecoverySeconds = Math.Max(0.1f, knockbackRecoverySeconds);

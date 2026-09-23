@@ -12,6 +12,7 @@ namespace MixVerse.Game.Model.Kart
         private float _tailgateTime;
         private float _nextSlip;
         private float _lastPush = -100f;
+        private int _juniorPassingSide;
         private int _direction = 1;
         private int _driftDirection;
         private float _driftTime;
@@ -143,17 +144,18 @@ namespace MixVerse.Game.Model.Kart
             var bossTarget = SectionAt(Boss.Distance) == CourseSection.Uphill ? 44f : 50f;
             var juniorTarget = 70f;
             var ahead = Player.Distance - Junior.Distance;
-            var blocking = !Player.Finished && ahead > 0f && ahead < _settings.blockingDistance && Math.Abs(Player.Lane - Junior.Lane) < 1.45f && Player.Speed < 70f;
+            var blocking = !Player.Finished && ahead > 0f && ahead < _settings.blockingDistance &&
+                           Math.Abs(Player.Lane - Junior.Lane) < _settings.juniorOvertakeLaneOffset && Player.Speed < juniorTarget;
             if (blocking)
             {
                 juniorTarget = Math.Max(0f, Math.Min(70f, Player.Speed) - (ahead < 3f ? 15f : 0f));
                 _blockingTime += dt;
                 if (_blockingTime >= _settings.blockingSeconds) { RegisterAttack("ブロッキング成功"); _blockingTime = 0f; }
-                if (ahead < 6f) Junior.Lane = MoveTowards(Junior.Lane, Player.Lane > 0f ? -1f : 3.5f, dt * 0.75f);
+                if (_juniorPassingSide == 0) _juniorPassingSide = PassingSide();
             }
             else _blockingTime = 0f;
             AvoidObstacles(Boss, dt);
-            if (!blocking && Time - _lastPush > _settings.pushCreditSeconds) AvoidObstacles(Junior, dt);
+            UpdateJuniorLane(dt);
             Move(Player, Clamp(input.Gain, 0f, 1f) * 100f * _direction, dt);
             Move(Boss, bossTarget, dt);
             Move(Junior, juniorTarget, dt);
@@ -205,11 +207,62 @@ namespace MixVerse.Game.Model.Kart
         {
             if (!Player.Finished && !Boss.Finished && Math.Abs(Player.Distance - Boss.Distance) < 2.1f && Math.Abs(Player.Lane - Boss.Lane) < 1.35f)
                 Fail("上司のカートに接触しました");
-            if (!Player.Finished && !Junior.Finished && Math.Abs(Player.Distance - Junior.Distance) < 2f && Math.Abs(Player.Lane - Junior.Lane) < 1.4f && Math.Abs(Player.Lane - Junior.Lane) > 0.65f)
+            ResolveJuniorContact(dt);
+        }
+
+        private void UpdateJuniorLane(float dt)
+        {
+            if (_juniorPassingSide != 0)
             {
-                var side = Junior.Lane >= Player.Lane ? 1f : -1f;
+                var roadEdge = _settings.roadHalfWidth - 0.7f;
+                var targetLane = Clamp(Player.Lane + _juniorPassingSide * _settings.juniorOvertakeLaneOffset, -roadEdge, roadEdge);
+                Junior.Lane = MoveTowards(Junior.Lane, targetLane, dt * _settings.juniorOvertakeSteeringSpeed);
+                if (Junior.Distance > Player.Distance + _settings.racerContactLength ||
+                    Player.Distance - Junior.Distance > _settings.blockingDistance * 1.5f)
+                    _juniorPassingSide = 0;
+                return;
+            }
+
+            if (Time - _lastPush > _settings.pushCreditSeconds) AvoidObstacles(Junior, dt);
+        }
+
+        private int PassingSide()
+        {
+            var roadEdge = _settings.roadHalfWidth - 0.7f;
+            var leftSpace = Player.Lane + roadEdge;
+            var rightSpace = roadEdge - Player.Lane;
+            return rightSpace >= leftSpace ? 1 : -1;
+        }
+
+        private void ResolveJuniorContact(float dt)
+        {
+            if (Player.Finished || Junior.Finished) return;
+            var laneDifference = Junior.Lane - Player.Lane;
+            if (Math.Abs(laneDifference) >= _settings.racerContactWidth) return;
+
+            var previousDifference = _previousDistances[(int)RacerId.Player] - _previousDistances[(int)RacerId.Junior];
+            var currentDifference = Player.Distance - Junior.Distance;
+            var crossed = previousDifference * currentDifference <= 0f;
+            if (!crossed && Math.Abs(currentDifference) >= _settings.racerContactLength) return;
+
+            if (Math.Abs(laneDifference) > 0.65f)
+            {
+                var side = laneDifference > 0f ? 1f : -1f;
                 Junior.Lane = Clamp(Junior.Lane + side * dt * 6f, -_settings.roadHalfWidth + 0.7f, _settings.roadHalfWidth - 0.7f);
                 _lastPush = Time;
+                return;
+            }
+
+            var playerWasAhead = previousDifference >= 0f;
+            if (playerWasAhead)
+            {
+                Junior.Distance = Math.Max(0f, Player.Distance - _settings.racerContactLength);
+                Junior.Speed = Math.Min(Junior.Speed, Math.Max(0f, Player.Speed));
+            }
+            else
+            {
+                Player.Distance = Math.Max(0f, Junior.Distance - _settings.racerContactLength);
+                Player.Speed = Math.Min(Player.Speed, Math.Max(0f, Junior.Speed));
             }
         }
 

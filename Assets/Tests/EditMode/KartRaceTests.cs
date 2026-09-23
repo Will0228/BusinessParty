@@ -51,6 +51,57 @@ namespace MixVerse.Game.Model.Tests
             Assert.That(race.Attacks, Is.Zero);
             Assert.That(race.Phase, Is.EqualTo(RacePhase.Racing));
         }
+        [Test] public void JuniorCannotPassThroughPlayerWhileTheirLanesOverlap()
+        {
+            var race = new KartRace(new KartRaceSettings { maximumBossDistance = 1000f });
+            race.Objects.Clear();
+            race.Player.Distance = 30f;
+            race.Player.Lane = 0f;
+            race.Player.Speed = 20f;
+            race.Junior.Distance = 29f;
+            race.Junior.Lane = 0f;
+            race.Junior.Speed = 70f;
+            race.Boss.Distance = 50f;
+
+            race.Tick(0.02f, Forward(0.2f));
+
+            Assert.That(race.Junior.Distance, Is.LessThanOrEqualTo(race.Player.Distance - 2f + 0.001f));
+            Assert.That(race.Junior.Speed, Is.LessThanOrEqualTo(race.Player.Speed));
+        }
+        [Test] public void PlayerCannotPassThroughJuniorWhileTheirLanesOverlap()
+        {
+            var race = new KartRace(new KartRaceSettings { maximumBossDistance = 1000f });
+            race.Objects.Clear();
+            race.Player.Distance = 29f;
+            race.Player.Lane = 0f;
+            race.Player.Speed = 100f;
+            race.Junior.Distance = 30f;
+            race.Junior.Lane = 0f;
+            race.Junior.Speed = 30f;
+            race.Boss.Distance = 50f;
+
+            race.Tick(0.02f, Forward(1f));
+
+            Assert.That(race.Player.Distance, Is.LessThanOrEqualTo(race.Junior.Distance - 2f + 0.001f));
+            Assert.That(race.Player.Speed, Is.LessThanOrEqualTo(race.Junior.Speed));
+        }
+        [Test] public void JuniorMovesAsideAndOvertakesWhenPlayerIsCloseAhead()
+        {
+            var race = new KartRace(new KartRaceSettings { maximumBossDistance = 1000f });
+            race.Objects.Clear();
+            race.Player.Distance = 30f;
+            race.Player.Lane = 0f;
+            race.Player.Speed = 30f;
+            race.Junior.Distance = 24f;
+            race.Junior.Lane = 0f;
+            race.Junior.Speed = 70f;
+            race.Boss.Distance = 50f;
+
+            Advance(race, 1.5f, Forward(0.3f));
+
+            Assert.That(System.Math.Abs(race.Junior.Lane - race.Player.Lane), Is.GreaterThan(1.4f));
+            Assert.That(race.Junior.Distance, Is.GreaterThan(race.Player.Distance));
+        }
         [Test] public void SustainedBlockingCountsAsAttackInGallery()
         {
             var race = NewRace();
