@@ -6,16 +6,14 @@ Shader "MixVerse/RainWindshieldShaderURP"
         _RainAmount ("Rain Amount", Range(0, 1)) = 1
 
         [Header(Droplets)]
-        _DropletDensity ("Droplet Density", Range(2, 20)) = 10
-        _DropletMinRadius ("Droplet Min Radius", Range(0.02, 0.5)) = 0.045
-        _DropletMaxRadius ("Droplet Max Radius", Range(0.02, 0.5)) = 0.22
+        _DropletMinRadius ("Droplet Min Radius", Range(0.02, 0.3)) = 0.03
+        _DropletMaxRadius ("Droplet Max Radius", Range(0.02, 0.3)) = 0.14
         _SizeVariation ("Size Variation", Range(0, 1)) = 1
-        _DropletCoverage ("Droplet Coverage", Range(0, 1)) = 0.65
 
         [Header(Streaks)]
-        _StreakDensityX ("Streak Density X", Range(4, 40)) = 16
-        _StreakDensityY ("Streak Density Y", Range(1, 10)) = 3.5
-        _StreakCoverage ("Streak Coverage", Range(0, 1)) = 0.55
+        _StreakDensityX ("Streak Density X", Range(4, 40)) = 20
+        _StreakDensityY ("Streak Density Y", Range(1, 10)) = 5
+        _StreakCoverage ("Streak Coverage", Range(0, 1)) = 0.65
         _FallSpeed ("Fall Speed", Range(0, 6)) = 0.65
         _SpeedVariation ("Speed Variation", Range(0, 1)) = 0.85
         _DirectionVariation ("Direction Variation", Range(0, 1)) = 0.85
@@ -70,11 +68,9 @@ Shader "MixVerse/RainWindshieldShaderURP"
 
             CBUFFER_START(UnityPerMaterial)
                 float _RainAmount;
-                float _DropletDensity;
                 float _DropletMinRadius;
                 float _DropletMaxRadius;
                 float _SizeVariation;
-                float _DropletCoverage;
                 float _StreakDensityX;
                 float _StreakDensityY;
                 float _StreakCoverage;
@@ -133,27 +129,6 @@ Shader "MixVerse/RainWindshieldShaderURP"
                 return surface;
             }
 
-            WaterSurface StationaryDrops(float2 uv, float density, float2 radii, float seed, float pixelSize)
-            {
-                float2 grid = uv * density;
-                float2 cell = floor(grid);
-                float3 random = Hash23(cell + seed);
-                float radiusSample = lerp(0.5, random.x * random.x, _SizeVariation);
-                float radius = min(0.45, lerp(radii.x, radii.y, radiusSample));
-                float2 shape = float2(1.0, lerp(0.85, 1.1, random.y));
-                float2 center = (random.yz - 0.5) * max(0.0, 0.98 - radius * shape * 2.0);
-                float phase = frac(_Time.y * lerp(0.025, 0.055, random.y) + random.z);
-                float life = smoothstep(0.0, 0.08, phase) * (1.0 - smoothstep(0.75, 1.0, phase));
-                float presence = step(random.z, _DropletCoverage) * life;
-                float2 dropRadius = radius / density * shape;
-                WaterSurface drop = Bead((frac(grid) - 0.5 - center) / density,
-                    dropRadius, radius / density * 0.65, pixelSize);
-                drop.height *= presence;
-                drop.slope *= presence;
-                drop.mask *= presence;
-                return drop;
-            }
-
             WaterSurface FlowingDrops(float2 uv, float pixelSize)
             {
                 WaterSurface surface = (WaterSurface)0;
@@ -187,7 +162,7 @@ Shader "MixVerse/RainWindshieldShaderURP"
                         float bend = sin(bendPhase) * bendAmplitude;
                         float bendSlope = cos(bendPhase) * bendFrequency * bendAmplitude;
                         float radiusSample = lerp(0.5, random.y * random.y, _SizeVariation);
-                        float radius = min(lerp(0.055, 0.32, radiusSample) / density.x, 0.28 / density.y);
+                        float radius = min(lerp(_DropletMinRadius, _DropletMaxRadius, radiusSample) / density.x, 0.28 / density.y);
                         float pulse = sin(time * lerp(0.7, 2.4, motion.z) + motion.x * 6.283185);
                         float centerY = ((random.z - 0.5) * 0.2 + pulse * 0.22 * _SpeedVariation) / density.y;
                         float2 delta = float2(local.x - centerX - bend, local.y - centerY);
@@ -230,11 +205,7 @@ Shader "MixVerse/RainWindshieldShaderURP"
                 float aspect = _ScreenParams.x / max(_ScreenParams.y, 1.0);
                 float pixelSize = 1.0 / max(_ScreenParams.y, 1.0);
                 float2 uv = float2(input.uv.x * aspect, input.uv.y);
-                WaterSurface large = StationaryDrops(uv, _DropletDensity,
-                    float2(_DropletMinRadius, _DropletMaxRadius), 0.0, pixelSize);
-                WaterSurface fine = StationaryDrops(uv, _DropletDensity * 2.13,
-                    float2(0.035, 0.085), 39.1, pixelSize);
-                WaterSurface water = Merge(Merge(large, fine), FlowingDrops(uv, pixelSize));
+                WaterSurface water = FlowingDrops(uv, pixelSize);
                 float alpha = water.mask * saturate(_RainAmount) * input.color.a;
                 if (alpha <= 0.001) return half4(0.0, 0.0, 0.0, 0.0);
 
