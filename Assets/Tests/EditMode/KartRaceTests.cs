@@ -262,7 +262,7 @@ namespace MixVerse.Game.Model.Tests
             Assert.That(behind.PlayerBlindSeconds, Is.Zero);
         }
 
-        [Test] public void MineItemThrowsAForwardFan()
+        [Test] public void MineItemThrowsASingleMineAhead()
         {
             var race = NewRace();
             race.Objects.Clear();
@@ -272,10 +272,9 @@ namespace MixVerse.Game.Model.Tests
             var input = Forward(0f); input.UseItem = true;
             race.Tick(0.02f, input);
             var mines = race.Objects.FindAll(value => value.Kind == TrackObjectKind.Mine);
-            Assert.That(mines, Has.Count.EqualTo(5));
-            Assert.That(mines[0].Lane, Is.LessThan(mines[2].Lane));
-            Assert.That(mines[2].Lane, Is.LessThan(mines[4].Lane));
-            Assert.That(mines[2].Distance, Is.GreaterThan(mines[0].Distance));
+            Assert.That(mines, Has.Count.EqualTo(1));
+            Assert.That(mines[0].Distance, Is.GreaterThan(race.Player.Distance));
+            Assert.That(mines[0].Lane, Is.EqualTo(race.Player.Lane));
         }
 
         [Test] public void PlayerCanTriggerOwnMineWithRocketStrengthExplosion()

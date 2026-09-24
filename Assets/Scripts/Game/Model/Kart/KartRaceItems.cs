@@ -157,17 +157,11 @@ namespace MixVerse.Game.Model.Kart
 
         private void UseMines(RacerState racer)
         {
-            var half = (_settings.mineCount - 1) * 0.5f;
-            for (var i = 0; i < _settings.mineCount; i++)
-            {
-                var spread = half <= 0f ? 0f : (i - half) / half;
-                var forward = _settings.mineFanDistance - Math.Abs(spread) * 3f;
-                var lane = Clamp(racer.Lane + spread * _settings.mineFanWidth, -_settings.roadHalfWidth + 0.7f, _settings.roadHalfWidth - 0.7f);
-                var mine = AddObject(TrackObjectKind.Mine, racer.Distance + forward, lane, _settings.mineLifetime, racer.Id, KartItem.Mine);
-                mine.StartDistance = racer.Distance + 1f;
-                mine.StartLane = racer.Lane;
-                mine.VisualIndex = i;
-            }
+            var lane = Clamp(racer.Lane, -_settings.roadHalfWidth + 0.7f, _settings.roadHalfWidth - 0.7f);
+            var mine = AddObject(TrackObjectKind.Mine, racer.Distance + _settings.mineFanDistance, lane, _settings.mineLifetime, racer.Id, KartItem.Mine);
+            mine.StartDistance = racer.Distance + 1f;
+            mine.StartLane = racer.Lane;
+            mine.VisualIndex = 0;
         }
 
         private void UsePapers(RacerState racer)
