@@ -8,7 +8,8 @@ Shader "MixVerse/RainWindshieldShaderURP"
         [Header(Droplets)]
         _DropletDensity ("Droplet Density", Range(2, 20)) = 10
         _DropletMinRadius ("Droplet Min Radius", Range(0.02, 0.5)) = 0.045
-        _DropletMaxRadius ("Droplet Max Radius", Range(0.02, 0.5)) = 0.16
+        _DropletMaxRadius ("Droplet Max Radius", Range(0.02, 0.5)) = 0.22
+        _SizeVariation ("Size Variation", Range(0, 1)) = 1
         _DropletCoverage ("Droplet Coverage", Range(0, 1)) = 0.65
 
         [Header(Streaks)]
@@ -16,6 +17,8 @@ Shader "MixVerse/RainWindshieldShaderURP"
         _StreakDensityY ("Streak Density Y", Range(1, 10)) = 3.5
         _StreakCoverage ("Streak Coverage", Range(0, 1)) = 0.55
         _FallSpeed ("Fall Speed", Range(0, 6)) = 0.65
+        _SpeedVariation ("Speed Variation", Range(0, 1)) = 0.85
+        _DirectionVariation ("Direction Variation", Range(0, 1)) = 0.85
         _WindSkew ("Wind Skew", Range(-1, 1)) = 0.08
         _TrailLength ("Trail Length", Range(0, 0.8)) = 0.5
 
@@ -70,11 +73,14 @@ Shader "MixVerse/RainWindshieldShaderURP"
                 float _DropletDensity;
                 float _DropletMinRadius;
                 float _DropletMaxRadius;
+                float _SizeVariation;
                 float _DropletCoverage;
                 float _StreakDensityX;
                 float _StreakDensityY;
                 float _StreakCoverage;
                 float _FallSpeed;
+                float _SpeedVariation;
+                float _DirectionVariation;
                 float _WindSkew;
                 float _TrailLength;
                 float _RefractionStrength;
@@ -115,6 +121,9 @@ Shader "MixVerse/RainWindshieldShaderURP"
 
             WaterSurface Merge(WaterSurface a, WaterSurface b)
             {
+                if (a.mask <= 0.0) return b;
+                if (b.mask <= 0.0) return a;
+
                 // 重なった滴の高さと傾きを滑らかにつなぎ、接合部の法線の切り替わりを抑える。
                 float weight = saturate(0.5 + (b.height - a.height) / 0.0015);
                 WaterSurface surface;
@@ -129,7 +138,8 @@ Shader "MixVerse/RainWindshieldShaderURP"
                 float2 grid = uv * density;
                 float2 cell = floor(grid);
                 float3 random = Hash23(cell + seed);
-                float radius = min(0.45, lerp(radii.x, radii.y, random.x * random.x));
+                float radiusSample = lerp(0.5, random.x * random.x, _SizeVariation);
+                float radius = min(0.45, lerp(radii.x, radii.y, radiusSample));
                 float2 shape = float2(1.0, lerp(0.85, 1.1, random.y));
                 float2 center = (random.yz - 0.5) * max(0.0, 0.98 - radius * shape * 2.0);
                 float phase = frac(_Time.y * lerp(0.025, 0.055, random.y) + random.z);
@@ -149,48 +159,59 @@ Shader "MixVerse/RainWindshieldShaderURP"
                 WaterSurface surface = (WaterSurface)0;
                 float2 density = float2(_StreakDensityX, _StreakDensityY);
                 float2 shearedUv = float2(uv.x + uv.y * _WindSkew, uv.y);
-                float column = floor(shearedUv.x * density.x);
-                float3 columnRandom = Hash23(float2(column, 57.0));
-                float time = _Time.y * _FallSpeed * lerp(0.45, 1.2, columnRandom.x);
-                float travel = time + sin(time * 3.0 + columnRandom.y * 6.283185) * 0.22;
-                float2 grid = shearedUv * density + float2(0.0, travel);
-                float2 cell = floor(grid);
+                float baseColumn = floor(shearedUv.x * density.x);
 
-                // 一つ下のセルの尾も評価し、セル境界で流れる跡が切れないようにする。
+                // 蛇行と加減速でセルをまたぐ滴も、同じIDで隣接セルから評価する。
                 [unroll]
-                for (int row = 0; row < 2; row++)
+                for (int columnOffset = -1; columnOffset <= 1; columnOffset++)
                 {
-                    float2 id = cell - float2(0.0, row);
-                    float3 random = Hash23(id + 173.2);
-                    float exists = step(random.z, _StreakCoverage);
-                    float2 local = (grid - id - 0.5) / density;
-                    float centerX = (random.x - 0.5) * 0.45 / density.x;
-                    float bendPhase = uv.y * 24.0 + columnRandom.y * 6.283185;
-                    float bend = sin(bendPhase) * 0.045 / density.x;
-                    float bendSlope = cos(bendPhase) * 1.08 / density.x;
-                    float radius = min(lerp(0.12, 0.24, random.y) / density.x, 0.28 / density.y);
-                    float centerY = (random.z - 0.5) * 0.2 / density.y;
-                    float2 delta = float2(local.x - centerX - bend, local.y - centerY);
-                    WaterSurface head = Bead(delta, radius * float2(1.0, 1.25), radius * 0.8, pixelSize);
+                    float column = baseColumn + columnOffset;
+                    float3 columnRandom = Hash23(float2(column, 57.0));
+                    float speed = lerp(1.0, lerp(0.3, 1.7, columnRandom.x), _SpeedVariation);
+                    float time = _Time.y * _FallSpeed * speed;
+                    float2 grid = shearedUv * density + float2(0.0, time);
+                    float2 cell = float2(column, floor(grid.y));
 
-                    float trailLength = _TrailLength / density.y;
-                    float along = saturate(delta.y / max(trailLength, 0.0001));
-                    float taper = 1.0 - along;
-                    float width = radius * lerp(0.08, 0.24, taper);
-                    float across = delta.x / max(width, 0.00001);
-                    float profile = saturate(1.0 - across * across);
-                    float envelope = smoothstep(0.0, radius, delta.y) * taper * taper;
-                    float breakup = lerp(0.35, 1.0, 0.5 + 0.5 * sin(uv.y * 280.0 + random.x * 30.0));
-                    WaterSurface trail = (WaterSurface)0;
-                    trail.height = width * 0.3 * profile * envelope * breakup;
-                    trail.slope = float2(-0.6 * across * envelope * breakup * step(abs(across), 1.0), 0.0);
-                    trail.mask = (1.0 - smoothstep(max(width - pixelSize, 0.0), width + pixelSize, abs(delta.x))) * envelope * breakup;
-                    WaterSurface drop = Merge(head, trail);
-                    drop.slope.y += drop.slope.x * (_WindSkew - bendSlope);
-                    drop.height *= exists;
-                    drop.slope *= exists;
-                    drop.mask *= exists;
-                    surface = Merge(surface, drop);
+                    [unroll]
+                    for (int row = -1; row <= 1; row++)
+                    {
+                        float2 id = cell - float2(0.0, row);
+                        float3 random = Hash23(id + 173.2);
+                        float3 motion = Hash23(id + 419.7);
+                        float exists = step(random.z, _StreakCoverage);
+                        float2 local = (grid - id - 0.5) / density;
+                        float centerX = (random.x - 0.5) * 0.45 / density.x;
+                        float bendFrequency = lerp(12.0, 32.0, motion.x);
+                        float bendPhase = uv.y * bendFrequency + motion.y * 6.283185;
+                        float bendAmplitude = 0.14 * _DirectionVariation / density.x;
+                        float bend = sin(bendPhase) * bendAmplitude;
+                        float bendSlope = cos(bendPhase) * bendFrequency * bendAmplitude;
+                        float radiusSample = lerp(0.5, random.y * random.y, _SizeVariation);
+                        float radius = min(lerp(0.055, 0.32, radiusSample) / density.x, 0.28 / density.y);
+                        float pulse = sin(time * lerp(0.7, 2.4, motion.z) + motion.x * 6.283185);
+                        float centerY = ((random.z - 0.5) * 0.2 + pulse * 0.22 * _SpeedVariation) / density.y;
+                        float2 delta = float2(local.x - centerX - bend, local.y - centerY);
+                        WaterSurface head = Bead(delta, radius * float2(1.0, 1.25), radius * 0.8, pixelSize);
+
+                        float trailLength = _TrailLength / density.y;
+                        float along = saturate(delta.y / max(trailLength, 0.0001));
+                        float taper = 1.0 - along;
+                        float width = radius * lerp(0.08, 0.24, taper);
+                        float across = delta.x / max(width, 0.00001);
+                        float profile = saturate(1.0 - across * across);
+                        float envelope = smoothstep(0.0, radius, delta.y) * taper * taper;
+                        float breakup = lerp(0.35, 1.0, 0.5 + 0.5 * sin(uv.y * 280.0 + random.x * 30.0));
+                        WaterSurface trail = (WaterSurface)0;
+                        trail.height = width * 0.3 * profile * envelope * breakup;
+                        trail.slope = float2(-0.6 * across * envelope * breakup * step(abs(across), 1.0), 0.0);
+                        trail.mask = (1.0 - smoothstep(max(width - pixelSize, 0.0), width + pixelSize, abs(delta.x))) * envelope * breakup;
+                        WaterSurface drop = Merge(head, trail);
+                        drop.slope.y += drop.slope.x * (_WindSkew - bendSlope);
+                        drop.height *= exists;
+                        drop.slope *= exists;
+                        drop.mask *= exists;
+                        surface = Merge(surface, drop);
+                    }
                 }
                 return surface;
             }
