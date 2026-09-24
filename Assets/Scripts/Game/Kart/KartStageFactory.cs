@@ -99,8 +99,11 @@ namespace MixVerse.Game.Kart
                 Gate(distance, words[section], section == 2 ? _coral : _cyan, settings);
             }
             Gate(settings.courseLength, "FINISH  /  上司に花を", _gold, settings);
-            for (var i = 0; i < 12; i++)
-                RoadBox("Finish check", _stage.Point(settings.courseLength, -5.5f + i) + Vector3.up * 0.02f, new Vector3(0.98f, 0.05f, 1.5f), _stage.DirectionAt(settings.courseLength), i % 2 == 0 ? Color.white : Color.black);
+            var finishWidth = settings.roadHalfWidth * 2f;
+            var finishTileCount = Mathf.CeilToInt(finishWidth);
+            var finishTileWidth = finishWidth / finishTileCount;
+            for (var i = 0; i < finishTileCount; i++)
+                RoadBox("Finish check", _stage.Point(settings.courseLength, -settings.roadHalfWidth + (i + 0.5f) * finishTileWidth) + Vector3.up * 0.02f, new Vector3(finishTileWidth * 0.98f, 0.05f, 1.5f), _stage.DirectionAt(settings.courseLength), i % 2 == 0 ? Color.white : Color.black);
         }
 
         // マリオカートのダッシュ板付きジャンプ台。斜面の上に光る矢印を並べ、踏み切り側に土台の壁を立てて楔形に見せる

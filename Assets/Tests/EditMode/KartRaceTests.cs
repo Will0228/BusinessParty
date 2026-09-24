@@ -155,12 +155,13 @@ namespace MixVerse.Game.Model.Tests
         }
         [Test] public void WallContactInGallerySlowsPlayerWithoutFailing()
         {
-            var race = NewRace();
+            var settings = new KartRaceSettings();
+            var race = new KartRace(settings);
             race.Objects.Clear();
             race.Player.Distance = Gallery;
             race.Boss.Distance = Gallery + 10f;
             race.Junior.Distance = Gallery + 5f;
-            race.Player.Lane = 6f;
+            race.Player.Lane = settings.roadHalfWidth;
             race.Player.Speed = 50f;
             race.Tick(0.02f, Forward());
             Assert.That(race.Phase, Is.EqualTo(RacePhase.Racing));
