@@ -113,12 +113,14 @@ namespace MixVerse.Game.Kart
             }
             if (controlNumber == _mapping.gainControl) _gain = value;
             if (controlNumber == _mapping.steeringControl) _steering = 1f - value * 2f;
+            var raw = Mathf.RoundToInt(value * 127f);
             if (_mapping.driftMode == KartDriftControlMode.PairedControls)
             {
-                if (controlNumber == _mapping.leftDriftControl) _jog = -1;
-                else if (controlNumber == _mapping.driftControl) _jog = 1;
-                else if ((_jog == -1 && controlNumber == _mapping.leftDriftReleaseControl) ||
-                         (_jog == 1 && controlNumber == _mapping.rightDriftReleaseControl))
+                if (controlNumber == _mapping.leftDriftControl && raw > 0) _jog = -1;
+                else if (controlNumber == _mapping.driftControl && raw > 0) _jog = 1;
+                else if (raw == 0 &&
+                         ((_jog == -1 && controlNumber == _mapping.leftDriftReleaseControl) ||
+                          (_jog == 1 && controlNumber == _mapping.rightDriftReleaseControl)))
                 {
                     _releasedDriftDirection = _jog;
                     _jog = 0;
@@ -126,7 +128,6 @@ namespace MixVerse.Game.Kart
                 return;
             }
             if (controlNumber != _mapping.driftControl) return;
-            var raw = Mathf.RoundToInt(value * 127f);
             switch (_mapping.driftMode)
             {
                 case KartDriftControlMode.Gate:
@@ -182,12 +183,17 @@ namespace MixVerse.Game.Kart
             _gain = 0f;
             _master = 1f;
             _steering = 0f;
+            _useItem = false;
+            _syncPressed = false;
+            CancelDrift();
+        }
+
+        public void CancelDrift()
+        {
             _jog = 0;
             _releasedDriftDirection = 0;
             _jogAt = -10f;
             _driftHeld = false;
-            _useItem = false;
-            _syncPressed = false;
         }
 
         private void Unbind(MidiDevice device, Handlers handlers)

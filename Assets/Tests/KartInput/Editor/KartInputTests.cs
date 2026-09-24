@@ -84,19 +84,23 @@ namespace MixVerse.Game.Tests
 
         [TestCase(25, 78, -1)]
         [TestCase(24, 77, 1)]
-        public void PairedDriftStartsAtAnyValueAndPersistsUntilMatchingRelease(int start, int release, int direction)
+        public void PairedDriftStartsOnNonZeroValueAndPersistsUntilMatchingReleaseReachesZero(int start, int release, int direction)
         {
             var reader = new KartInputReader(new KartMidiMapping());
-            foreach (var value in new[] { 0f, 0.5f, 1f })
+            reader.ApplyControlChange(0, start, 0f);
+            Assert.That(reader.Read(0f).Jog, Is.Zero);
+            foreach (var value in new[] { 1f / 127f, 0.5f, 1f })
             {
                 reader.ApplyControlChange(0, start, value);
                 Assert.That(reader.Read(0f).Jog, Is.EqualTo(direction));
                 reader.ApplyControlChange(0, 10, direction < 0 ? 0f : 1f);
                 Assert.That(reader.Read(1f).Jog, Is.EqualTo(direction));
-                reader.ApplyControlChange(0, release == 78 ? 77 : 78, value);
-                reader.ApplyControlChange(1, release, value);
-                Assert.That(reader.Read(0f).Jog, Is.EqualTo(direction));
+                reader.ApplyControlChange(0, start, 0f);
+                reader.ApplyControlChange(0, release == 78 ? 77 : 78, 0f);
+                reader.ApplyControlChange(1, release, 0f);
                 reader.ApplyControlChange(0, release, value);
+                Assert.That(reader.Read(0f).Jog, Is.EqualTo(direction));
+                reader.ApplyControlChange(0, release, 0f);
                 var input = reader.Read(0f);
                 Assert.That(input.Jog, Is.Zero);
                 Assert.That(input.ReleasedDriftDirection, Is.EqualTo(direction));
@@ -105,10 +109,27 @@ namespace MixVerse.Game.Tests
         }
 
         [Test]
+        public void CancelDriftClearsHeldDriftAndPendingReleaseButKeepsGain()
+        {
+            var reader = new KartInputReader(new KartMidiMapping());
+            reader.ApplyControlChange(0, 9, 0.5f);
+            reader.ApplyControlChange(0, 24, 1f);
+            reader.CancelDrift();
+            var input = reader.Read(0f);
+            Assert.That(input.Jog, Is.Zero);
+            Assert.That(input.ReleasedDriftDirection, Is.Zero);
+            Assert.That(input.Gain, Is.EqualTo(0.5f));
+            reader.ApplyControlChange(0, 25, 1f);
+            reader.ApplyControlChange(0, 78, 0f);
+            reader.CancelDrift();
+            Assert.That(reader.Read(0f).ReleasedDriftDirection, Is.Zero);
+        }
+
+        [Test]
         public void OtherChannelsCannotStartDriftAndResetClearsPendingRelease()
         {
             var reader = new KartInputReader(new KartMidiMapping());
-            reader.ApplyControlChange(1, 25, 0f);
+            reader.ApplyControlChange(1, 25, 1f);
             reader.ApplyControlChange(1, 24, 1f);
             Assert.That(reader.Read(0f).Jog, Is.Zero);
             reader.ApplyControlChange(0, 25, 0.5f);
@@ -151,7 +172,7 @@ namespace MixVerse.Game.Tests
             reader.ApplyControlChange(0, 9, 0.5f);
             reader.ApplyControlChange(0, 25, 0.5f);
             for (var i = 0; i < 120; i++) race.Tick(1f / 120f, reader.Read(1f / 120f));
-            reader.ApplyControlChange(0, 78, 1f);
+            reader.ApplyControlChange(0, 78, 0f);
             reader.ApplyControlChange(0, 25, 0.5f);
             race.Tick(1f / 480f, reader.Read(0f));
             race.Tick(1f / 120f, reader.Read(0f));

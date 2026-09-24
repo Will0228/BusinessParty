@@ -68,7 +68,11 @@ namespace MixVerse.Game
             if (_ready && input.UseItem) Begin();
             if (!_ready)
             {
-                if (_countdown > 0f) _countdown = System.Math.Max(0f, _countdown - dt);
+                if (_countdown > 0f)
+                {
+                    _countdown = System.Math.Max(0f, _countdown - dt);
+                    if (_countdown <= 0f) _input.CancelDrift();
+                }
                 else _race.Tick(dt, input);
             }
             Render();
