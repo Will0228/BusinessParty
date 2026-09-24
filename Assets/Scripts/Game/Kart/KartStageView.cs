@@ -64,6 +64,7 @@ namespace MixVerse.Game.Kart
         private readonly List<Vector3> _rocketStarts = new List<Vector3>();
         private readonly HashSet<int> _rocketImpacts = new HashSet<int>();
         private const float BossTurnTime = 0.85f;
+        private const float JumpWarningDistance = 70f;
         private const float BossCrashTime = 1.55f;
         private KartRaceSettings _settings;
         private bool _debug;
@@ -134,9 +135,10 @@ namespace MixVerse.Game.Kart
                     knockbackOffset = new Vector3(5f * impact, Mathf.Sin(impact * Mathf.PI) * 4.5f, -7f * impact);
                     knockbackTumble = Quaternion.Euler(impact * 760f, impact * 320f, impact * 620f);
                 }
-                var kartPosition = position + Vector3.up * 0.45f + trackRotation * knockbackOffset;
+                if (racer.IsFalling) knockbackTumble = Quaternion.identity;
+                var kartPosition = position + Vector3.up * (0.45f + racer.Height) + trackRotation * knockbackOffset;
                 var yaw = i == (int)RacerId.Player && racer.DisabledSeconds <= 0f ? _visualYaw : 0f;
-                var kartRotation = trackRotation * Quaternion.Euler(0f, spin + yaw, 0f) * knockbackTumble;
+                var kartRotation = trackRotation * Quaternion.Euler(JumpPitch(race, racer), spin + yaw, 0f) * knockbackTumble;
                 if (race.ResultScene == FailureScene.BossHit && i == (int)RacerId.Boss)
                 {
                     var launch = Mathf.Clamp01(race.ResultTime / BossTurnTime);
@@ -167,7 +169,7 @@ namespace MixVerse.Game.Kart
                     ? Vector3.one * (1f + Mathf.Sin(race.Time * 14f) * 0.08f)
                     : Vector3.one;
                 Tags[i].gameObject.SetActive(race.Phase == RacePhase.Racing && i != (int)RacerId.Player);
-                Tags[i].localPosition = position + Vector3.up * 3.2f;
+                Tags[i].localPosition = position + Vector3.up * (3.2f + racer.Height);
                 Tags[i].rotation = Camera.transform.rotation;
                 TagLabels[i].text = $"{race.Rank(racer)}  {_racerNames[i]}" + (racer.InvincibleSeconds > 0f ? "  <color=#FFD84A>★ 無敵</color>" : "");
             }
@@ -209,6 +211,8 @@ namespace MixVerse.Game.Kart
             Warning.text = $"上司からの最大距離  {distance:0} / {_settings.maximumBossDistance:0} m";
             if (race.TailgateTime > 0.2f) Warning.text += $"   煽り注意！ {_settings.tailgateSeconds - race.TailgateTime:0.0}s";
             if (section == CourseSection.Gallery) Warning.text += "\n監視中：バック・スピン・横転は厳禁";
+            else if (race.Player.Distance > race.Jump.Start - JumpWarningDistance && race.Player.Distance < race.Jump.Takeoff)
+                Warning.text += "\n<color=#FFD84A>この先ジャンプ台：速度を保って道の切れ目を飛び越えろ</color>";
             else if (race.InCamera(race.Player.Distance)) Warning.text += "\n監視カメラ録画中：ゴール後に確認";
             Radio.gameObject.SetActive(!ready && countdown <= 0f && race.Phase == RacePhase.Racing);
             Radio.text = race.SlipRemaining > 0f ? $"<color=#FFAA70>無線：課長、遅くないっすか？</color>\nあと <size=36>{race.SlipRemaining:0.0}</size> 秒以内に部下を攻撃！" : race.Message;
@@ -248,6 +252,17 @@ namespace MixVerse.Game.Kart
             _lastPhase = race.Phase;
         }
 
+        // ジャンプ台では斜面の角度、空中では放物線の接線方向に機首を向ける
+        private float JumpPitch(KartRace race, RacerState racer)
+        {
+            if (racer.IsAirborne || racer.IsFalling)
+            {
+                var forward = Mathf.Max(4f, Mathf.Abs(racer.Speed) * _settings.metersPerSpeedUnit);
+                return -Mathf.Atan2(racer.VerticalSpeed, forward) * Mathf.Rad2Deg;
+            }
+            return race.Jump.OnRamp(racer.Distance) ? -Mathf.Atan2(race.Jump.Height, race.Jump.Length) * Mathf.Rad2Deg : 0f;
+        }
+
         private void UpdateVisualYaw(KartRace race)
         {
             var deltaTime = Mathf.Max(Time.deltaTime, 0.0001f);
@@ -268,9 +283,14 @@ namespace MixVerse.Game.Kart
                 ChaseCamera.Frame(Karts[(int)focusRacer.Id].localPosition, DirectionAt(focusRacer.Distance), deltaTime);
                 return;
             }
+            if (race.Player.IsFalling)
+            {
+                ChaseCamera.Overlook(Point(race.Jump.Takeoff, race.Player.Lane), Karts[(int)RacerId.Player].localPosition, DirectionAt(race.Jump.Takeoff), deltaTime);
+                return;
+            }
             var distance = race.Player.Distance;
             var turn = Vector3.SignedAngle(DirectionAt(distance) * Vector3.forward, DirectionAt(distance + 14f) * Vector3.forward, Vector3.up);
-            var kart = Point(distance, race.Player.Lane) + Vector3.up * 0.45f;
+            var kart = Point(distance, race.Player.Lane) + Vector3.up * (0.45f + Mathf.Max(race.Player.Height, 0f));
             ChaseCamera.Follow(kart, DirectionAt(distance), Mathf.Abs(race.Player.Speed) / 100f, turn, deltaTime);
         }
 

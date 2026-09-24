@@ -86,7 +86,9 @@ namespace MixVerse.Game.Kart
 
         private void BuildCourse(KartRaceSettings settings)
         {
-            _stage.CityRoot = new KartCityBuilder(_stage, settings, _assets, _materials, _font).Build();
+            var jump = new KartJumpRamp(settings);
+            _stage.CityRoot = new KartCityBuilder(_stage, settings, jump, _assets, _materials, _font).Build();
+            BuildJumpRamp(jump, settings);
             for (var section = 0; section < 6; section++)
             {
                 var distance = section * settings.courseLength / 6f;
@@ -96,6 +98,46 @@ namespace MixVerse.Game.Kart
             Gate(settings.courseLength, "FINISH  /  上司に花を", _gold, settings);
             for (var i = 0; i < 12; i++)
                 RoadBox("Finish check", _stage.Point(settings.courseLength, -5.5f + i) + Vector3.up * 0.02f, new Vector3(0.98f, 0.05f, 1.5f), _stage.DirectionAt(settings.courseLength), i % 2 == 0 ? Color.white : Color.black);
+        }
+
+        // マリオカートのダッシュ板付きジャンプ台。斜面の上に光る矢印を並べ、踏み切り側に土台の壁を立てて楔形に見せる
+        private void BuildJumpRamp(KartJumpRamp jump, KartRaceSettings settings)
+        {
+            var width = settings.roadHalfWidth * 2f - 0.4f;
+            var slope = Mathf.Atan2(jump.Height, jump.Length) * Mathf.Rad2Deg;
+            var surfaceLength = Mathf.Sqrt(jump.Length * jump.Length + jump.Height * jump.Height);
+            var middle = (jump.Start + jump.Takeoff) * 0.5f;
+            var root = new GameObject("Jump ramp").transform;
+            root.SetParent(_stage.transform, false);
+            _stage.Segments.Add(new KeyValuePair<float, GameObject>(middle, root.gameObject));
+            var deck = new GameObject("Ramp deck").transform;
+            deck.SetParent(root, false);
+            deck.localPosition = _stage.Point(middle) + Vector3.up * (jump.Height * 0.5f);
+            deck.localRotation = _stage.DirectionAt(middle) * Quaternion.Euler(-slope, 0f, 0f);
+            var body = _materials.Lit(new Color(0.12f, 0.13f, 0.16f), 0.55f, 0.6f);
+            var arrow = new Color(3f, 1.7f, 0.25f);
+            var rail = new Color(0.2f, 2.4f, 2.8f);
+            Shape(deck, "Deck", PrimitiveType.Cube, Vector3.down * 0.15f, new Vector3(width, 0.3f, surfaceLength), body);
+            for (var side = -1; side <= 1; side += 2)
+                Shape(deck, "Deck rail", PrimitiveType.Cube, new Vector3(side * width * 0.5f, 0.05f, 0f), new Vector3(0.18f, 0.18f, surfaceLength), rail);
+            Shape(deck, "Lip stripe", PrimitiveType.Cube, new Vector3(0f, 0.02f, surfaceLength * 0.5f - 0.25f), new Vector3(width, 0.04f, 0.35f), arrow);
+            for (var row = 0; row < 3; row++)
+            {
+                var z = -surfaceLength * 0.5f + 1.6f + row * 2f;
+                for (var column = -1; column <= 1; column++)
+                {
+                    for (var side = -1; side <= 1; side += 2)
+                    {
+                        var chevron = Shape(deck, "Dash arrow", PrimitiveType.Cube, new Vector3(column * 3.5f + side * 0.6f, 0.02f, z - 0.35f),
+                            new Vector3(1.4f, 0.03f, 0.3f), arrow);
+                        chevron.transform.localRotation = Quaternion.Euler(0f, side * 30f, 0f);
+                    }
+                }
+            }
+            var lip = Shape(root, "Ramp lip wall", PrimitiveType.Cube, _stage.Point(jump.Takeoff - 0.15f) + Vector3.up * (jump.Height * 0.5f),
+                new Vector3(width, jump.Height, 0.3f), body);
+            lip.transform.localRotation = _stage.DirectionAt(jump.Takeoff);
+            RoadBox("Landing stripe", _stage.Point(jump.Landing + 0.4f) + Vector3.up * 0.03f, new Vector3(width, 0.04f, 0.5f), _stage.DirectionAt(jump.Landing), arrow);
         }
 
         private ParticleSystem Rain(Transform camera)

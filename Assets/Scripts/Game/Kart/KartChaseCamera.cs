@@ -61,6 +61,22 @@ namespace MixVerse.Game.Kart
             Apply(focus + direction * new Vector3(0f, 0.6f, 2f));
         }
 
+        // 崖下に落ちていくカートを、踏み切り側の縁から覗き込むように見下ろす
+        public void Overlook(Vector3 edge, Vector3 target, Quaternion track, float deltaTime)
+        {
+            var desired = edge + track * new Vector3(0f, 4.5f, 0.8f);
+            if (!_initialized)
+            {
+                _position = desired;
+                _initialized = true;
+            }
+            _heading = track;
+            _position = Vector3.Lerp(_position, desired, Damp(6f, deltaTime));
+            _roll = Mathf.Lerp(_roll, 0f, Damp(4f, deltaTime));
+            FieldOfView = Mathf.Lerp(FieldOfView, BaseFieldOfView, Damp(2f, deltaTime));
+            Apply(target);
+        }
+
         private void Apply(Vector3 look)
         {
             _camera.localPosition = _position;

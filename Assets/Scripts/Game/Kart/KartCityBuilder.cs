@@ -21,12 +21,14 @@ namespace MixVerse.Game.Kart
         private const float FacadeCellHeight = 3.6f;
         private const int FacadeCells = 32;
         private const float BucketSize = 40f;
+        private const float ChasmDepth = 70f;
         private static readonly int FaceColorId = Shader.PropertyToID("_FaceColor");
         private readonly KartStageView _stage;
         private readonly KartRaceSettings _settings;
         private readonly KartPresentationAssets _assets;
         private readonly KartMaterialLibrary _materials;
         private readonly TMP_FontAsset _font;
+        private readonly KartJumpRamp _jump;
         private readonly Random _random = new Random(1116);
         private readonly Dictionary<GameObject, Bounds> _bounds = new Dictionary<GameObject, Bounds>();
         private readonly Dictionary<Color, Material> _neonText = new Dictionary<Color, Material>();
@@ -52,9 +54,10 @@ namespace MixVerse.Game.Kart
         private float _edge;
         private float _end;
 
-        public KartCityBuilder(KartStageView stage, KartRaceSettings settings, KartPresentationAssets assets, KartMaterialLibrary materials, TMP_FontAsset font)
+        public KartCityBuilder(KartStageView stage, KartRaceSettings settings, KartJumpRamp jump, KartPresentationAssets assets, KartMaterialLibrary materials, TMP_FontAsset font)
         {
             _stage = stage;
+            _jump = jump;
             _settings = settings;
             _assets = assets;
             _materials = materials;
@@ -76,6 +79,7 @@ namespace MixVerse.Game.Kart
             BuildRoad();
             BuildGround();
             BuildTunnel();
+            BuildChasm();
             for (var side = -1; side <= 1; side += 2)
             {
                 BuildFrontage(side);
@@ -98,15 +102,15 @@ namespace MixVerse.Game.Kart
             var amber = _materials.Lit(new Color(0.9f, 0.62f, 0.2f), 0.55f, 0f, new Color(0.3f, 0.18f, 0.04f));
             var curb = _materials.Lit(new Color(0.22f, 0.22f, 0.24f), 0.4f);
             var sidewalk = _assets != null && _assets.pavementMaterial != null ? _assets.pavementMaterial : _materials.Lit(new Color(0.17f, 0.17f, 0.19f), 0.55f);
-            Surface("Asphalt", asphalt, 0f, _end, _ => -halfWidth, _ => halfWidth, 0f);
-            Surface("Center line", amber, 0f, _end, _ => -0.09f, _ => 0.09f, 0.012f, d => d % 9f < 4.5f);
+            Surface("Asphalt", asphalt, 0f, _end, _ => -halfWidth, _ => halfWidth, 0f, HasRoad);
+            Surface("Center line", amber, 0f, _end, _ => -0.09f, _ => 0.09f, 0.012f, d => d % 9f < 4.5f && HasRoad(d));
             for (var side = -1; side <= 1; side += 2)
             {
                 var s = side;
-                Surface("Edge line", paint, 0f, _end, _ => s * (halfWidth - 0.45f), _ => s * (halfWidth - 0.3f), 0.012f);
-                Wall("Curb", curb, 0f, _end, s * (halfWidth + 0.25f), 0f, SidewalkHeight, s);
-                Wall("Curb neon", _materials.Unlit(s < 0 ? _neonCyan : _neonMagenta), 0f, _end, s * (halfWidth + 0.24f), 0.07f, 0.12f, s);
-                Surface("Sidewalk", sidewalk, 0f, _end, _ => s * (halfWidth + 0.25f), d => s * (halfWidth + (InTunnel(d, 0f) ? 1f : SidewalkWidth)), SidewalkHeight);
+                Surface("Edge line", paint, 0f, _end, _ => s * (halfWidth - 0.45f), _ => s * (halfWidth - 0.3f), 0.012f, HasRoad);
+                Wall("Curb", curb, 0f, _end, s * (halfWidth + 0.25f), 0f, SidewalkHeight, s, HasRoad);
+                Wall("Curb neon", _materials.Unlit(s < 0 ? _neonCyan : _neonMagenta), 0f, _end, s * (halfWidth + 0.24f), 0.07f, 0.12f, s, HasRoad);
+                Surface("Sidewalk", sidewalk, 0f, _end, _ => s * (halfWidth + 0.25f), d => s * (halfWidth + (InTunnel(d, 0f) ? 1f : SidewalkWidth)), SidewalkHeight, HasRoad);
             }
         }
 
@@ -122,6 +126,42 @@ namespace MixVerse.Game.Kart
             middle.y = lowest - 1.2f;
             Primitive("Base ground", PrimitiveType.Quad, _root, middle, new Vector3(4000f, 4000f, 1f), ground)
                 .transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+        }
+
+        // ジャンプ台の先で道路と歩道を丸ごと欠落させ、下の地面まで落ち込む崖を作る
+        private void BuildChasm()
+        {
+            var rock = _materials.Lit(new Color(0.07f, 0.065f, 0.075f), 0.25f);
+            var inner = _settings.roadHalfWidth + SidewalkWidth;
+            Wall("Chasm wall", rock, _jump.Takeoff, _jump.Landing, -inner, -ChasmDepth, GroundHeight, -1);
+            Wall("Chasm wall", rock, _jump.Takeoff, _jump.Landing, inner, -ChasmDepth, GroundHeight, 1);
+            CliffFace(_jump.Takeoff, -1f, rock, inner);
+            CliffFace(_jump.Landing, 1f, rock, inner);
+            // 暗い崖は奥行きが読めないので、縁と壁面に発光帯を入れて欠落の輪郭と深さを見せる
+            var bands = new[] { (depth: 0.05f, glow: new Color(3f, 1.7f, 0.25f)), (depth: 2.5f, glow: _neonMagenta * 0.6f), (depth: 7f, glow: _neonCyan * 0.35f), (depth: 14f, glow: _neonMagenta * 0.18f) };
+            foreach (var band in bands)
+            {
+                var glow = _materials.Unlit(band.glow);
+                var top = band.depth <= 0.05f ? GroundHeight + 0.05f : -band.depth;
+                Wall("Chasm band", glow, _jump.Takeoff, _jump.Landing, -inner + 0.02f, top - 0.15f, top, -1);
+                Wall("Chasm band", glow, _jump.Takeoff, _jump.Landing, inner - 0.02f, top - 0.15f, top, 1);
+                CliffBand(_jump.Takeoff + 0.02f, band.depth <= 0.05f ? -0.05f : -band.depth, glow, inner);
+                CliffBand(_jump.Landing - 0.02f, band.depth <= 0.05f ? -0.05f : -band.depth, glow, inner);
+            }
+        }
+
+        private void CliffBand(float distance, float height, Material material, float inner)
+        {
+            Primitive("Cliff band", PrimitiveType.Cube, _root, At(distance, 0f, height - 0.075f), new Vector3(inner * 2f, 0.15f, 0.04f), material)
+                .transform.localRotation = Quaternion.LookRotation(Forward(distance));
+        }
+
+        private void CliffFace(float distance, float side, Material material, float inner)
+        {
+            var forward = Forward(distance);
+            var face = Primitive("Cliff face", PrimitiveType.Cube, _root, At(distance + side * 0.5f, 0f, -0.2f - ChasmDepth * 0.5f),
+                new Vector3(inner * 2f, ChasmDepth, 1f), material);
+            face.transform.localRotation = Quaternion.LookRotation(forward);
         }
 
         private void BuildTunnel()
@@ -269,7 +309,7 @@ namespace MixVerse.Game.Kart
             var index = 0;
             for (var d = 12f; d < _end; d += 26f, index++)
             {
-                if (InTunnel(d, 4f)) continue;
+                if (InTunnel(d, 4f) || _jump.Near(d, 1f)) continue;
                 var bucket = Bucket(d);
                 var side = index % 2 == 0 ? -1 : 1;
                 var position = At(d, side * (_settings.roadHalfWidth + 0.9f), SidewalkHeight);
@@ -491,11 +531,11 @@ namespace MixVerse.Game.Kart
             => Sheet(name, material, start, end, d => new Vector2(from(d), height), d => new Vector2(to(d), height), include);
 
         // side は壁がどちら側にあるか。道路の中心を向く面を表にする
-        private void Wall(string name, Material material, float start, float end, float lane, float bottom, float top, int side)
+        private void Wall(string name, Material material, float start, float end, float lane, float bottom, float top, int side, Func<float, bool> include = null)
         {
             var lower = new Vector2(lane, bottom);
             var upper = new Vector2(lane, top);
-            Sheet(name, material, start, end, _ => side > 0 ? lower : upper, _ => side > 0 ? upper : lower, null);
+            Sheet(name, material, start, end, _ => side > 0 ? lower : upper, _ => side > 0 ? upper : lower, include);
         }
 
         private void Sheet(string name, Material material, float start, float end, Func<float, Vector2> from, Func<float, Vector2> to, Func<float, bool> include)
@@ -671,6 +711,8 @@ namespace MixVerse.Game.Kart
             }
             return Mathf.Sqrt(best);
         }
+
+        private bool HasRoad(float distance) => !_jump.InGap(distance);
 
         private bool InTunnel(float distance, float margin) => distance > _tunnelStart - margin && distance < _tunnelEnd + margin;
 
