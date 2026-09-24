@@ -370,9 +370,12 @@ namespace MixVerse.Game.Kart
             hudRect.offsetMax = Vector2.zero;
             _stage.RaceHud = hudRoot;
             var parent = hudRoot.transform;
-            Panel(parent, new Vector2(0f, 1f), new Vector2(24f, -24f), new Vector2(270f, 218f), _navy);
-            Label(parent, "SETTAI / KART", new Vector2(0f, 1f), new Vector2(42f, -38f), new Vector2(240f, 32f), 23, _cyan);
+            var rankingPanel = Panel(parent, new Vector2(0f, 1f), new Vector2(24f, -24f), new Vector2(270f, 218f), _navy);
+            var rankingTitle = Label(parent, "SETTAI / KART", new Vector2(0f, 1f), new Vector2(42f, -38f), new Vector2(240f, 32f), 23, _cyan);
             _stage.Ranking = Label(parent, "", new Vector2(0f, 1f), new Vector2(42f, -87f), new Vector2(240f, 142f), 24, Color.white);
+            rankingPanel.gameObject.SetActive(false);
+            rankingTitle.gameObject.SetActive(false);
+            _stage.Ranking.gameObject.SetActive(false);
             Panel(parent, new Vector2(1f, 1f), new Vector2(-24f, -24f), new Vector2(260f, 105f), _navy);
             _stage.Section = Label(parent, "", new Vector2(1f, 1f), new Vector2(-42f, -40f), new Vector2(225f, 75f), 24, Color.white);
             Panel(parent, new Vector2(0.5f, 1f), new Vector2(0f, -24f), new Vector2(700f, 95f), _navy);
@@ -386,9 +389,12 @@ namespace MixVerse.Game.Kart
             Panel(iconFrame.transform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(76f, 76f), new Color(0.1f, 0.18f, 0.23f));
             BuildItemIcons(iconFrame.transform);
             _stage.Item = Label(itemPanel.transform, "", new Vector2(0f, 0.5f), new Vector2(108f, 0f), new Vector2(210f, 92f), 19, _gold);
-            Panel(parent, new Vector2(1f, 0f), new Vector2(-24f, 82f), new Vector2(330f, 90f), _navy);
+            var driftPanel = Panel(parent, new Vector2(1f, 0f), new Vector2(-24f, 82f), new Vector2(330f, 90f), _navy);
             _stage.Drift = Label(parent, "", new Vector2(1f, 0f), new Vector2(-42f, 102f), new Vector2(292f, 30f), 20, _cyan);
             _stage.DriftFill = Bar(parent, new Vector2(1f, 0f), new Vector2(-42f, 96f), new Vector2(292f, 5f), _cyan);
+            driftPanel.gameObject.SetActive(false);
+            _stage.Drift.gameObject.SetActive(false);
+            _stage.DriftFill.gameObject.SetActive(false);
             _stage.Progress = Bar(parent, new Vector2(0.5f, 0f), new Vector2(0f, 65f), new Vector2(1552f, 5f), _gold);
             _stage.Controls = Label(parent, "", new Vector2(0.5f, 0f), new Vector2(0f, 17f), new Vector2(1560f, 35f), 19, Color.white, TextAlignmentOptions.Center);
             BuildPaperBlind(canvasObject.transform);
