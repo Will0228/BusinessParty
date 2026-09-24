@@ -438,12 +438,12 @@ namespace MixVerse.Game.Kart
             Explosions.Add(id, explosion);
         }
 
-        // マリオカート同様、ドリフトの溜め具合（DriftTier）で火花の色を白→水色→オレンジと変える
+        // マリオカート同様、ドリフトの溜め具合（DriftTier）で火花の色を黄→青→オレンジと変える
         private static readonly Color[] DriftSparkColors =
         {
-            new Color(0.92f, 0.92f, 0.97f),
-            new Color(0.35f, 0.75f, 1f),
-            new Color(1f, 0.55f, 0.1f),
+            new Color(1f, 0.88f, 0.15f),
+            new Color(0.05f, 0.55f, 1f),
+            new Color(1f, 0.35f, 0f),
         };
 
         private void UpdateDriftSparks(KartRace race)
