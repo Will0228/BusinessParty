@@ -45,6 +45,7 @@ namespace MixVerse.Game.Kart
         private sealed class Handlers
         {
             public Action<MidiNoteControl, float> Note;
+            public Action<MidiNoteControl> NoteOff;
             public Action<MidiValueControl, float> Control;
         }
 
@@ -65,9 +66,11 @@ namespace MixVerse.Game.Kart
             var handlers = new Handlers
             {
                 Note = (note, velocity) => ApplyNoteOn(midi.channel, note.noteNumber, velocity),
+                NoteOff = note => ApplyNoteOff(midi.channel, note.noteNumber),
                 Control = (control, value) => ApplyControlChange(midi.channel, control.controlNumber, value),
             };
             midi.onWillNoteOn += handlers.Note;
+            midi.onWillNoteOff += handlers.NoteOff;
             midi.onWillControlChange += handlers.Control;
             _devices.Add(midi, handlers);
         }
@@ -98,6 +101,13 @@ namespace MixVerse.Game.Kart
             if (velocity > 0f && noteNumber == _mapping.syncControl) _useItem = true;
         }
 
+        // ドリフト解除（#77/#78）も実機では NoteOff（NoteOn の velocity 0 を含む）で届くため、CC の値 0 と同じ扱いにする
+        public void ApplyNoteOff(int channel, int noteNumber)
+        {
+            if (_mapping.channel > 0 && channel != _mapping.channel - 1) return;
+            if (_mapping.driftMode == KartDriftControlMode.PairedControls) ReleaseDrift(noteNumber);
+        }
+
         public void ApplyControlChange(int channel, int controlNumber, float value)
         {
             if (_mapping.channel > 0 && channel != _mapping.channel - 1) return;
@@ -118,13 +128,7 @@ namespace MixVerse.Game.Kart
             {
                 if (controlNumber == _mapping.leftDriftControl && raw > 0) _jog = -1;
                 else if (controlNumber == _mapping.driftControl && raw > 0) _jog = 1;
-                else if (raw == 0 &&
-                         ((_jog == -1 && controlNumber == _mapping.leftDriftReleaseControl) ||
-                          (_jog == 1 && controlNumber == _mapping.rightDriftReleaseControl)))
-                {
-                    _releasedDriftDirection = _jog;
-                    _jog = 0;
-                }
+                else if (raw == 0) ReleaseDrift(controlNumber);
                 return;
             }
             if (controlNumber != _mapping.driftControl) return;
@@ -142,6 +146,14 @@ namespace MixVerse.Game.Kart
                     _jogAt = Time.unscaledTime;
                     break;
             }
+        }
+
+        private void ReleaseDrift(int number)
+        {
+            if ((_jog != -1 || number != _mapping.leftDriftReleaseControl) &&
+                (_jog != 1 || number != _mapping.rightDriftReleaseControl)) return;
+            _releasedDriftDirection = _jog;
+            _jog = 0;
         }
 
         public KartInput Read(float dt)
@@ -199,6 +211,7 @@ namespace MixVerse.Game.Kart
         private void Unbind(MidiDevice device, Handlers handlers)
         {
             device.onWillNoteOn -= handlers.Note;
+            device.onWillNoteOff -= handlers.NoteOff;
             device.onWillControlChange -= handlers.Control;
         }
 

@@ -108,6 +108,36 @@ namespace MixVerse.Game.Tests
             }
         }
 
+        [TestCase(25, 78, -1)]
+        [TestCase(24, 77, 1)]
+        public void PairedDriftReleasesOnMatchingNoteOff(int start, int release, int direction)
+        {
+            var reader = new KartInputReader(new KartMidiMapping());
+            reader.ApplyControlChange(0, start, 0.5f);
+            reader.ApplyNoteOff(0, release == 78 ? 77 : 78);
+            reader.ApplyNoteOff(1, release);
+            Assert.That(reader.Read(0f).Jog, Is.EqualTo(direction));
+            reader.ApplyNoteOff(0, release);
+            var input = reader.Read(0f);
+            Assert.That(input.Jog, Is.Zero);
+            Assert.That(input.ReleasedDriftDirection, Is.EqualTo(direction));
+        }
+
+        [Test]
+        public void Ch1Note77OffAwardsChargedTurbo()
+        {
+            var reader = new KartInputReader(new KartMidiMapping());
+            var race = CreateRace();
+            reader.ApplyControlChange(0, 9, 0.5f);
+            reader.ApplyControlChange(0, 24, 0.5f);
+            for (var i = 0; i < 120; i++) race.Tick(1f / 120f, reader.Read(1f / 120f));
+            Assert.That(race.DriftTier, Is.EqualTo(1));
+            reader.ApplyNoteOff(0, 77);
+            race.Tick(1f / 120f, reader.Read(1f / 120f));
+            Assert.That(race.IsDrifting, Is.False);
+            Assert.That(race.Player.TurboSeconds, Is.EqualTo(1f).Within(0.01f));
+        }
+
         [Test]
         public void CancelDriftClearsHeldDriftAndPendingReleaseButKeepsGain()
         {
