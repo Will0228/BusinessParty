@@ -2,6 +2,9 @@ using TMPro;
 using MixVerse.Game.Kart;
 using UnityEngine;
 using UnityEngine.UI;
+#if UNITY_EDITOR
+using UnityEditor.SceneManagement;
+#endif
 
 namespace MixVerse.Home
 {
@@ -27,10 +30,31 @@ namespace MixVerse.Home
                 return;
             }
 
+            if (TryUseExistingGuide())
+            {
+                HideGuide();
+                return;
+            }
+
             var font = FindFont(startButton);
             BuildGuideButton(font);
             BuildGuide(font);
             HideGuide();
+        }
+
+        // Edit モードで事前に生成・保存されたガイドが既にシーンにある場合はそれを使い回す
+        private bool TryUseExistingGuide()
+        {
+            var existingRoot = transform.Find("Control Guide");
+            if (existingRoot == null)
+            {
+                return false;
+            }
+
+            _guideRoot = existingRoot.gameObject;
+            GuideButton = transform.Find("Control Guide Button")?.GetComponent<Button>();
+            CloseButton = existingRoot.Find("Guide Panel/Close Button")?.GetComponent<Button>();
+            return true;
         }
 
         public void ShowGuide()
@@ -40,6 +64,35 @@ namespace MixVerse.Home
         }
 
         public void HideGuide() => _guideRoot.SetActive(false);
+
+#if UNITY_EDITOR
+        [ContextMenu("Edit モードでガイドを生成")]
+        private void BuildGuideInEditor()
+        {
+            Initialize(null);
+            ShowGuide();
+            EditorSceneManager.MarkSceneDirty(gameObject.scene);
+        }
+
+        [ContextMenu("Edit モードのガイドを削除")]
+        private void ClearGuideInEditor()
+        {
+            if (GuideButton != null)
+            {
+                DestroyImmediate(GuideButton.gameObject);
+                GuideButton = null;
+            }
+
+            if (_guideRoot != null)
+            {
+                DestroyImmediate(_guideRoot);
+                _guideRoot = null;
+            }
+
+            CloseButton = null;
+            EditorSceneManager.MarkSceneDirty(gameObject.scene);
+        }
+#endif
 
         private void BuildGuideButton(TMP_FontAsset font)
         {
@@ -74,20 +127,21 @@ namespace MixVerse.Home
             controllerImage.color = Color.white;
             controllerImage.raycastTarget = false;
 
-            CreateHighlight(controller, "Gain Highlight", new Vector2(-392f, 190f), new Vector2(82f, 155f), Cyan, "1", font);
-            CreateHighlight(controller, "Steering Highlight", new Vector2(0f, -238f), new Vector2(188f, 72f), Magenta, "2", font);
-            CreateHighlight(controller, "Drift Highlight", new Vector2(-267f, -8f), new Vector2(350f, 350f), Orange, "3", font);
-            CreateHighlight(controller, "Item Highlight", new Vector2(-258f, -249f), new Vector2(88f, 58f), Green, "4", font);
+            CreateHighlight(controller, "Gain Highlight", new Vector2(90f, -57f), new Vector2(72f, 166f), Cyan, "1", font);
+            CreateHighlight(controller, "Steering Highlight", new Vector2(-10f, -171f), new Vector2(206f, 77f), Magenta, "2", font);
+            CreateHighlight(controller, "Drift Highlight Left", new Vector2(-259f, -71f), new Vector2(331f, 324f), Orange, "3", font);
+            CreateHighlight(controller, "Drift Highlight Right", new Vector2(335f, 6f), new Vector2(231f, 261f), Orange, "3", font);
+            CreateHighlight(controller, "Item Highlight", new Vector2(197f, -174f), new Vector2(98f, 62f), Green, "4", font);
 
             var legend = CreateRect("Legend", panel.transform, new Vector2(1f, 0.5f), new Vector2(1f, 0.5f),
                 new Vector2(-30f, -17f), new Vector2(500f, 690f));
-            CreateLegend(legend, new Vector2(0f, 250f), Cyan, "1", "速度 / GAIN  CC #9",
+            CreateLegend(legend, new Vector2(0f, 250f), Cyan, "1", "速度",
                 "フェーダーを上へ → 加速\n下へ → 減速", font);
-            CreateLegend(legend, new Vector2(0f, 83f), Magenta, "2", "左右操作  CC #10",
+            CreateLegend(legend, new Vector2(0f, 83f), Magenta, "2", "左右操作",
                 "中央フェーダーを左右へ\n動かして走行ラインを変更", font);
-            CreateLegend(legend, new Vector2(0f, -84f), Orange, "3", "ドリフト  ch1 CC",
-                "左 #25 / 右 #24 で開始\n左 #78 / 右 #77 で解除・ターボ", font);
-            CreateLegend(legend, new Vector2(0f, -251f), Green, "4", "アイテム  SYNC #71",
+            CreateLegend(legend, new Vector2(0f, -84f), Orange, "3", "ドリフト",
+                "スクラッチをこすることでドリフト\nドリフトが溜まると加速", font);
+            CreateLegend(legend, new Vector2(0f, -251f), Green, "4", "アイテム",
                 "ボタンを押す → 所持中の\nアイテムを使用", font);
 
             CloseButton = CreateButton(panel.transform, "Close Button", new Vector2(0f, -389f),
