@@ -24,8 +24,8 @@ namespace MixVerse.Game.Model.Kart
         public RacerState[] Racers { get; } =
         {
             new RacerState { Id = RacerId.Player, Lane = 0f },
-            new RacerState { Id = RacerId.Boss, Lane = -2f },
-            new RacerState { Id = RacerId.Junior, Lane = 2f }
+            new RacerState { Id = RacerId.Boss, Lane = -4f },
+            new RacerState { Id = RacerId.Junior, Lane = 4f }
         };
         public RacerState Player => Racers[0];
         public RacerState Boss => Racers[1];
