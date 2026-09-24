@@ -30,6 +30,7 @@ namespace MixVerse.Game.Model.Kart
         public RacerState Player => Racers[0];
         public RacerState Boss => Racers[1];
         public RacerState Junior => Racers[2];
+        public KartJumpRamp Jump { get; }
         public RacePhase Phase { get; private set; }
         public float Time { get; private set; }
         public float SlipRemaining { get; private set; }
@@ -54,6 +55,7 @@ namespace MixVerse.Game.Model.Kart
             _settings = settings;
             _settings.Validate();
             _layout = new KartCourseLayout(_settings.courseLength);
+            Jump = new KartJumpRamp(_settings);
             _random = new Random(seed);
             ScheduleSlip();
             BuildObjects();
@@ -106,14 +108,14 @@ namespace MixVerse.Game.Model.Kart
                 Disable(Player, false);
             foreach (var racer in Racers)
             {
-                if (racer.DisabledSeconds > 0f)
+                var previous = racer.Distance;
+                if (racer.DisabledSeconds > 0f) racer.DisabledSeconds = Math.Max(0f, racer.DisabledSeconds - dt);
+                else if (!racer.Finished)
                 {
-                    racer.DisabledSeconds = Math.Max(0f, racer.DisabledSeconds - dt);
-                    continue;
+                    racer.Speed = MoveTowards(racer.Speed, 0f, dt * 8f);
+                    racer.Distance = Clamp(racer.Distance + racer.Speed * _settings.metersPerSpeedUnit * dt, 0f, _settings.courseLength);
                 }
-                if (racer.Finished) continue;
-                racer.Speed = MoveTowards(racer.Speed, 0f, dt * 8f);
-                racer.Distance = Clamp(racer.Distance + racer.Speed * _settings.metersPerSpeedUnit * dt, 0f, _settings.courseLength);
+                UpdateJump(racer, previous, dt);
             }
         }
 
@@ -158,7 +160,8 @@ namespace MixVerse.Game.Model.Kart
             UpdateJuniorLane(dt);
             Move(Player, Clamp(input.Gain, 0f, 1f) * 100f * _direction, dt);
             Move(Boss, bossTarget, dt);
-            Move(Junior, juniorTarget, dt);
+            Move(Junior, juniorTarget, dt, blocking);
+            for (var i = 0; i < Racers.Length; i++) UpdateJump(Racers[i], _previousDistances[i], dt);
             if (Phase != RacePhase.Racing) return;
             CheckContacts(dt);
             if (_direction < 0 && Player.Speed < -1f) RecordMisconduct("バック走行が見つかりました");
@@ -166,14 +169,14 @@ namespace MixVerse.Game.Model.Kart
             CheckRules(dt);
         }
 
-        private void Move(RacerState racer, float target, float dt)
+        private void Move(RacerState racer, float target, float dt, bool capped = false)
         {
             if (racer.Finished) return;
             racer.TurboSeconds = Math.Max(0f, racer.TurboSeconds - dt);
             racer.SlowedSeconds = Math.Max(0f, racer.SlowedSeconds - dt);
             racer.InvincibleSeconds = Math.Max(0f, racer.InvincibleSeconds - dt);
-            if (racer.TurboSeconds > 0f) target *= _settings.mushroomSpeedMultiplier;
-            if (racer.InvincibleSeconds > 0f) target *= _settings.salaryOrderSpeedMultiplier;
+            if (racer.TurboSeconds > 0f && !capped) target *= _settings.mushroomSpeedMultiplier;
+            if (racer.InvincibleSeconds > 0f && !capped) target *= _settings.salaryOrderSpeedMultiplier;
             if (racer.Id != RacerId.Player && racer.SlowedSeconds > 0f) target *= _settings.cpuPaperSpeedMultiplier;
             if (racer.DisabledSeconds > 0f)
             {
@@ -181,7 +184,8 @@ namespace MixVerse.Game.Model.Kart
                 racer.Speed = 0f;
                 return;
             }
-            racer.Speed = MoveTowards(racer.Speed, target, dt * (Math.Abs(target) < Math.Abs(racer.Speed) ? _settings.braking : _settings.acceleration * (racer.TurboSeconds > 0f ? 1.5f : 1f)));
+            if (!racer.IsAirborne)
+                racer.Speed = MoveTowards(racer.Speed, target, dt * (Math.Abs(target) < Math.Abs(racer.Speed) ? _settings.braking : _settings.acceleration * (racer.TurboSeconds > 0f ? 1.5f : 1f)));
             var previous = racer.Distance;
             racer.Distance = Math.Max(0f, previous + racer.Speed * _settings.metersPerSpeedUnit * dt);
             if (racer.Distance >= _settings.courseLength)
@@ -205,7 +209,7 @@ namespace MixVerse.Game.Model.Kart
 
         private void CheckContacts(float dt)
         {
-            if (!Player.Finished && !Boss.Finished && Math.Abs(Player.Distance - Boss.Distance) < 2.1f && Math.Abs(Player.Lane - Boss.Lane) < 1.35f)
+            if (!Player.Finished && !Boss.Finished && SameLevel(Player, Boss) && Math.Abs(Player.Distance - Boss.Distance) < 2.1f && Math.Abs(Player.Lane - Boss.Lane) < 1.35f)
                 Fail("上司のカートに接触しました");
             ResolveJuniorContact(dt);
         }
@@ -236,7 +240,7 @@ namespace MixVerse.Game.Model.Kart
 
         private void ResolveJuniorContact(float dt)
         {
-            if (Player.Finished || Junior.Finished) return;
+            if (Player.Finished || Junior.Finished || Player.IsFalling || Junior.IsFalling) return;
             var laneDifference = Junior.Lane - Player.Lane;
             if (Math.Abs(laneDifference) >= _settings.racerContactWidth) return;
 
@@ -327,6 +331,7 @@ namespace MixVerse.Game.Model.Kart
             ResultReason = reason;
             ResultScene = scene;
         }
+        private bool SameLevel(RacerState a, RacerState b) => Math.Abs(a.Height - b.Height) < 1.2f;
         private float Clamp(float value, float min, float max) => Math.Max(min, Math.Min(max, value));
         private float MoveTowards(float value, float target, float step) => value + Clamp(target - value, -step, step);
     }

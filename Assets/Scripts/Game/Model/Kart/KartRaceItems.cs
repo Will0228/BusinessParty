@@ -35,9 +35,11 @@ namespace MixVerse.Game.Model.Kart
             for (var distance = 45f; distance < _settings.courseLength - 25f; distance += 60f)
             {
                 var index = (int)((distance - 45f) / 60f);
-                for (var lane = -1; lane <= 1; lane++)
-                    AddObject(TrackObjectKind.ItemBox, distance, lane * 3.4f, 0f, RacerId.Player, (KartItem)(1 + (index + lane + 5) % 5));
-                AddObject(TrackObjectKind.Crate, distance + 26f, index % 2 == 0 ? 3.7f : -3.7f);
+                if (!Jump.Near(distance, 5f))
+                    for (var lane = -1; lane <= 1; lane++)
+                        AddObject(TrackObjectKind.ItemBox, distance, lane * 3.4f, 0f, RacerId.Player, (KartItem)(1 + (index + lane + 5) % 5));
+                if (!Jump.Near(distance + 26f, 5f))
+                    AddObject(TrackObjectKind.Crate, distance + 26f, index % 2 == 0 ? 3.7f : -3.7f);
             }
         }
 

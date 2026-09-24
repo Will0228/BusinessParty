@@ -47,6 +47,15 @@ namespace MixVerse.Game.Model.Kart
         public float mushroomSpeedMultiplier = 1.2f;
         public float salaryOrderSeconds = 5f;
         public float salaryOrderSpeedMultiplier = 1.1f;
+        public float jumpRampPosition = 0.3f;
+        public float jumpRampLength = 7.5f;
+        public float jumpRampHeight = 1.2f;
+        public float jumpGapLength = 10f;
+        public float jumpLaunchRatio = 0.55f;
+        public float jumpGravity = 18f;
+        public float jumpBoostSeconds = 1.5f;
+        public float jumpFallSeconds = 1.6f;
+        public float jumpRespawnOffset = 1.5f;
         public bool cameraReviewEnabled = true;
 
         public KartItem debugUnlimitedItem = KartItem.None;
@@ -95,6 +104,15 @@ namespace MixVerse.Game.Model.Kart
             mushroomSpeedMultiplier = Math.Max(1f, mushroomSpeedMultiplier);
             salaryOrderSeconds = Math.Max(0.1f, salaryOrderSeconds);
             salaryOrderSpeedMultiplier = Math.Max(1f, salaryOrderSpeedMultiplier);
+            jumpRampPosition = Math.Max(0.05f, Math.Min(0.9f, jumpRampPosition));
+            jumpRampLength = Math.Max(2f, jumpRampLength);
+            jumpRampHeight = Math.Max(0.2f, jumpRampHeight);
+            jumpGapLength = Math.Max(1f, jumpGapLength);
+            jumpLaunchRatio = Math.Max(0.1f, jumpLaunchRatio);
+            jumpGravity = Math.Max(1f, jumpGravity);
+            jumpBoostSeconds = Math.Max(0.1f, jumpBoostSeconds);
+            jumpFallSeconds = Math.Max(0.2f, jumpFallSeconds);
+            jumpRespawnOffset = Math.Max(0f, jumpRespawnOffset);
         }
     }
 
@@ -124,10 +142,14 @@ namespace MixVerse.Game.Model.Kart
         public float TurboSeconds;
         public float SlowedSeconds;
         public float InvincibleSeconds;
+        public float Height;
+        public float VerticalSpeed;
         public float FinishTime = -1f;
         public KartItem Item;
         public bool IsSpinning;
         public bool IsCourseOut;
+        public bool IsAirborne;
+        public bool IsFalling;
         public bool Finished => FinishTime >= 0f;
     }
 }
