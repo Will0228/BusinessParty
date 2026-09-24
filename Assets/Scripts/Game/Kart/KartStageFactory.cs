@@ -48,6 +48,9 @@ namespace MixVerse.Game.Kart
             var cameraData = _stage.Camera.GetUniversalAdditionalCameraData();
             cameraData.renderPostProcessing = true;
             cameraData.antialiasing = AntialiasingMode.SubpixelMorphologicalAntiAliasing;
+            // 水溜りの画面空間反射がシーンの色と深度を読むため、品質設定に関わらず生成させる
+            cameraData.requiresColorOption = CameraOverrideOption.On;
+            cameraData.requiresDepthOption = CameraOverrideOption.On;
             _stage.ChaseCamera = new KartChaseCamera(camera.transform);
             var atmosphere = root.AddComponent<KartAtmosphereView>();
             var skybox = _assets != null ? _assets.skybox : null;
