@@ -232,11 +232,13 @@ namespace MixVerse.Game.Model.Kart
             if (spinning)
             {
                 racer.IsCourseOut = false;
+                racer.IsBlownUp = false;
                 racer.DisabledSeconds = _settings.spinSeconds;
             }
             else
             {
                 racer.IsCourseOut = severe || Math.Abs(racer.Lane) > _settings.roadHalfWidth - _settings.knockbackEdgeMargin;
+                racer.IsBlownUp = severe;
                 racer.DisabledSeconds = _settings.knockbackFlightSeconds + _settings.knockbackRecoverySeconds;
             }
             racer.Speed = 0f;

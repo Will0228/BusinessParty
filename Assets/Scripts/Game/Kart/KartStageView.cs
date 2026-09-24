@@ -111,8 +111,10 @@ namespace MixVerse.Game.Kart
                     {
                         var fallT = Mathf.Clamp01((elapsed - _settings.knockbackFlightSeconds * 0.4f) / (_settings.knockbackFlightSeconds * 0.6f));
                         var spinProgress = elapsed / _settings.knockbackFlightSeconds;
-                        knockbackOffset = new Vector3(side * flightT * flightT * 11f, Mathf.Sin(flightT * Mathf.PI * 0.6f) * 8f - fallT * fallT * 13f, -flightT * 4f);
-                        knockbackTumble = Quaternion.Euler(spinProgress * 760f, 0f, spinProgress * 560f * side);
+                        var flightScale = racer.IsBlownUp ? _settings.explosionFlightScale : 1f;
+                        var tumbleScale = racer.IsBlownUp ? _settings.explosionTumbleScale : 1f;
+                        knockbackOffset = new Vector3(side * flightT * flightT * 11f, Mathf.Sin(flightT * Mathf.PI * 0.6f) * 8f - fallT * fallT * 13f, -flightT * 4f) * flightScale;
+                        knockbackTumble = Quaternion.Euler(spinProgress * 760f * tumbleScale, 0f, spinProgress * 560f * side * tumbleScale);
                     }
                     else
                     {

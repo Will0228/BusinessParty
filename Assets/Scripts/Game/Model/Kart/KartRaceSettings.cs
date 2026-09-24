@@ -34,6 +34,8 @@ namespace MixVerse.Game.Model.Kart
         public float slipResponseSeconds = 10f;
         public float rocketSpeed = 55f;
         public float explosionRadius = 4.5f;
+        public float explosionFlightScale = 1.7f;
+        public float explosionTumbleScale = 1.2f;
         public float paperLifetime = 14f;
         public float paperEffectSeconds = 2.2f;
         public float cpuPaperSlowSeconds = 3f;
@@ -89,6 +91,8 @@ namespace MixVerse.Game.Model.Kart
             slipResponseSeconds = Math.Max(1f, slipResponseSeconds);
             rocketSpeed = Math.Max(30f, rocketSpeed);
             explosionRadius = Math.Max(1f, explosionRadius);
+            explosionFlightScale = Math.Max(0.1f, explosionFlightScale);
+            explosionTumbleScale = Math.Max(0.1f, explosionTumbleScale);
             paperLifetime = Math.Max(1f, paperLifetime);
             paperEffectSeconds = Math.Max(0.5f, paperEffectSeconds);
             cpuPaperSlowSeconds = Math.Max(0.1f, cpuPaperSlowSeconds);
@@ -144,6 +148,7 @@ namespace MixVerse.Game.Model.Kart
         public KartItem Item;
         public bool IsSpinning;
         public bool IsCourseOut;
+        public bool IsBlownUp;
         public bool IsAirborne;
         public bool IsFalling;
         public bool Finished => FinishTime >= 0f;

@@ -45,6 +45,7 @@ namespace MixVerse.Game.Model.Kart
             racer.IsAirborne = false;
             racer.IsSpinning = false;
             racer.IsCourseOut = false;
+            racer.IsBlownUp = false;
             racer.VerticalSpeed = Math.Min(0f, racer.VerticalSpeed);
             racer.DisabledSeconds = _settings.jumpFallSeconds;
             racer.Speed = 0f;
