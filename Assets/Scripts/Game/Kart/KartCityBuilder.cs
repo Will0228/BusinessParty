@@ -22,6 +22,7 @@ namespace MixVerse.Game.Kart
         private const int FacadeCells = 32;
         private const float BucketSize = 40f;
         private const float ChasmDepth = 70f;
+        private const int PuddleSeed = 2611;
         private static readonly int FaceColorId = Shader.PropertyToID("_FaceColor");
         private readonly KartStageView _stage;
         private readonly KartRaceSettings _settings;
@@ -77,6 +78,7 @@ namespace MixVerse.Game.Kart
             _rightClearance = Clearances(1);
             CreateFacades();
             BuildRoad();
+            BuildPuddles();
             BuildGround();
             BuildTunnel();
             BuildChasm();
@@ -111,6 +113,29 @@ namespace MixVerse.Game.Kart
                 Wall("Curb", curb, 0f, _end, s * (halfWidth + 0.25f), 0f, SidewalkHeight, s, HasRoad);
                 Wall("Curb neon", _materials.Unlit(s < 0 ? _neonCyan : _neonMagenta), 0f, _end, s * (halfWidth + 0.24f), 0.07f, 0.12f, s, HasRoad);
                 Surface("Sidewalk", sidewalk, 0f, _end, _ => s * (halfWidth + 0.25f), d => s * (halfWidth + (InTunnel(d, 0f) ? 1f : SidewalkWidth)), SidewalkHeight, HasRoad);
+            }
+        }
+
+        // 雨の路面らしく車線上に水溜りを散らす。水が流れる坂道、屋根のあるトンネル、ジャンプ台の周辺には置かない
+        private void BuildPuddles()
+        {
+            var puddles = new KartPuddleFactory(_stage, _assets != null ? _assets.skybox : null);
+            // 街並みの乱数列を変えないよう、水溜りは専用の乱数で並べる
+            var random = new Random(PuddleSeed);
+            var halfWidth = _settings.roadHalfWidth;
+            for (var d = 16f; d < _settings.courseLength - 12f; d += 12f + (float)random.NextDouble() * 26f)
+            {
+                var count = random.NextDouble() < 0.35 ? 2 : 1;
+                for (var i = 0; i < count; i++)
+                {
+                    var along = d + i * (2f + (float)random.NextDouble() * 3f);
+                    var length = 3.5f + (float)random.NextDouble() * 6f;
+                    var width = Mathf.Min(2.4f + (float)random.NextDouble() * 4f, halfWidth);
+                    var lane = ((float)random.NextDouble() * 2f - 1f) * (halfWidth - width * 0.5f - 0.3f);
+                    var seed = (float)random.NextDouble();
+                    if (!IsFlat(along, length) || InTunnel(along, length) || _jump.Near(along, length + 4f)) continue;
+                    puddles.Create(Bucket(along), along, lane, new Vector2(width, length), seed);
+                }
             }
         }
 
@@ -713,6 +738,9 @@ namespace MixVerse.Game.Kart
         }
 
         private bool HasRoad(float distance) => !_jump.InGap(distance);
+
+        private bool IsFlat(float distance, float length)
+            => Mathf.Abs(_stage.Point(distance + length).y - _stage.Point(distance - length).y) < 0.05f;
 
         private bool InTunnel(float distance, float margin) => distance > _tunnelStart - margin && distance < _tunnelEnd + margin;
 
