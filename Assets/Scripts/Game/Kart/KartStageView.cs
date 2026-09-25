@@ -40,6 +40,7 @@ namespace MixVerse.Game.Kart
         public AudioClip DriftClip;
         public AudioClip RocketFireClip;
         public AudioSource BgmAudio;
+        public AudioSource DriftAudio;
         public ParticleSystem[] DriftSparks;
         public RectTransform[] PaperBlinds;
         public readonly List<Object> GeneratedAssets = new List<Object>();
@@ -82,7 +83,7 @@ namespace MixVerse.Game.Kart
         public void ToggleDebug() => _debug = !_debug;
         public void PlayDriftSe()
         {
-            if (DriftClip != null) Audio.PlayOneShot(DriftClip, 0.6f);
+            if (DriftClip != null && !DriftAudio.isPlaying) DriftAudio.PlayOneShot(DriftClip, 0.6f);
         }
         public void PlayRocketFireSe()
         {

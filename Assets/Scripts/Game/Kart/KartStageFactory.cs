@@ -67,6 +67,9 @@ namespace MixVerse.Game.Kart
             _stage.AlertClip = Tone("Attack confirmed", 1100f, 0.12f);
             _stage.DriftClip = _assets != null ? _assets.driftSeClip : null;
             _stage.RocketFireClip = _assets != null ? _assets.rocketFireSeClip : null;
+            // ドリフトSE専用のAudioSource。isPlayingで再生中かどうかを判定し、再生中は再トリガーしない
+            _stage.DriftAudio = camera.AddComponent<AudioSource>();
+            _stage.DriftAudio.playOnAwake = false;
             _stage.BgmAudio = camera.AddComponent<AudioSource>();
             _stage.BgmAudio.playOnAwake = false;
             _stage.BgmAudio.loop = true;
