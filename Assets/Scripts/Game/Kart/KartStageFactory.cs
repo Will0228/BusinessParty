@@ -234,6 +234,8 @@ namespace MixVerse.Game.Kart
         {
             _stage.Karts = new Transform[3];
             _stage.BodyRenderers = new MeshRenderer[3][];
+            _stage.StarAuras = new ParticleSystem[3];
+            _stage.StarLights = new Light[3];
             _stage.Tags = new Transform[3];
             _stage.TagLabels = new TextMeshPro[3];
             var colors = new[] { _cyan, _gold, _coral };
@@ -262,6 +264,8 @@ namespace MixVerse.Game.Kart
                 }
                 Headlamp(kart);
                 _stage.BodyRenderers[i] = kart.GetComponentsInChildren<MeshRenderer>();
+                _stage.StarAuras[i] = StarAuraEmitter(kart);
+                _stage.StarLights[i] = StarLight(kart);
                 if (i == (int)RacerId.Player)
                     _stage.DriftSparks = new[] { DriftSparkEmitter(kart, -1f), DriftSparkEmitter(kart, 1f) };
                 var label = WorldLabel(_stage.transform, "", colors[i], 7f);
@@ -282,6 +286,70 @@ namespace MixVerse.Game.Kart
             light.range = 32f;
             light.spotAngle = 70f;
             light.shadows = LightShadows.None;
+        }
+
+        private Light StarLight(Transform kart)
+        {
+            var light = new GameObject("Star light", typeof(Light)).GetComponent<Light>();
+            light.transform.SetParent(kart, false);
+            light.transform.localPosition = new Vector3(0f, 0.9f, 0f);
+            light.type = LightType.Point;
+            light.range = 7f;
+            light.intensity = 0f;
+            light.shadows = LightShadows.None;
+            return light;
+        }
+
+        // 昇給辞令の無敵中にカートの周りを渦巻くように舞う虹色の光の粒。色相はライフタイム全体でループさせている
+        private ParticleSystem StarAuraEmitter(Transform parent)
+        {
+            var obj = new GameObject("Star aura");
+            obj.transform.SetParent(parent, false);
+            obj.transform.localPosition = new Vector3(0f, 0.55f, 0f);
+            var particles = obj.AddComponent<ParticleSystem>();
+            particles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            var main = particles.main;
+            main.loop = true;
+            main.playOnAwake = false;
+            main.startLifetime = new ParticleSystem.MinMaxCurve(0.7f, 1.1f);
+            main.startSpeed = new ParticleSystem.MinMaxCurve(0.4f, 0.9f);
+            main.startSize = new ParticleSystem.MinMaxCurve(0.18f, 0.34f);
+            main.startColor = Color.white;
+            main.gravityModifier = 0f;
+            main.simulationSpace = ParticleSystemSimulationSpace.Local;
+            main.maxParticles = 140;
+            var emission = particles.emission;
+            emission.enabled = false;
+            emission.rateOverTime = 55f;
+            var shape = particles.shape;
+            shape.shapeType = ParticleSystemShapeType.Circle;
+            shape.radius = 1.5f;
+            shape.rotation = new Vector3(-90f, 0f, 0f);
+            shape.arc = 360f;
+            var velocity = particles.velocityOverLifetime;
+            velocity.enabled = true;
+            velocity.space = ParticleSystemSimulationSpace.Local;
+            velocity.orbitalY = new ParticleSystem.MinMaxCurve(220f);
+            velocity.y = new ParticleSystem.MinMaxCurve(1.1f, 2.2f);
+            var colors = particles.colorOverLifetime;
+            colors.enabled = true;
+            var gradient = new Gradient();
+            gradient.SetKeys(new[]
+            {
+                new GradientColorKey(Color.red, 0f), new GradientColorKey(Color.yellow, 0.2f),
+                new GradientColorKey(Color.green, 0.4f), new GradientColorKey(Color.cyan, 0.6f),
+                new GradientColorKey(Color.blue, 0.8f), new GradientColorKey(Color.magenta, 1f)
+            }, new[] { new GradientAlphaKey(1f, 0f), new GradientAlphaKey(0.9f, 0.6f), new GradientAlphaKey(0f, 1f) });
+            colors.color = gradient;
+            var size = particles.sizeOverLifetime;
+            size.enabled = true;
+            size.size = new ParticleSystem.MinMaxCurve(1f, AnimationCurve.EaseInOut(0f, 0.3f, 1f, 1f));
+            var renderer = particles.GetComponent<ParticleSystemRenderer>();
+            renderer.sharedMaterial = _explosions.Glow;
+            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            renderer.receiveShadows = false;
+            particles.Play();
+            return particles;
         }
 
         // 後輪の接地点から地面との摩擦火花を飛ばす。色は KartStageView がドリフトの溜め具合に応じて毎フレーム切り替える
@@ -334,7 +402,7 @@ namespace MixVerse.Game.Kart
         {
             if (obj.Kind == TrackObjectKind.Explosion)
             {
-                var severe = obj.Item == KartItem.Rocket || obj.Item == KartItem.Mine;
+                var severe = obj.Item == KartItem.Rocket || obj.Item == KartItem.Mine || obj.Item == KartItem.SalaryOrder;
                 var effect = _explosions.Create(severe, obj.Id);
                 if (severe)
                 {

@@ -12,6 +12,8 @@ namespace MixVerse.Game.Kart
         public AudioListener Listener;
         public Transform[] Karts;
         public MeshRenderer[][] BodyRenderers;
+        public ParticleSystem[] StarAuras;
+        public Light[] StarLights;
         public Transform[] Tags;
         public TextMeshPro[] TagLabels;
         public TextMeshProUGUI Ranking;
@@ -140,9 +142,9 @@ namespace MixVerse.Game.Kart
             foreach (var renderer in renderers)
             {
                 var local = renderer.transform.localPosition;
-                var hue = Mathf.Repeat((local.x + local.y * 1.6f) * 0.4f + time * 1.4f, 1f);
+                var hue = Mathf.Repeat((local.x + local.y * 1.6f) * 0.4f + time * 2.2f, 1f);
                 renderer.GetPropertyBlock(_rainbowBlock);
-                _rainbowBlock.SetColor(BaseColorId, Color.HSVToRGB(hue, 0.9f, 1f));
+                _rainbowBlock.SetColor(BaseColorId, Color.HSVToRGB(hue, 0.95f, 1f));
                 renderer.SetPropertyBlock(_rainbowBlock);
             }
         }
@@ -155,6 +157,31 @@ namespace MixVerse.Game.Kart
                 _rainbowBlock.Clear();
                 renderer.SetPropertyBlock(_rainbowBlock);
             }
+        }
+        private void ApplyStarPower(int i, float time)
+        {
+            ApplyRainbowBody(BodyRenderers[i], time);
+            if (StarAuras != null && StarAuras[i] != null)
+            {
+                var emission = StarAuras[i].emission;
+                emission.enabled = true;
+            }
+            if (StarLights != null && StarLights[i] != null)
+            {
+                var light = StarLights[i];
+                light.color = Color.HSVToRGB(Mathf.Repeat(time * 2.2f, 1f), 0.6f, 1f);
+                light.intensity = 9f + Mathf.Sin(time * 18f) * 3f;
+            }
+        }
+        private void ClearStarPower(int i)
+        {
+            ClearRainbowBody(BodyRenderers[i]);
+            if (StarAuras != null && StarAuras[i] != null)
+            {
+                var emission = StarAuras[i].emission;
+                emission.enabled = false;
+            }
+            if (StarLights != null && StarLights[i] != null) StarLights[i].intensity = 0f;
         }
 
         public void Render(KartRace race, float gain, bool ready, float countdown, bool midi)
@@ -244,8 +271,8 @@ namespace MixVerse.Game.Kart
                 Karts[i].localPosition = kartPosition;
                 Karts[i].localRotation = kartRotation;
                 Karts[i].localScale = Vector3.one;
-                if (racer.InvincibleSeconds > 0f) ApplyRainbowBody(BodyRenderers[i], race.Time);
-                else ClearRainbowBody(BodyRenderers[i]);
+                if (racer.InvincibleSeconds > 0f) ApplyStarPower(i, race.Time);
+                else ClearStarPower(i);
                 Tags[i].gameObject.SetActive(race.Phase == RacePhase.Racing && i != (int)RacerId.Player);
                 Tags[i].localPosition = position + Vector3.up * (3.2f + racer.Height);
                 Tags[i].rotation = Camera.transform.rotation;

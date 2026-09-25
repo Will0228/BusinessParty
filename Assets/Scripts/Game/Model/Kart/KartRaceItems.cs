@@ -245,6 +245,12 @@ namespace MixVerse.Game.Model.Kart
             racer.Speed = 0f;
             return true;
         }
+        private bool StarKnockback(RacerState attacker, RacerState victim)
+        {
+            if (victim.DisabledSeconds > 0f || !Disable(victim, false, true)) return false;
+            AddObject(TrackObjectKind.Explosion, victim.Distance, victim.Lane, 0.6f, attacker.Id, KartItem.SalaryOrder);
+            return true;
+        }
         private float DistanceSquared(float a, float x, float b, float y) => (a - b) * (a - b) + (x - y) * (x - y);
     }
 }

@@ -463,6 +463,43 @@ namespace MixVerse.Game.Model.Tests
             Assert.That(race.Player.InvincibleSeconds, Is.GreaterThan(0f));
             Assert.That(race.Objects.Exists(value => value.Kind == TrackObjectKind.Explosion && value.Item == KartItem.Mine), Is.True);
         }
+        [Test] public void SalaryOrderKnocksBossAwayInsteadOfFailing()
+        {
+            var race = NewRace();
+            race.Objects.Clear();
+            race.Player.Lane = race.Boss.Lane;
+            race.Player.Distance = race.Boss.Distance;
+            race.Player.InvincibleSeconds = 5f;
+            race.Tick(0.02f, Forward());
+            Assert.That(race.Phase, Is.EqualTo(RacePhase.Racing));
+            Assert.That(race.Boss.DisabledSeconds, Is.GreaterThan(0f));
+            Assert.That(race.Boss.IsBlownUp, Is.True);
+            Assert.That(race.Objects.Exists(value => value.Kind == TrackObjectKind.Explosion && value.Item == KartItem.SalaryOrder), Is.True);
+        }
+        [Test] public void SalaryOrderKnocksJuniorAwayAndCountsAsAttack()
+        {
+            var race = NewRace();
+            race.Objects.Clear();
+            race.Player.Lane = race.Junior.Lane;
+            race.Player.Distance = race.Junior.Distance;
+            race.Player.InvincibleSeconds = 5f;
+            race.Tick(0.02f, Forward());
+            Assert.That(race.Junior.DisabledSeconds, Is.GreaterThan(0f));
+            Assert.That(race.Junior.IsBlownUp, Is.True);
+            Assert.That(race.Attacks, Is.EqualTo(1));
+        }
+        [Test] public void BossSalaryOrderKnocksPlayerAwayInsteadOfFailing()
+        {
+            var race = NewRace();
+            race.Objects.Clear();
+            race.Player.Lane = race.Boss.Lane;
+            race.Player.Distance = race.Boss.Distance;
+            race.Boss.InvincibleSeconds = 5f;
+            race.Tick(0.02f, Forward());
+            Assert.That(race.Phase, Is.EqualTo(RacePhase.Racing));
+            Assert.That(race.Player.DisabledSeconds, Is.GreaterThan(0f));
+            Assert.That(race.Player.IsBlownUp, Is.True);
+        }
         [Test] public void FixedStepGivesSameOutcomeAtDifferentFrameRates()
         {
             var a = NewRace(); var b = NewRace();
