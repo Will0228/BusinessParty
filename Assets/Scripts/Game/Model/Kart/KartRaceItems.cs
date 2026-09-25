@@ -64,15 +64,16 @@ namespace MixVerse.Game.Model.Kart
 
         private void AvoidObstacles(RacerState racer, float dt)
         {
-            if (racer.Finished || racer.DisabledSeconds > 0f) return;
-            var desired = racer.Id == RacerId.Boss ? -2f : 2f;
+            if (!CanChangeLane(racer)) return;
+            var desired = Lanes.CenterAt(_cpuLaneIndices[(int)racer.Id]);
             foreach (var obj in Objects)
             {
                 if (!obj.Active || obj.Distance < racer.Distance || obj.Distance - racer.Distance > 18f) continue;
                 if (obj.Kind == TrackObjectKind.ItemBox && racer.Item == KartItem.None && Math.Abs(obj.Lane - desired) < 2f) desired = obj.Lane;
                 if (obj.Kind == TrackObjectKind.Crate && Math.Abs(obj.Lane - desired) < 1.8f) desired = obj.Lane > 0f ? 0.8f : -0.8f;
             }
-            racer.Lane = MoveTowards(racer.Lane, desired, dt * 2f);
+            var roadEdge = _settings.roadHalfWidth - 0.7f;
+            racer.Lane = MoveTowards(racer.Lane, Clamp(desired, -roadEdge, roadEdge), dt * _settings.cpuLaneChangeSpeed);
         }
 
         private void UpdateItems(float dt, bool useItem)

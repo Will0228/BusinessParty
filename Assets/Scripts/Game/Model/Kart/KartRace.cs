@@ -24,8 +24,8 @@ namespace MixVerse.Game.Model.Kart
         public RacerState[] Racers { get; } =
         {
             new RacerState { Id = RacerId.Player, Lane = 0f },
-            new RacerState { Id = RacerId.Boss, Lane = -4f },
-            new RacerState { Id = RacerId.Junior, Lane = 4f }
+            new RacerState { Id = RacerId.Boss },
+            new RacerState { Id = RacerId.Junior }
         };
         public RacerState Player => Racers[0];
         public RacerState Boss => Racers[1];
@@ -55,10 +55,12 @@ namespace MixVerse.Game.Model.Kart
             _settings = settings;
             _settings.Validate();
             _layout = new KartCourseLayout(_settings.courseLength);
+            Lanes = new KartCourseLanes(_settings.roadHalfWidth);
             Jump = new KartJumpRamp(_settings);
             _random = new Random(seed);
             ScheduleSlip();
             BuildObjects();
+            InitializeCpuLanes();
             if (_settings.debugUnlimitedItem != KartItem.None) Player.Item = _settings.debugUnlimitedItem;
         }
 
@@ -156,6 +158,8 @@ namespace MixVerse.Game.Model.Kart
                 if (_juniorPassingSide == 0) _juniorPassingSide = PassingSide();
             }
             else _blockingTime = 0f;
+            UpdateCpuLaneTarget(Boss, dt);
+            UpdateCpuLaneTarget(Junior, dt);
             AvoidObstacles(Boss, dt);
             UpdateJuniorLane(dt);
             Move(Player, Clamp(input.Gain, 0f, 1f) * 100f * _direction, dt);
@@ -216,6 +220,7 @@ namespace MixVerse.Game.Model.Kart
 
         private void UpdateJuniorLane(float dt)
         {
+            if (!CanChangeLane(Junior)) return;
             if (_juniorPassingSide != 0)
             {
                 var roadEdge = _settings.roadHalfWidth - 0.7f;

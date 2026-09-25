@@ -11,6 +11,7 @@ namespace MixVerse.Game
         private readonly GameView _view;
         private readonly KartRaceSettings _settings;
         private readonly KartInputReader _input;
+        private readonly System.Random _raceSeeds = new System.Random();
         private KartRace _race;
         private float _lastTick;
         private float _countdown;
@@ -28,7 +29,7 @@ namespace MixVerse.Game
 
         public void Prepare()
         {
-            _race = new KartRace(_settings);
+            _race = new KartRace(_settings, _raceSeeds.Next());
             _input.Reset();
             _ready = true;
             _countdown = 0f;
@@ -54,7 +55,7 @@ namespace MixVerse.Game
         {
             if (!_visible || _countdown > 0f) return;
             if (!_ready && _race.Phase == RacePhase.Racing) return;
-            _race = new KartRace(_settings);
+            _race = new KartRace(_settings, _raceSeeds.Next());
             _view.ResetRace();
             _ready = false;
             _countdown = 3f;

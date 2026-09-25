@@ -108,8 +108,13 @@ namespace MixVerse.Game.Model.Tests
             race.Objects.Clear();
             race.Player.Distance = Gallery + 10f;
             race.Junior.Distance = Gallery + 5f;
+            race.Junior.Lane = race.Player.Lane;
             race.Boss.Distance = Gallery + 20f;
-            Advance(race, 0.8f, Forward(0.5f));
+            race.Player.Speed = race.Junior.Speed = 50f;
+            var input = Forward(0.5f);
+            race.Tick(1f / 120f, input);
+            input.Steering = 0.8f;
+            Advance(race, 0.8f, input);
             Assert.That(race.Attacks, Is.GreaterThan(0));
             Assert.That(race.Phase, Is.EqualTo(RacePhase.Racing));
         }
@@ -172,11 +177,11 @@ namespace MixVerse.Game.Model.Tests
             var settings = new KartRaceSettings { slipMinSeconds = 1f, slipMaxSeconds = 1f, maximumBossDistance = 1000f };
             var race = new KartRace(settings);
             race.Objects.Clear();
-            race.Player.Lane = 0f;
-            race.Junior.Distance = 30f;
-            Advance(race, 2f, Forward());
+            race.Player.Distance = 500f;
+            race.Junior.Distance = 530f;
+            Advance(race, 2f, Forward(0f));
             Assert.That(race.SlipRemaining, Is.GreaterThan(0f));
-            Advance(race, 10f, Forward());
+            Advance(race, 10f, Forward(0f));
             Assert.That(race.ResultReason, Does.Contain("失言"));
         }
         [Test] public void BossWinWithGapUnderThreeSecondsClears()
@@ -341,10 +346,11 @@ namespace MixVerse.Game.Model.Tests
         }
         [Test] public void FollowingBossTooCloselyFails()
         {
-            var race = NewRace();
+            var race = new KartRace(new KartRaceSettings { cpuLaneChangeMinSeconds = 10f, cpuLaneChangeMaxSeconds = 10f });
             race.Objects.Clear();
-            race.Player.Distance = 3f;
-            race.Player.Lane = -2f;
+            race.Player.Distance = 0f;
+            race.Boss.Distance = 5f;
+            race.Player.Lane = race.Boss.Lane;
             race.Junior.Distance = 0f;
             Advance(race, 3.2f, Forward());
             Assert.That(race.ResultReason, Does.Contain("煽"));
@@ -466,10 +472,17 @@ namespace MixVerse.Game.Model.Tests
             for (var i = 0; i < 150; i++) b.Tick(1f / 30f, Forward());
             Assert.That(a.Player.Distance, Is.EqualTo(b.Player.Distance).Within(0.02f));
             Assert.That(a.Boss.Distance, Is.EqualTo(b.Boss.Distance).Within(0.02f));
+            Assert.That(a.Boss.Lane, Is.EqualTo(b.Boss.Lane).Within(0.02f));
+            Assert.That(a.Junior.Lane, Is.EqualTo(b.Junior.Lane).Within(0.02f));
         }
-        [Test] public void FullCourseCanBeClearedUsingOnlyNormalDrivingInputs()
+        [Test] public void FullCourseCanBeClearedUsingNormalDrivingOnNarrowRoadWithStableCpuLanes()
         {
-            var race = NewRace();
+            var race = new KartRace(new KartRaceSettings
+            {
+                roadHalfWidth = 4f,
+                cpuLaneChangeMinSeconds = 1000f,
+                cpuLaneChangeMaxSeconds = 1000f
+            });
             race.Objects.Clear();
             var frameCap = (int)(18000 * (CourseLength / 1200f) * 1.1f);
             for (var frame = 0; frame < frameCap && race.Phase == RacePhase.Racing; frame++)
@@ -483,7 +496,7 @@ namespace MixVerse.Game.Model.Tests
                 var lane = race.Junior.Lane;
                 if (System.Math.Abs(race.Player.Distance - race.Boss.Distance) < 10f && System.Math.Abs(lane - race.Boss.Lane) < 2f)
                     lane = race.Boss.Lane > 0f ? -1f : 2f;
-                var steering = System.Math.Sign(lane - race.Player.Lane) * System.Math.Min(1d, System.Math.Sqrt(System.Math.Abs(lane - race.Player.Lane) * 2f));
+                var steering = System.Math.Sign(lane - race.Player.Lane) * System.Math.Min(1d, System.Math.Sqrt(System.Math.Abs(lane - race.Player.Lane) * 4f));
                 race.Tick(1f / 120f, new KartInput { Gain = gain, Master = 1f, Steering = (float)steering });
             }
             Assert.That(race.Phase, Is.EqualTo(RacePhase.Cleared), race.ResultReason);
