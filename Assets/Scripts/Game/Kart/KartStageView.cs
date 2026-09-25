@@ -44,9 +44,11 @@ namespace MixVerse.Game.Kart
         public AudioClip BlowAwayClip;
         public AudioClip ItemGetClip;
         public AudioClip DistanceAlertClip;
+        public AudioClip EngineClip;
         public AudioSource BgmAudio;
         public AudioSource DriftAudio;
         public AudioSource DistanceAlertAudio;
+        public AudioSource EngineAudio;
         public ParticleSystem[] DriftSparks;
         public RectTransform[] PaperBlinds;
         public readonly List<Object> GeneratedAssets = new List<Object>();
@@ -64,8 +66,6 @@ namespace MixVerse.Game.Kart
         public Transform CityRoot;
         public float RoadHalfWidth => _settings.roadHalfWidth;
         private float _lastSlip;
-        private float _visualYaw;
-        private float _lastPlayerLane;
         private int _lastAttacks;
         private RacePhase _lastPhase;
         private readonly List<int> _expired = new List<int>();
@@ -79,6 +79,12 @@ namespace MixVerse.Game.Kart
         private const float BossTurnTime = 0.85f;
         private const float JumpWarningDistance = 70f;
         private const float BossCrashTime = 1.55f;
+        private const float EngineSeMinSpeed = 1f;
+        private const float EngineSeMaxSpeed = 100f;
+        private const float EngineSeMinVolume = 0.25f;
+        private const float EngineSeMaxVolume = 0.7f;
+        private const float EngineSeMinPitch = 0.85f;
+        private const float EngineSeMaxPitch = 1.6f;
         private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
         private readonly MaterialPropertyBlock _rainbowBlock = new MaterialPropertyBlock();
         private KartRaceSettings _settings;
@@ -150,7 +156,6 @@ namespace MixVerse.Game.Kart
 
         public void Render(KartRace race, float gain, bool ready, float countdown, bool midi)
         {
-            UpdateVisualYaw(race);
             for (var i = 0; i < race.Racers.Length; i++)
             {
                 var racer = race.Racers[i];
@@ -207,7 +212,7 @@ namespace MixVerse.Game.Kart
                 }
                 if (racer.IsFalling) knockbackTumble = Quaternion.identity;
                 var kartPosition = position + Vector3.up * (0.45f + racer.Height) + trackRotation * knockbackOffset;
-                var yaw = i == (int)RacerId.Player && racer.DisabledSeconds <= 0f ? _visualYaw : 0f;
+                var yaw = i == (int)RacerId.Player && racer.DisabledSeconds <= 0f ? racer.HeadingOffset * Mathf.Rad2Deg : 0f;
                 var kartRotation = trackRotation * Quaternion.Euler(JumpPitch(race, racer), spin + yaw, 0f) * knockbackTumble;
                 if (race.ResultScene == FailureScene.BossHit && i == (int)RacerId.Boss)
                 {
@@ -259,6 +264,7 @@ namespace MixVerse.Game.Kart
             RenderExplosionImpact();
             RenderPaperBlind(race);
             UpdateDriftSparks(race);
+            UpdateEngineSe(race);
             var ranks = new string[3];
             foreach (var racer in race.Racers)
             {
@@ -344,17 +350,6 @@ namespace MixVerse.Game.Kart
                 return -Mathf.Atan2(racer.VerticalSpeed, forward) * Mathf.Rad2Deg;
             }
             return race.Jump.OnRamp(racer.Distance) ? -Mathf.Atan2(race.Jump.Height, race.Jump.Length) * Mathf.Rad2Deg : 0f;
-        }
-
-        private void UpdateVisualYaw(KartRace race)
-        {
-            var deltaTime = Mathf.Max(Time.deltaTime, 0.0001f);
-            var forwardSpeed = Mathf.Max(3f, Mathf.Abs(race.Player.Speed) * _settings.metersPerSpeedUnit);
-            var steer = Mathf.Atan2(race.Player.Lane - _lastPlayerLane, forwardSpeed * deltaTime) * Mathf.Rad2Deg;
-            _lastPlayerLane = race.Player.Lane;
-            var target = Mathf.Clamp(steer, -14f, 14f) * race.Direction + (race.IsDrifting ? race.DriftDirection * 24f : 0f);
-            if (race.Phase != RacePhase.Racing) target = 0f;
-            _visualYaw = Mathf.Lerp(_visualYaw, target, 1f - Mathf.Exp(-7f * deltaTime));
         }
 
         private void RenderCamera(KartRace race)
@@ -545,6 +540,24 @@ namespace MixVerse.Game.Kart
             }
         }
 
+        private void UpdateEngineSe(KartRace race)
+        {
+            if (EngineClip == null) return;
+            var speed = Mathf.Abs(race.Player.Speed);
+            var running = race.Phase == RacePhase.Racing && speed > EngineSeMinSpeed;
+            if (running)
+            {
+                if (!EngineAudio.isPlaying) EngineAudio.Play();
+                var speedRatio = Mathf.Clamp01(speed / EngineSeMaxSpeed);
+                EngineAudio.volume = Mathf.Lerp(EngineSeMinVolume, EngineSeMaxVolume, speedRatio);
+                EngineAudio.pitch = Mathf.Lerp(EngineSeMinPitch, EngineSeMaxPitch, speedRatio);
+            }
+            else if (EngineAudio.isPlaying)
+            {
+                EngineAudio.Stop();
+            }
+        }
+
         private void RenderExplosionImpact()
         {
             var impact = 0f;
@@ -605,8 +618,6 @@ namespace MixVerse.Game.Kart
             _finishedExplosions.Clear();
             ChaseCamera.Reset();
             Camera.fieldOfView = ChaseCamera.FieldOfView;
-            _visualYaw = 0f;
-            _lastPlayerLane = 0f;
             _lastSlip = 0f;
             _lastAttacks = 0;
             _lastPhase = RacePhase.Racing;

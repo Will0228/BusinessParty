@@ -71,6 +71,7 @@ namespace MixVerse.Game.Kart
             _stage.BlowAwayClip = _assets != null ? _assets.blowAwaySeClip : null;
             _stage.ItemGetClip = _assets != null ? _assets.itemGetSeClip : null;
             _stage.DistanceAlertClip = _assets != null ? _assets.distanceAlertSeClip : null;
+            _stage.EngineClip = _assets != null ? _assets.engineSeClip : null;
             // ドリフトSE専用のAudioSource。isPlayingで再生中かどうかを判定し、再生中は再トリガーしない
             _stage.DriftAudio = camera.AddComponent<AudioSource>();
             _stage.DriftAudio.playOnAwake = false;
@@ -79,6 +80,11 @@ namespace MixVerse.Game.Kart
             _stage.DistanceAlertAudio.playOnAwake = false;
             _stage.DistanceAlertAudio.loop = true;
             _stage.DistanceAlertAudio.clip = _stage.DistanceAlertClip;
+            // エンジンSE専用のAudioSource。走行中はループ再生し、速度に応じて音量とピッチを変える
+            _stage.EngineAudio = camera.AddComponent<AudioSource>();
+            _stage.EngineAudio.playOnAwake = false;
+            _stage.EngineAudio.loop = true;
+            _stage.EngineAudio.clip = _stage.EngineClip;
             _stage.BgmAudio = camera.AddComponent<AudioSource>();
             _stage.BgmAudio.playOnAwake = false;
             _stage.BgmAudio.loop = true;

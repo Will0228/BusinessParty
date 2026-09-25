@@ -52,3 +52,4 @@ MonoBehaviour:
   blowAwaySeClip: {fileID: 8300000, guid: febedca68f92f453782b721e830a9c87, type: 3}
   itemGetSeClip: {fileID: 8300000, guid: 9c6ace51c40d447ab8eae16406765bf8, type: 3}
   distanceAlertSeClip: {fileID: 8300000, guid: d6a9c2814e1b44e4ca639cfae6276007, type: 3}
+  engineSeClip: {fileID: 8300000, guid: 078426e3c28de4e21a23a3f5c96ea10a, type: 3}
