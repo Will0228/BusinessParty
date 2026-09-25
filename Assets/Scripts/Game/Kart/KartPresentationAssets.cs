@@ -20,5 +20,6 @@ namespace MixVerse.Game.Kart
         public AudioClip itemGetSeClip;
         public AudioClip distanceAlertSeClip;
         public AudioClip engineSeClip;
+        public AudioClip gameOverSeClip;
     }
 }

@@ -72,6 +72,7 @@ namespace MixVerse.Game.Kart
             _stage.ItemGetClip = _assets != null ? _assets.itemGetSeClip : null;
             _stage.DistanceAlertClip = _assets != null ? _assets.distanceAlertSeClip : null;
             _stage.EngineClip = _assets != null ? _assets.engineSeClip : null;
+            _stage.GameOverClip = _assets != null ? _assets.gameOverSeClip : null;
             // ドリフトSE専用のAudioSource。isPlayingで再生中かどうかを判定し、再生中は再トリガーしない
             _stage.DriftAudio = camera.AddComponent<AudioSource>();
             _stage.DriftAudio.playOnAwake = false;

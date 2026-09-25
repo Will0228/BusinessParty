@@ -45,6 +45,7 @@ namespace MixVerse.Game.Kart
         public AudioClip ItemGetClip;
         public AudioClip DistanceAlertClip;
         public AudioClip EngineClip;
+        public AudioClip GameOverClip;
         public AudioSource BgmAudio;
         public AudioSource DriftAudio;
         public AudioSource DistanceAlertAudio;
@@ -337,7 +338,12 @@ namespace MixVerse.Game.Kart
             }
             if (race.SlipRemaining > _lastSlip + 1f) Audio.PlayOneShot(RadioClip, 0.6f);
             if (race.Attacks > _lastAttacks) Audio.PlayOneShot(AlertClip, 0.35f);
-            if (race.Phase != _lastPhase && race.Phase == RacePhase.Failed) Audio.PlayOneShot(RadioClip, 0.6f);
+            if (race.Phase != _lastPhase && race.Phase == RacePhase.Failed)
+            {
+                Audio.PlayOneShot(RadioClip, 0.6f);
+                if (GameOverClip != null) Audio.PlayOneShot(GameOverClip, 0.7f);
+                BgmAudio.Stop();
+            }
             _lastSlip = race.SlipRemaining;
             _lastAttacks = race.Attacks;
             _lastPhase = race.Phase;
@@ -624,6 +630,7 @@ namespace MixVerse.Game.Kart
             _lastAttacks = 0;
             _lastPhase = RacePhase.Racing;
             _lastPaperAttackSerial = 0;
+            if (BgmAudio.clip != null && !BgmAudio.isPlaying) BgmAudio.Play();
         }
 
         private void OnDestroy()
