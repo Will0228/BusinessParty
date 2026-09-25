@@ -214,7 +214,7 @@ namespace MixVerse.Game.Kart
                 }
                 if (racer.IsFalling) knockbackTumble = Quaternion.identity;
                 var kartPosition = position + Vector3.up * (0.45f + racer.Height) + trackRotation * knockbackOffset;
-                var yaw = i == (int)RacerId.Player && racer.DisabledSeconds <= 0f ? racer.HeadingOffset * Mathf.Rad2Deg : 0f;
+                var yaw = i == (int)RacerId.Player && racer.DisabledSeconds <= 0f ? racer.VisualHeadingOffset * Mathf.Rad2Deg : 0f;
                 var kartRotation = trackRotation * Quaternion.Euler(JumpPitch(race, racer), spin + yaw, 0f) * knockbackTumble;
                 if (race.ResultScene == FailureScene.BossHit && i == (int)RacerId.Boss)
                 {
