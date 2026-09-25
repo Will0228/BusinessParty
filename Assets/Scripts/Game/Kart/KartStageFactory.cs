@@ -66,6 +66,7 @@ namespace MixVerse.Game.Kart
             _stage.RadioClip = Tone("Radio alert", 620f, 0.35f);
             _stage.AlertClip = Tone("Attack confirmed", 1100f, 0.12f);
             _stage.DriftClip = _assets != null ? _assets.driftSeClip : null;
+            _stage.RocketFireClip = _assets != null ? _assets.rocketFireSeClip : null;
             _stage.BgmAudio = camera.AddComponent<AudioSource>();
             _stage.BgmAudio.playOnAwake = false;
             _stage.BgmAudio.loop = true;
@@ -315,6 +316,10 @@ namespace MixVerse.Game.Kart
                 if (severe) _explosions.AddGroundCracks(effect, obj.Distance, obj.Lane, obj.Id);
                 stage.Explosions.Add(obj.Id, effect);
                 return effect.transform;
+            }
+            if (obj.Kind == TrackObjectKind.Rocket)
+            {
+                stage.PlayRocketFireSe();
             }
             if (obj.Kind == TrackObjectKind.Mine)
             {

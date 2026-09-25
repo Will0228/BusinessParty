@@ -14,5 +14,6 @@ namespace MixVerse.Game.Kart
         public Material skybox;
         public AudioClip bgmClip;
         public AudioClip driftSeClip;
+        public AudioClip rocketFireSeClip;
     }
 }
