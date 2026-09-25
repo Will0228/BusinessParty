@@ -234,6 +234,8 @@ namespace MixVerse.Game.Kart
         {
             _stage.Karts = new Transform[3];
             _stage.BodyRenderers = new MeshRenderer[3][];
+            _stage.BodyMaterials = new Material[3][];
+            _stage.RainbowMaterial = _materials.Rainbow();
             _stage.StarAuras = new ParticleSystem[3];
             _stage.StarLights = new Light[3];
             _stage.Tags = new Transform[3];
@@ -263,7 +265,11 @@ namespace MixVerse.Game.Kart
                     Shape(kart, "Tail light", PrimitiveType.Cube, new Vector3(side * 0.55f, 0.12f, -1.26f), new Vector3(0.38f, 0.12f, 0.05f), new Color(4f, 0.12f, 0.08f));
                 }
                 Headlamp(kart);
-                _stage.BodyRenderers[i] = kart.GetComponentsInChildren<MeshRenderer>();
+                var bodyRenderers = kart.GetComponentsInChildren<MeshRenderer>();
+                _stage.BodyRenderers[i] = bodyRenderers;
+                var bodyMaterials = new Material[bodyRenderers.Length];
+                for (var r = 0; r < bodyRenderers.Length; r++) bodyMaterials[r] = bodyRenderers[r].sharedMaterial;
+                _stage.BodyMaterials[i] = bodyMaterials;
                 _stage.StarAuras[i] = StarAuraEmitter(kart);
                 _stage.StarLights[i] = StarLight(kart);
                 if (i == (int)RacerId.Player)

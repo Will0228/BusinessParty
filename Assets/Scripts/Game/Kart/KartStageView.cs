@@ -12,6 +12,8 @@ namespace MixVerse.Game.Kart
         public AudioListener Listener;
         public Transform[] Karts;
         public MeshRenderer[][] BodyRenderers;
+        public Material[][] BodyMaterials;
+        public Material RainbowMaterial;
         public ParticleSystem[] StarAuras;
         public Light[] StarLights;
         public Transform[] Tags;
@@ -88,8 +90,6 @@ namespace MixVerse.Game.Kart
         private const float EngineSeMaxVolume = 0.7f;
         private const float EngineSeMinPitch = 0.85f;
         private const float EngineSeMaxPitch = 1.6f;
-        private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
-        private MaterialPropertyBlock _rainbowBlock;
         private KartRaceSettings _settings;
         private bool _debug;
         private bool _worldLabelsHidden;
@@ -98,8 +98,6 @@ namespace MixVerse.Game.Kart
         private float _paperAttackStartedAt;
         private readonly string[] _sectionNames = { "01  市街地", "02  峠の上り", "03  ギャラリー", "04  トンネル", "05  連続ヘアピン", "06  ゴール前直線" };
         private readonly string[] _racerNames = { "あなた", "上司", "部下" };
-
-        private void Awake() => _rainbowBlock = new MaterialPropertyBlock();
 
         public void Initialize(KartRaceSettings settings) => _settings = settings;
         public void ToggleDebug() => _debug = !_debug;
@@ -136,31 +134,22 @@ namespace MixVerse.Game.Kart
             return Quaternion.LookRotation(Point(distance + 1f) - Point(Mathf.Max(0f, distance - 1f)), Vector3.up);
         }
 
-        private void ApplyRainbowBody(MeshRenderer[] renderers, float time)
+        private void ApplyRainbowBody(int i)
         {
-            if (renderers == null) return;
-            foreach (var renderer in renderers)
-            {
-                var local = renderer.transform.localPosition;
-                var hue = Mathf.Repeat((local.x + local.y * 1.6f) * 0.4f + time * 2.2f, 1f);
-                renderer.GetPropertyBlock(_rainbowBlock);
-                _rainbowBlock.SetColor(BaseColorId, Color.HSVToRGB(hue, 0.95f, 1f));
-                renderer.SetPropertyBlock(_rainbowBlock);
-            }
+            var renderers = BodyRenderers[i];
+            if (renderers == null || RainbowMaterial == null) return;
+            foreach (var renderer in renderers) renderer.sharedMaterial = RainbowMaterial;
         }
-        private void ClearRainbowBody(MeshRenderer[] renderers)
+        private void ClearRainbowBody(int i)
         {
-            if (renderers == null) return;
-            foreach (var renderer in renderers)
-            {
-                if (!renderer.HasPropertyBlock()) continue;
-                _rainbowBlock.Clear();
-                renderer.SetPropertyBlock(_rainbowBlock);
-            }
+            var renderers = BodyRenderers[i];
+            var materials = BodyMaterials?[i];
+            if (renderers == null || materials == null) return;
+            for (var r = 0; r < renderers.Length; r++) renderers[r].sharedMaterial = materials[r];
         }
         private void ApplyStarPower(int i, float time)
         {
-            ApplyRainbowBody(BodyRenderers[i], time);
+            ApplyRainbowBody(i);
             if (StarAuras != null && StarAuras[i] != null)
             {
                 var emission = StarAuras[i].emission;
@@ -169,13 +158,16 @@ namespace MixVerse.Game.Kart
             if (StarLights != null && StarLights[i] != null)
             {
                 var light = StarLights[i];
-                light.color = Color.HSVToRGB(Mathf.Repeat(time * 2.2f, 1f), 0.6f, 1f);
+                // HDRカラーにしてブルームで光り輝くようにする
+                var hdr = Color.HSVToRGB(Mathf.Repeat(time * 2.2f, 1f), 0.75f, 1f) * 2.5f;
+                hdr.a = 1f;
+                light.color = hdr;
                 light.intensity = 9f + Mathf.Sin(time * 18f) * 3f;
             }
         }
         private void ClearStarPower(int i)
         {
-            ClearRainbowBody(BodyRenderers[i]);
+            ClearRainbowBody(i);
             if (StarAuras != null && StarAuras[i] != null)
             {
                 var emission = StarAuras[i].emission;
