@@ -18,6 +18,7 @@ namespace MixVerse.Game.Kart
         public Light[] StarLights;
         public MeshRenderer[] RainbowRings;
         public ParticleSystem[] Sparkles;
+        public ParticleSystem[] Stars;
         public Transform[] Tags;
         public TextMeshPro[] TagLabels;
         public TextMeshProUGUI Ranking;
@@ -177,6 +178,11 @@ namespace MixVerse.Game.Kart
                 var emission = Sparkles[i].emission;
                 emission.enabled = true;
             }
+            if (Stars != null && Stars[i] != null)
+            {
+                var emission = Stars[i].emission;
+                emission.enabled = true;
+            }
         }
         private void ClearStarPower(int i)
         {
@@ -191,6 +197,11 @@ namespace MixVerse.Game.Kart
             if (Sparkles != null && Sparkles[i] != null)
             {
                 var emission = Sparkles[i].emission;
+                emission.enabled = false;
+            }
+            if (Stars != null && Stars[i] != null)
+            {
+                var emission = Stars[i].emission;
                 emission.enabled = false;
             }
         }

@@ -240,10 +240,13 @@ namespace MixVerse.Game.Kart
             _stage.StarLights = new Light[3];
             _stage.RainbowRings = new MeshRenderer[3];
             _stage.Sparkles = new ParticleSystem[3];
+            _stage.Stars = new ParticleSystem[3];
             _stage.Tags = new Transform[3];
             _stage.TagLabels = new TextMeshPro[3];
             var ringMesh = RingMesh(1.3f, 1.5f, 0.1f, 28);
             _stage.GeneratedAssets.Add(ringMesh);
+            var starMesh = StarMesh();
+            _stage.GeneratedAssets.Add(starMesh);
             var colors = new[] { _cyan, _gold, _coral };
             for (var i = 0; i < 3; i++)
             {
@@ -278,6 +281,7 @@ namespace MixVerse.Game.Kart
                 _stage.StarLights[i] = StarLight(kart);
                 _stage.RainbowRings[i] = RainbowRing(kart, ringMesh);
                 _stage.Sparkles[i] = SparkleEmitter(kart);
+                _stage.Stars[i] = StarBurstEmitter(kart, starMesh);
                 if (i == (int)RacerId.Player)
                     _stage.DriftSparks = new[] { DriftSparkEmitter(kart, -1f), DriftSparkEmitter(kart, 1f) };
                 var label = WorldLabel(_stage.transform, "", colors[i], 7f);
@@ -446,6 +450,78 @@ namespace MixVerse.Game.Kart
                 new Keyframe(0f, 0f), new Keyframe(0.3f, 1f), new Keyframe(1f, 0f)));
             var renderer = particles.GetComponent<ParticleSystemRenderer>();
             renderer.sharedMaterial = _explosions.Glow;
+            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            renderer.receiveShadows = false;
+            particles.Play();
+            return particles;
+        }
+
+        // ☆型の平面メッシュ。中心から外周・内周の頂点を交互に結んだ5角の星形
+        private Mesh StarMesh()
+        {
+            const int points = 5;
+            var vertices = new Vector3[points * 2 + 1];
+            var triangles = new List<int>();
+            vertices[0] = Vector3.zero;
+            for (var p = 0; p < points * 2; p++)
+            {
+                var angle = p / (float)(points * 2) * Mathf.PI * 2f - Mathf.PI * 0.5f;
+                var radius = p % 2 == 0 ? 0.5f : 0.2f;
+                vertices[p + 1] = new Vector3(Mathf.Cos(angle) * radius, Mathf.Sin(angle) * radius, 0f);
+            }
+            for (var p = 0; p < points * 2; p++)
+            {
+                var a = p + 1;
+                var b = (p + 1) % (points * 2) + 1;
+                triangles.Add(0); triangles.Add(a); triangles.Add(b);
+            }
+            var mesh = new Mesh { name = "Star", vertices = vertices, triangles = triangles.ToArray() };
+            mesh.RecalculateNormals();
+            mesh.RecalculateBounds();
+            return mesh;
+        }
+
+        // 昇給辞令の無敵中にプレイヤーの周りへ大量に散らばせる☆型パーティクル。虹色シェーダーでキラキラ色が変わりながら舞う
+        private ParticleSystem StarBurstEmitter(Transform parent, Mesh starMesh)
+        {
+            var obj = new GameObject("Star burst");
+            obj.transform.SetParent(parent, false);
+            obj.transform.localPosition = new Vector3(0f, 0.6f, 0f);
+            var particles = obj.AddComponent<ParticleSystem>();
+            particles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            var main = particles.main;
+            main.loop = true;
+            main.playOnAwake = false;
+            main.startLifetime = new ParticleSystem.MinMaxCurve(0.5f, 0.9f);
+            main.startSpeed = new ParticleSystem.MinMaxCurve(0.3f, 1f);
+            main.startSize = new ParticleSystem.MinMaxCurve(0.22f, 0.4f);
+            main.startColor = Color.white;
+            main.startRotation = new ParticleSystem.MinMaxCurve(0f, Mathf.PI * 2f);
+            main.gravityModifier = 0f;
+            main.simulationSpace = ParticleSystemSimulationSpace.Local;
+            main.maxParticles = 260;
+            var emission = particles.emission;
+            emission.enabled = false;
+            emission.rateOverTime = 90f;
+            var shape = particles.shape;
+            shape.shapeType = ParticleSystemShapeType.Sphere;
+            shape.radius = 1.9f;
+            shape.radiusThickness = 0.5f;
+            var velocity = particles.velocityOverLifetime;
+            velocity.enabled = true;
+            velocity.space = ParticleSystemSimulationSpace.Local;
+            velocity.orbitalY = new ParticleSystem.MinMaxCurve(90f);
+            var rotation = particles.rotationOverLifetime;
+            rotation.enabled = true;
+            rotation.z = new ParticleSystem.MinMaxCurve(-360f * Mathf.Deg2Rad, 360f * Mathf.Deg2Rad);
+            var size = particles.sizeOverLifetime;
+            size.enabled = true;
+            size.size = new ParticleSystem.MinMaxCurve(1f, new AnimationCurve(
+                new Keyframe(0f, 0f), new Keyframe(0.25f, 1f), new Keyframe(0.75f, 1f), new Keyframe(1f, 0f)));
+            var renderer = particles.GetComponent<ParticleSystemRenderer>();
+            renderer.renderMode = ParticleSystemRenderMode.Mesh;
+            renderer.mesh = starMesh;
+            renderer.sharedMaterial = _stage.RainbowMaterial;
             renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             renderer.receiveShadows = false;
             particles.Play();
