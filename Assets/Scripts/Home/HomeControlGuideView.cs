@@ -23,6 +23,8 @@ namespace MixVerse.Home
 
         public Button GuideButton { get; private set; }
         public Button CloseButton { get; private set; }
+        public RawImage TestPlayScreen { get; private set; }
+        public TMP_Text TestPlayStatus { get; private set; }
 
         public void Initialize(Button startButton)
         {
@@ -33,6 +35,7 @@ namespace MixVerse.Home
 
             if (TryUseExistingGuide())
             {
+                EnsureTestPlayArea(FindFont(startButton));
                 HideGuide();
                 return;
             }
@@ -55,7 +58,20 @@ namespace MixVerse.Home
             _guideRoot = existingRoot.gameObject;
             GuideButton = transform.Find("Control Guide Button")?.GetComponent<Button>();
             CloseButton = existingRoot.Find("Guide Panel/Close Button")?.GetComponent<Button>();
+            TestPlayScreen = existingRoot.Find("Guide Panel/Test Play Frame/Test Play Screen")?.GetComponent<RawImage>();
+            TestPlayStatus = existingRoot.Find("Guide Panel/Test Play Info/Test Play Status")?.GetComponent<TMP_Text>();
             return true;
+        }
+
+        // テストプレイ欄を追加する前に保存されたシーンのガイドには欄が無いので、その場合だけ足す
+        private void EnsureTestPlayArea(TMP_FontAsset font)
+        {
+            if (TestPlayScreen != null && TestPlayStatus != null)
+            {
+                return;
+            }
+
+            BuildTestPlayArea(_guideRoot.transform.Find("Guide Panel"), font);
         }
 
         public void ShowGuide()
@@ -145,8 +161,39 @@ namespace MixVerse.Home
             CreateLegend(legend, new Vector2(192.5f, -58.5f), Green, "4", "アイテム",
                 "ボタンを押す → 所持中の\nアイテムを使用", font);
 
+            BuildTestPlayArea(panel.transform, font);
+
             CloseButton = CreateButton(panel.transform, "Close Button", new Vector2(0f, -389f),
                 new Vector2(360f, 58f), new Color(0.32f, 0.43f, 0.5f), "閉じる", font);
+        }
+
+        private void BuildTestPlayArea(Transform panel, TMP_FontAsset font)
+        {
+            var frame = CreatePanel(panel, "Test Play Frame", new Vector2(1f, 1f), new Vector2(-35f, -140f),
+                new Vector2(760f, 428f), new Color(0.015f, 0.025f, 0.045f, 1f));
+            frame.gameObject.AddComponent<RectMask2D>();
+            var screen = CreateRect("Test Play Screen", frame.transform, Vector2.zero, Vector2.one, Vector2.zero,
+                Vector2.zero);
+            TestPlayScreen = screen.gameObject.AddComponent<RawImage>();
+            TestPlayScreen.raycastTarget = false;
+            TestPlayScreen.enabled = false;
+
+            var info = CreatePanel(panel, "Test Play Info", new Vector2(1f, 1f), new Vector2(-35f, -583f),
+                new Vector2(760f, 206f), new Color(Cyan.r, Cyan.g, Cyan.b, 0.13f));
+            var outline = info.gameObject.AddComponent<Outline>();
+            outline.effectColor = new Color(Cyan.r, Cyan.g, Cyan.b, 0.9f);
+            outline.effectDistance = new Vector2(2f, -2f);
+            CreateLabel(info.transform, "テストプレイ", new Vector2(0f, 1f), new Vector2(24f, -14f),
+                new Vector2(712f, 36f), 23f, Cyan, font, TextAlignmentOptions.Left);
+            CreateLabel(info.transform,
+                "DJコントローラーを操作すると、上の画面のカートが実際に動きます\n" +
+                "SYNC / SPACE：スタート・リトライ\n" +
+                "キーボード：W/S 速度   A/D 左右   Q/E ドリフト",
+                new Vector2(0f, 1f), new Vector2(24f, -56f), new Vector2(712f, 96f), 18f, Color.white, font,
+                TextAlignmentOptions.TopLeft);
+            TestPlayStatus = CreateLabel(info.transform, string.Empty, new Vector2(0f, 0f), new Vector2(24f, 16f),
+                new Vector2(712f, 30f), 18f, Color.white, font, TextAlignmentOptions.MidlineLeft);
+            TestPlayStatus.gameObject.name = "Test Play Status";
         }
 
         private void CreateLegend(RectTransform parent, Vector2 position, Color color, string number,
