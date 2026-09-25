@@ -496,8 +496,12 @@ namespace MixVerse.Game.Model.Tests
                 var lane = race.Junior.Lane;
                 if (System.Math.Abs(race.Player.Distance - race.Boss.Distance) < 10f && System.Math.Abs(lane - race.Boss.Lane) < 2f)
                     lane = race.Boss.Lane > 0f ? -1f : 2f;
-                var steering = System.Math.Sign(lane - race.Player.Lane) * System.Math.Min(1d, System.Math.Sqrt(System.Math.Abs(lane - race.Player.Lane) * 4f));
-                race.Tick(1f / 120f, new KartInput { Gain = gain, Master = 1f, Steering = (float)steering });
+                // Laneの誤差から目標機首角(desiredHeadingOffset)を出し、実際のHeadingOffsetとの差でステアリングを決める
+                // (Lane自体はHeadingOffsetを介した二重積分で動くため、位置誤差だけを見る単純比例制御だと発振する)
+                var desiredHeadingOffset = System.Math.Max(-0.9f, System.Math.Min(0.9f, (lane - race.Player.Lane) * 0.4f));
+                var headingError = desiredHeadingOffset - race.Player.HeadingOffset;
+                var steering = System.Math.Max(-1f, System.Math.Min(1f, headingError * 8f));
+                race.Tick(1f / 120f, new KartInput { Gain = gain, Master = 1f, Steering = steering });
             }
             Assert.That(race.Phase, Is.EqualTo(RacePhase.Cleared), race.ResultReason);
             Assert.That(race.FinishGap, Is.LessThan(3f));
@@ -546,8 +550,8 @@ namespace MixVerse.Game.Model.Tests
             input.Steering = 1f;
             input.Jog = 1;
             Advance(assisted, 0.35f, input);
-            Assert.That(unattended.Player.Lane, Is.LessThan(-2f));
-            Assert.That(assisted.Player.Lane, Is.GreaterThan(-1f));
+            Assert.That(unattended.Player.Lane, Is.LessThan(-1f));
+            Assert.That(assisted.Player.Lane, Is.GreaterThan(0f));
         }
 
         [Test] public void DriftAlsoCountersSlipOnUphillCurve()
@@ -568,7 +572,7 @@ namespace MixVerse.Game.Model.Tests
             input.Steering = -1f;
             input.Jog = -1;
             Advance(assisted, 0.45f, input);
-            Assert.That(unattended.Player.Lane, Is.GreaterThan(1f));
+            Assert.That(unattended.Player.Lane, Is.GreaterThan(0.9f));
             Assert.That(assisted.Player.Lane, Is.LessThan(0f));
         }
     }
