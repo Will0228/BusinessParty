@@ -66,7 +66,10 @@ namespace MixVerse.Game.Kart
             _stage.RadioClip = Tone("Radio alert", 620f, 0.35f);
             _stage.AlertClip = Tone("Attack confirmed", 1100f, 0.12f);
             _stage.DriftClip = _assets != null ? _assets.driftSeClip : null;
+            _stage.ExplosionClip = _assets != null ? _assets.explosionSeClip : null;
             _stage.RocketFireClip = _assets != null ? _assets.rocketFireSeClip : null;
+            _stage.BlowAwayClip = _assets != null ? _assets.blowAwaySeClip : null;
+            _stage.ItemGetClip = _assets != null ? _assets.itemGetSeClip : null;
             // ドリフトSE専用のAudioSource。isPlayingで再生中かどうかを判定し、再生中は再トリガーしない
             _stage.DriftAudio = camera.AddComponent<AudioSource>();
             _stage.DriftAudio.playOnAwake = false;
@@ -318,7 +321,11 @@ namespace MixVerse.Game.Kart
             {
                 var severe = obj.Item == KartItem.Rocket || obj.Item == KartItem.Mine;
                 var effect = _explosions.Create(severe, obj.Id);
-                if (severe) _explosions.AddGroundCracks(effect, obj.Distance, obj.Lane, obj.Id);
+                if (severe)
+                {
+                    _explosions.AddGroundCracks(effect, obj.Distance, obj.Lane, obj.Id);
+                    stage.PlayExplosionSe();
+                }
                 stage.Explosions.Add(obj.Id, effect);
                 return effect.transform;
             }
@@ -429,6 +436,29 @@ namespace MixVerse.Game.Kart
             _stage.ActionLabel = action;
             _stage.ExitButton = Button(modal.transform, new Vector2(335f, 45f), new Vector2(235f, 60f), new Color(0.4f, 0.5f, 0.6f), out var exit);
             exit.text = "ホームへ [ ESC ]";
+            _stage.Windshield = BuildWindshieldRain(canvasObject.transform);
+        }
+
+        // フロントガラスの水滴演出。HUD の一番手前に敷いて、車内から画面全体を見ているように見せる
+        private KartWindshieldRainView BuildWindshieldRain(Transform canvasParent)
+        {
+            var obj = new GameObject("Windshield Rain", typeof(RectTransform), typeof(RawImage));
+            obj.transform.SetParent(canvasParent, false);
+            var rect = (RectTransform)obj.transform;
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.one;
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+            var image = obj.GetComponent<RawImage>();
+            image.raycastTarget = false;
+            image.color = Color.white;
+            var material = new Material(Resources.Load<Shader>("RainWindshieldShaderURP"));
+            _stage.GeneratedAssets.Add(material);
+            image.material = material;
+            var view = obj.AddComponent<KartWindshieldRainView>();
+            view.Image = image;
+            view.Material = material;
+            return view;
         }
 
         private void BuildPaperBlind(Transform parent)

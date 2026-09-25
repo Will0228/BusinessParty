@@ -47,4 +47,7 @@ MonoBehaviour:
   skybox: {fileID: 2100000, guid: 1295f76fbce1ca546a0c7f8fc50dc2d2, type: 2}
   bgmClip: {fileID: 8300000, guid: ff6900be4b8cc48da88a7497a5c9ff3f, type: 3}
   driftSeClip: {fileID: 8300000, guid: af8370a491647410bb29eb4bd6c5e0ae, type: 3}
+  explosionSeClip: {fileID: 8300000, guid: 0b2fdfae0ec91486e8f89910f627fa3d, type: 3}
   rocketFireSeClip: {fileID: 8300000, guid: c7fbeb675d6f047c3be830807da73fa5, type: 3}
+  blowAwaySeClip: {fileID: 8300000, guid: febedca68f92f453782b721e830a9c87, type: 3}
+  itemGetSeClip: {fileID: 8300000, guid: 9c6ace51c40d447ab8eae16406765bf8, type: 3}

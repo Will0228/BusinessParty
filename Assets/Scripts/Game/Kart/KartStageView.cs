@@ -38,7 +38,10 @@ namespace MixVerse.Game.Kart
         public AudioClip RadioClip;
         public AudioClip AlertClip;
         public AudioClip DriftClip;
+        public AudioClip ExplosionClip;
         public AudioClip RocketFireClip;
+        public AudioClip BlowAwayClip;
+        public AudioClip ItemGetClip;
         public AudioSource BgmAudio;
         public AudioSource DriftAudio;
         public ParticleSystem[] DriftSparks;
@@ -54,6 +57,7 @@ namespace MixVerse.Game.Kart
         public KartStageFactory Factory;
         public KartChaseCamera ChaseCamera;
         public KartAtmosphereView Atmosphere;
+        public KartWindshieldRainView Windshield;
         public Transform CityRoot;
         public float RoadHalfWidth => _settings.roadHalfWidth;
         private float _lastSlip;
@@ -67,6 +71,8 @@ namespace MixVerse.Game.Kart
         private readonly List<Transform> _resultRockets = new List<Transform>();
         private readonly List<Vector3> _rocketStarts = new List<Vector3>();
         private readonly HashSet<int> _rocketImpacts = new HashSet<int>();
+        private readonly HashSet<int> _blownUpRacers = new HashSet<int>();
+        private readonly KartItem[] _lastItems = new KartItem[3];
         private const float BossTurnTime = 0.85f;
         private const float JumpWarningDistance = 70f;
         private const float BossCrashTime = 1.55f;
@@ -85,9 +91,21 @@ namespace MixVerse.Game.Kart
         {
             if (DriftClip != null && !DriftAudio.isPlaying) DriftAudio.PlayOneShot(DriftClip, 0.6f);
         }
+        public void PlayExplosionSe()
+        {
+            if (ExplosionClip != null) Audio.PlayOneShot(ExplosionClip, 0.7f);
+        }
         public void PlayRocketFireSe()
         {
             if (RocketFireClip != null) Audio.PlayOneShot(RocketFireClip, 0.7f);
+        }
+        public void PlayBlowAwaySe()
+        {
+            if (BlowAwayClip != null) Audio.PlayOneShot(BlowAwayClip, 0.7f);
+        }
+        public void PlayItemGetSe()
+        {
+            if (ItemGetClip != null) Audio.PlayOneShot(ItemGetClip, 0.7f);
         }
 
         public Vector3 Point(float distance, float lane = 0f)
@@ -111,6 +129,16 @@ namespace MixVerse.Game.Kart
                 var position = Point(racer.Distance, racer.Lane);
                 var trackRotation = DirectionAt(racer.Distance);
                 var spin = racer.DisabledSeconds > 0f && racer.IsSpinning ? race.Time * 650f : 0f;
+                if (racer.IsBlownUp && racer.DisabledSeconds > 0f)
+                {
+                    if (_blownUpRacers.Add(i)) PlayBlowAwaySe();
+                }
+                else
+                {
+                    _blownUpRacers.Remove(i);
+                }
+                if (racer.Item != KartItem.None && _lastItems[i] == KartItem.None) PlayItemGetSe();
+                _lastItems[i] = racer.Item;
                 var knockbackOffset = Vector3.zero;
                 var knockbackTumble = Quaternion.identity;
                 if (racer.DisabledSeconds > 0f && !racer.IsSpinning)
@@ -188,7 +216,9 @@ namespace MixVerse.Game.Kart
                 TagLabels[i].text = $"{race.Rank(racer)}  {_racerNames[i]}" + (racer.InvincibleSeconds > 0f ? "  <color=#FFD84A>★ 無敵</color>" : "");
             }
             RenderCamera(race);
-            Atmosphere.SetTunnel(race.SectionAt(race.Player.Distance) == CourseSection.Tunnel);
+            var inTunnel = race.SectionAt(race.Player.Distance) == CourseSection.Tunnel;
+            Atmosphere.SetTunnel(inTunnel);
+            Windshield.SetTunnel(inTunnel);
             foreach (var gate in Gates) gate.Value.SetActive(gate.Key > race.Player.Distance + 15f);
             foreach (var segment in Segments)
             {
@@ -527,6 +557,8 @@ namespace MixVerse.Game.Kart
             _resultRockets.Clear();
             _rocketStarts.Clear();
             _rocketImpacts.Clear();
+            _blownUpRacers.Clear();
+            for (var i = 0; i < _lastItems.Length; i++) _lastItems[i] = KartItem.None;
             _bossCrashExploded = false;
             foreach (var view in ObjectViews.Values) if (view != null) Destroy(view.gameObject);
             ObjectViews.Clear();
