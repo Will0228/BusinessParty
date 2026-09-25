@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using MixVerse.Game.Kart;
+using MixVerse.Game.Model.Kart;
 using R3;
 using UnityEngine;
 using UnityEngine.UI;
@@ -15,6 +17,7 @@ namespace MixVerse.Home
         [SerializeField] private Button _quitButton;
 
         private HomeControlGuideView _controlGuideView;
+        private HomeTestPlayView _testPlayView;
 
         [Header("Scratch Transition")]
         // 左上から自動でスクラッチしていく演出。未設定ならフェードのみの従来動作にフォールバックする
@@ -51,6 +54,15 @@ namespace MixVerse.Home
             }
         }
 
+        public Observable<Unit> OnTestPlayStartRequested
+        {
+            get
+            {
+                EnsureTestPlay();
+                return _testPlayView.OnStartRequested;
+            }
+        }
+
         private bool _isFading;
 
         // 演出中に隠した Home の中身。Show() でまとめて戻す
@@ -60,6 +72,7 @@ namespace MixVerse.Home
         private Texture2D _screenshotTexture;
 
         private TweenUtility _tweenUtility;
+        private KartStageFactory _stageFactory;
 
         private void Awake() => EnsureControlGuide();
 
@@ -79,10 +92,28 @@ namespace MixVerse.Home
             _controlGuideView.Initialize(_startButton);
         }
 
+        private void EnsureTestPlay()
+        {
+            if (_testPlayView != null)
+            {
+                return;
+            }
+
+            EnsureControlGuide();
+            _testPlayView = GetComponent<HomeTestPlayView>();
+            if (_testPlayView == null)
+            {
+                _testPlayView = gameObject.AddComponent<HomeTestPlayView>();
+            }
+
+            _testPlayView.Initialize(_stageFactory, _controlGuideView.TestPlayScreen, _controlGuideView.TestPlayStatus);
+        }
+
         [Inject]
-        public void Construct(TweenUtility tweenUtility)
+        public void Construct(TweenUtility tweenUtility, KartStageFactory stageFactory)
         {
             _tweenUtility = tweenUtility;
+            _stageFactory = stageFactory;
         }
 
         /// <summary>
@@ -114,6 +145,25 @@ namespace MixVerse.Home
         {
             EnsureControlGuide();
             _controlGuideView.HideGuide();
+        }
+
+        public void ShowTestPlay(KartRaceSettings settings)
+        {
+            EnsureTestPlay();
+            _testPlayView.Show(settings);
+        }
+
+        public void RenderTestPlay(KartRace race, float gain, bool ready, float countdown, bool midi)
+            => _testPlayView.Render(race, gain, ready, countdown, midi);
+
+        public void ResetTestPlay() => _testPlayView.ResetRace();
+
+        public void PlayTestPlayDriftSe() => _testPlayView.PlayDriftSe();
+
+        public void HideTestPlay()
+        {
+            EnsureTestPlay();
+            _testPlayView.Hide();
         }
 
         public async UniTask StartGameAsync(CancellationToken token)

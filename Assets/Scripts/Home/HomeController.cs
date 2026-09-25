@@ -1,3 +1,4 @@
+using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using MixVerse.Game;
@@ -10,12 +11,17 @@ namespace MixVerse.Home
     public sealed class HomeController : ControllerBase
     {
         private readonly IHomePresenter _presenter;
+        private readonly IHomeTestPlayPresenter _testPlay;
         private readonly ScreenNavigator _navigator;
+
+        private CancellationTokenSource _testPlaySession;
+        private CompositeDisposable _testPlayBindings;
         
         [Inject]
-        public HomeController(IHomePresenter presenter, ScreenNavigator navigator)
+        public HomeController(IHomePresenter presenter, IHomeTestPlayPresenter testPlay, ScreenNavigator navigator)
         {
             _presenter = presenter;
+            _testPlay = testPlay;
             _navigator = navigator;
         }
 
@@ -30,11 +36,11 @@ namespace MixVerse.Home
                 .AddTo(disposable);
 
             _presenter.OnGuideButtonClicked
-                .Subscribe(_ => _presenter.ShowControlGuide())
+                .Subscribe(_ => ShowControlGuide())
                 .AddTo(disposable);
 
             _presenter.OnGuideCloseButtonClicked
-                .Subscribe(_ => _presenter.HideControlGuide())
+                .Subscribe(_ => HideControlGuide())
                 .AddTo(disposable);
         }
 
@@ -43,6 +49,71 @@ namespace MixVerse.Home
             base.ChangeController();
             _presenter.Show();
             Bind();
+        }
+
+        public override void LeaveController()
+        {
+            StopTestPlay();
+            base.LeaveController();
+        }
+
+        private void ShowControlGuide()
+        {
+            _presenter.ShowControlGuide();
+            StartTestPlay();
+        }
+
+        private void HideControlGuide()
+        {
+            StopTestPlay();
+            _presenter.HideControlGuide();
+        }
+
+        private void StartTestPlay()
+        {
+            if (_testPlaySession != null)
+            {
+                return;
+            }
+
+            _testPlaySession = new CancellationTokenSource();
+            _testPlayBindings = new CompositeDisposable();
+            _testPlay.Show(Time.time);
+            _testPlay.Bind(_testPlayBindings);
+            TickTestPlayAsync(_testPlaySession.Token).Forget();
+        }
+
+        private async UniTaskVoid TickTestPlayAsync(CancellationToken token)
+        {
+            try
+            {
+                while (true)
+                {
+                    await UniTask.Yield(PlayerLoopTiming.Update, token);
+                    _testPlay.Tick(Time.time);
+                }
+            }
+            catch (OperationCanceledException) when (token.IsCancellationRequested) { }
+            catch (Exception exception)
+            {
+                Debug.LogException(exception);
+                StopTestPlay();
+            }
+        }
+
+        private void StopTestPlay()
+        {
+            if (_testPlaySession == null)
+            {
+                return;
+            }
+
+            _testPlaySession.Cancel();
+            _testPlaySession.Dispose();
+            _testPlaySession = null;
+            _testPlayBindings.Dispose();
+            _testPlayBindings = null;
+            _testPlay.Hide();
         }
 
         private async UniTask StartGameAsync(CancellationToken token)

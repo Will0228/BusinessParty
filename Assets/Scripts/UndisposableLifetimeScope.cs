@@ -24,6 +24,7 @@ namespace MixVerse
             builder.Register<HomeController>(Lifetime.Singleton);
             builder.RegisterComponent(_homeView);
             builder.Register<HomePresenter>(Lifetime.Singleton).As<IHomePresenter>();
+            builder.Register<HomeTestPlayPresenter>(Lifetime.Singleton).As<IHomeTestPlayPresenter>();
 
             builder.Register<GameController>(Lifetime.Singleton);
             builder.RegisterComponent(_gameView);
