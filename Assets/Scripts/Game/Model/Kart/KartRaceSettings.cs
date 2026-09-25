@@ -16,6 +16,7 @@ namespace MixVerse.Game.Model.Kart
         public float driftYawRate = 1.3f;
         public float maxHeadingOffsetDegrees = 75f;
         public float nonDriftMaxVisualTiltDegrees = 15f;
+        public float driftMaxVisualTiltDegrees = 40f;
         public float maximumBossDistance = 95f;
         public float tailgateDistance = 7f;
         public float tailgateSeconds = 3f;
@@ -80,6 +81,7 @@ namespace MixVerse.Game.Model.Kart
             driftYawRate = Math.Max(0f, driftYawRate);
             maxHeadingOffsetDegrees = Math.Max(10f, Math.Min(89f, maxHeadingOffsetDegrees));
             nonDriftMaxVisualTiltDegrees = Math.Max(1f, Math.Min(maxHeadingOffsetDegrees, nonDriftMaxVisualTiltDegrees));
+            driftMaxVisualTiltDegrees = Math.Max(nonDriftMaxVisualTiltDegrees, Math.Min(maxHeadingOffsetDegrees, driftMaxVisualTiltDegrees));
             maximumBossDistance = Math.Max(30f, maximumBossDistance);
             tailgateDistance = Math.Max(3f, tailgateDistance);
             tailgateSeconds = Math.Max(0.5f, tailgateSeconds);
