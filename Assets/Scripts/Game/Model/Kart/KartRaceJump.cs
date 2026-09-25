@@ -61,6 +61,7 @@ namespace MixVerse.Game.Model.Kart
             racer.VerticalSpeed = 0f;
             racer.Distance = Jump.Landing + _settings.jumpRespawnOffset;
             racer.Lane = Clamp(racer.Lane, -_settings.roadHalfWidth + 0.7f, _settings.roadHalfWidth - 0.7f);
+            racer.HeadingOffset = 0f;
         }
     }
 }

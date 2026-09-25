@@ -132,12 +132,13 @@ namespace MixVerse.Game.Model.Kart
             steer = Math.Sign(steer) * steer * steer;
             if (Player.DisabledSeconds <= 0f && !Player.Finished)
             {
-                var movement = Math.Min(1f, Math.Abs(Player.Speed) / 25f);
-                var turnRate = _layout.TurnRateAt(Player.Distance);
-                var driftAssist = _driftDirection != 0 && _driftDirection == Math.Sign(turnRate) ? 0.38f : 1f;
-                var outwardSlip = -Math.Sign(turnRate) * Math.Max(0f, Math.Abs(Player.Speed) - 30f) * 0.18f *
-                                  Math.Min(2f, Math.Abs(turnRate) / 0.07854f) * driftAssist;
-                Player.Lane += ((steer + _driftDirection * 0.4f) * _settings.steeringSpeed * movement * _direction + outwardSlip) * dt;
+                // ステアリング/ドリフト入力だけが機首の向き(HeadingOffset、トラック接線からの相対角)を動かす。
+                // 無操作ならHeadingOffsetはトラックの方位変化をそのまま打ち消す方向に動く＝ワールド座標上の機首は一定に保たれる。
+                var yawRate = (steer * _settings.steeringYawRate + _driftDirection * _settings.driftYawRate) * _direction;
+                var trackYawRatePerSecond = _layout.TurnRateAt(Player.Distance) * Player.Speed * _settings.metersPerSpeedUnit;
+                var maxHeadingOffset = _settings.maxHeadingOffsetDegrees * (float)Math.PI / 180f;
+                Player.HeadingOffset = Clamp(Player.HeadingOffset + (yawRate - trackYawRatePerSecond) * dt, -maxHeadingOffset, maxHeadingOffset);
+                Player.Lane += Player.Speed * _settings.metersPerSpeedUnit * (float)Math.Sin(Player.HeadingOffset) * dt;
                 if (Math.Abs(Player.Lane) > _settings.roadHalfWidth - 0.7f)
                 {
                     Player.Lane = Clamp(Player.Lane, -_settings.roadHalfWidth + 0.7f, _settings.roadHalfWidth - 0.7f);

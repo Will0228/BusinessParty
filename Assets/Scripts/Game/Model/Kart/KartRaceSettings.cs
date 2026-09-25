@@ -12,6 +12,9 @@ namespace MixVerse.Game.Model.Kart
         public float braking = 80f;
         public float steeringSpeed = 5f;
         public float steeringDeadZone = 0.08f;
+        public float steeringYawRate = 1.6f;
+        public float driftYawRate = 1.3f;
+        public float maxHeadingOffsetDegrees = 75f;
         public float maximumBossDistance = 95f;
         public float tailgateDistance = 7f;
         public float tailgateSeconds = 3f;
@@ -72,6 +75,9 @@ namespace MixVerse.Game.Model.Kart
             braking = Math.Max(1f, braking);
             steeringSpeed = Math.Max(1f, steeringSpeed);
             steeringDeadZone = Math.Max(0f, Math.Min(0.5f, steeringDeadZone));
+            steeringYawRate = Math.Max(0.1f, steeringYawRate);
+            driftYawRate = Math.Max(0f, driftYawRate);
+            maxHeadingOffsetDegrees = Math.Max(10f, Math.Min(89f, maxHeadingOffsetDegrees));
             maximumBossDistance = Math.Max(30f, maximumBossDistance);
             tailgateDistance = Math.Max(3f, tailgateDistance);
             tailgateSeconds = Math.Max(0.5f, tailgateSeconds);
@@ -143,6 +149,7 @@ namespace MixVerse.Game.Model.Kart
         public RacerId Id;
         public float Distance;
         public float Lane;
+        public float HeadingOffset;
         public float Speed;
         public float DisabledSeconds;
         public float TurboSeconds;
