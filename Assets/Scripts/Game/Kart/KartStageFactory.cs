@@ -70,9 +70,15 @@ namespace MixVerse.Game.Kart
             _stage.RocketFireClip = _assets != null ? _assets.rocketFireSeClip : null;
             _stage.BlowAwayClip = _assets != null ? _assets.blowAwaySeClip : null;
             _stage.ItemGetClip = _assets != null ? _assets.itemGetSeClip : null;
+            _stage.DistanceAlertClip = _assets != null ? _assets.distanceAlertSeClip : null;
             // ドリフトSE専用のAudioSource。isPlayingで再生中かどうかを判定し、再生中は再トリガーしない
             _stage.DriftAudio = camera.AddComponent<AudioSource>();
             _stage.DriftAudio.playOnAwake = false;
+            // 上司との距離警告SE専用のAudioSource。閾値を超えている間ループ再生し続ける
+            _stage.DistanceAlertAudio = camera.AddComponent<AudioSource>();
+            _stage.DistanceAlertAudio.playOnAwake = false;
+            _stage.DistanceAlertAudio.loop = true;
+            _stage.DistanceAlertAudio.clip = _stage.DistanceAlertClip;
             _stage.BgmAudio = camera.AddComponent<AudioSource>();
             _stage.BgmAudio.playOnAwake = false;
             _stage.BgmAudio.loop = true;
