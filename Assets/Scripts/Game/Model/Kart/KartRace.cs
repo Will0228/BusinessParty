@@ -139,9 +139,11 @@ namespace MixVerse.Game.Model.Kart
                 var maxHeadingOffset = _settings.maxHeadingOffsetDegrees * (float)Math.PI / 180f;
                 Player.HeadingOffset = Clamp(Player.HeadingOffset + (yawRate - trackYawRatePerSecond) * dt, -maxHeadingOffset, maxHeadingOffset);
                 Player.Lane += Player.Speed * _settings.metersPerSpeedUnit * (float)Math.Sin(Player.HeadingOffset) * dt;
-                // 車体の見た目の傾きはステアリング分だけ弱め、ドリフト分は物理と同じ強さのまま見せる。
-                var visualYawRate = (steer * _settings.steeringYawRate * _settings.steeringVisualTiltScale + _driftDirection * _settings.driftYawRate) * _direction;
-                Player.VisualHeadingOffset = Clamp(Player.VisualHeadingOffset + (visualYawRate - trackYawRatePerSecond) * dt, -maxHeadingOffset, maxHeadingOffset);
+                // 見た目の車体傾きは移動計算用のHeadingOffsetから作るが、ドリフト中でなければ最大角を15度程度まで抑える。ドリフト中は物理と同じ角度まで見せる。
+                var visualMaxHeadingOffset = _driftDirection != 0
+                    ? maxHeadingOffset
+                    : _settings.nonDriftMaxVisualTiltDegrees * (float)Math.PI / 180f;
+                Player.VisualHeadingOffset = Clamp(Player.HeadingOffset, -visualMaxHeadingOffset, visualMaxHeadingOffset);
                 if (Math.Abs(Player.Lane) > _settings.roadHalfWidth - 0.7f)
                 {
                     Player.Lane = Clamp(Player.Lane, -_settings.roadHalfWidth + 0.7f, _settings.roadHalfWidth - 0.7f);
