@@ -16,6 +16,8 @@ namespace MixVerse.Game.Kart
         public Material RainbowMaterial;
         public ParticleSystem[] StarAuras;
         public Light[] StarLights;
+        public MeshRenderer[] RainbowRings;
+        public ParticleSystem[] Sparkles;
         public Transform[] Tags;
         public TextMeshPro[] TagLabels;
         public TextMeshProUGUI Ranking;
@@ -164,6 +166,17 @@ namespace MixVerse.Game.Kart
                 light.color = hdr;
                 light.intensity = 9f + Mathf.Sin(time * 18f) * 3f;
             }
+            if (RainbowRings != null && RainbowRings[i] != null)
+            {
+                var ring = RainbowRings[i];
+                ring.enabled = true;
+                ring.transform.localRotation = Quaternion.Euler(0f, time * 110f, 0f);
+            }
+            if (Sparkles != null && Sparkles[i] != null)
+            {
+                var emission = Sparkles[i].emission;
+                emission.enabled = true;
+            }
         }
         private void ClearStarPower(int i)
         {
@@ -174,6 +187,12 @@ namespace MixVerse.Game.Kart
                 emission.enabled = false;
             }
             if (StarLights != null && StarLights[i] != null) StarLights[i].intensity = 0f;
+            if (RainbowRings != null && RainbowRings[i] != null) RainbowRings[i].enabled = false;
+            if (Sparkles != null && Sparkles[i] != null)
+            {
+                var emission = Sparkles[i].emission;
+                emission.enabled = false;
+            }
         }
 
         public void Render(KartRace race, float gain, bool ready, float countdown, bool midi)

@@ -28,7 +28,7 @@ Shader "MixVerse/KartRainbowBody"
             Name "RainbowForward"
             Tags { "LightMode" = "UniversalForward" }
 
-            Cull Back
+            Cull Off
             ZWrite On
             ZTest LEqual
 

@@ -238,8 +238,12 @@ namespace MixVerse.Game.Kart
             _stage.RainbowMaterial = _materials.Rainbow();
             _stage.StarAuras = new ParticleSystem[3];
             _stage.StarLights = new Light[3];
+            _stage.RainbowRings = new MeshRenderer[3];
+            _stage.Sparkles = new ParticleSystem[3];
             _stage.Tags = new Transform[3];
             _stage.TagLabels = new TextMeshPro[3];
+            var ringMesh = RingMesh(1.3f, 1.5f, 0.1f, 28);
+            _stage.GeneratedAssets.Add(ringMesh);
             var colors = new[] { _cyan, _gold, _coral };
             for (var i = 0; i < 3; i++)
             {
@@ -272,6 +276,8 @@ namespace MixVerse.Game.Kart
                 _stage.BodyMaterials[i] = bodyMaterials;
                 _stage.StarAuras[i] = StarAuraEmitter(kart);
                 _stage.StarLights[i] = StarLight(kart);
+                _stage.RainbowRings[i] = RainbowRing(kart, ringMesh);
+                _stage.Sparkles[i] = SparkleEmitter(kart);
                 if (i == (int)RacerId.Player)
                     _stage.DriftSparks = new[] { DriftSparkEmitter(kart, -1f), DriftSparkEmitter(kart, 1f) };
                 var label = WorldLabel(_stage.transform, "", colors[i], 7f);
@@ -350,6 +356,94 @@ namespace MixVerse.Game.Kart
             var size = particles.sizeOverLifetime;
             size.enabled = true;
             size.size = new ParticleSystem.MinMaxCurve(1f, AnimationCurve.EaseInOut(0f, 0.3f, 1f, 1f));
+            var renderer = particles.GetComponent<ParticleSystemRenderer>();
+            renderer.sharedMaterial = _explosions.Glow;
+            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            renderer.receiveShadows = false;
+            particles.Play();
+            return particles;
+        }
+
+        // カートを帯状に取り巻くリングメッシュ。虹色シェーダーを貼るとオブジェクト座標に応じて縁全体に色相が流れる
+        private Mesh RingMesh(float innerRadius, float outerRadius, float height, int segments)
+        {
+            var vertices = new Vector3[segments * 4];
+            var triangles = new List<int>();
+            for (var s = 0; s < segments; s++)
+            {
+                var angle = s / (float)segments * Mathf.PI * 2f;
+                var dir = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle));
+                var b = s * 4;
+                vertices[b + 0] = dir * innerRadius + Vector3.up * height * 0.5f;
+                vertices[b + 1] = dir * outerRadius + Vector3.up * height * 0.5f;
+                vertices[b + 2] = dir * outerRadius - Vector3.up * height * 0.5f;
+                vertices[b + 3] = dir * innerRadius - Vector3.up * height * 0.5f;
+            }
+            for (var s = 0; s < segments; s++)
+            {
+                var b = s * 4;
+                var n = ((s + 1) % segments) * 4;
+                triangles.AddRange(new[] { b + 0, n + 0, n + 1, b + 0, n + 1, b + 1 });
+                triangles.AddRange(new[] { b + 1, n + 1, n + 2, b + 1, n + 2, b + 2 });
+                triangles.AddRange(new[] { b + 2, n + 2, n + 3, b + 2, n + 3, b + 3 });
+                triangles.AddRange(new[] { b + 3, n + 3, n + 0, b + 3, n + 0, b + 0 });
+            }
+            var mesh = new Mesh { name = "Rainbow ring", vertices = vertices, triangles = triangles.ToArray() };
+            mesh.RecalculateNormals();
+            mesh.RecalculateBounds();
+            return mesh;
+        }
+
+        private MeshRenderer RainbowRing(Transform kart, Mesh mesh)
+        {
+            var obj = new GameObject("Rainbow ring", typeof(MeshFilter), typeof(MeshRenderer));
+            obj.transform.SetParent(kart, false);
+            obj.transform.localPosition = new Vector3(0f, 0.5f, 0f);
+            obj.GetComponent<MeshFilter>().sharedMesh = mesh;
+            var renderer = obj.GetComponent<MeshRenderer>();
+            renderer.sharedMaterial = _stage.RainbowMaterial;
+            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            renderer.receiveShadows = false;
+            renderer.enabled = false;
+            return renderer;
+        }
+
+        // 昇給辞令の無敵中にカート周辺へ舞うキラキラした瞬き粒子。虹色オーラより短命かつ小粒にして瞬く印象にしている
+        private ParticleSystem SparkleEmitter(Transform parent)
+        {
+            var obj = new GameObject("Star sparkle");
+            obj.transform.SetParent(parent, false);
+            obj.transform.localPosition = new Vector3(0f, 0.6f, 0f);
+            var particles = obj.AddComponent<ParticleSystem>();
+            particles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            var main = particles.main;
+            main.loop = true;
+            main.playOnAwake = false;
+            main.startLifetime = new ParticleSystem.MinMaxCurve(0.18f, 0.34f);
+            main.startSpeed = new ParticleSystem.MinMaxCurve(0f, 0.3f);
+            main.startSize = new ParticleSystem.MinMaxCurve(0.06f, 0.16f);
+            main.startColor = Color.white;
+            main.gravityModifier = 0f;
+            main.simulationSpace = ParticleSystemSimulationSpace.Local;
+            main.maxParticles = 200;
+            var emission = particles.emission;
+            emission.enabled = false;
+            emission.rateOverTime = 90f;
+            var shape = particles.shape;
+            shape.shapeType = ParticleSystemShapeType.Sphere;
+            shape.radius = 1.7f;
+            shape.radiusThickness = 0.35f;
+            var colors = particles.colorOverLifetime;
+            colors.enabled = true;
+            var gradient = new Gradient();
+            gradient.SetKeys(
+                new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(new Color(1f, 0.95f, 0.6f), 1f) },
+                new[] { new GradientAlphaKey(0f, 0f), new GradientAlphaKey(1f, 0.35f), new GradientAlphaKey(0f, 1f) });
+            colors.color = gradient;
+            var size = particles.sizeOverLifetime;
+            size.enabled = true;
+            size.size = new ParticleSystem.MinMaxCurve(1f, new AnimationCurve(
+                new Keyframe(0f, 0f), new Keyframe(0.3f, 1f), new Keyframe(1f, 0f)));
             var renderer = particles.GetComponent<ParticleSystemRenderer>();
             renderer.sharedMaterial = _explosions.Glow;
             renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
