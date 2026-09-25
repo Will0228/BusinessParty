@@ -65,6 +65,7 @@ namespace MixVerse.Game.Kart
             _stage.Audio.playOnAwake = false;
             _stage.RadioClip = Tone("Radio alert", 620f, 0.35f);
             _stage.AlertClip = Tone("Attack confirmed", 1100f, 0.12f);
+            _stage.DriftClip = _assets != null ? _assets.driftSeClip : null;
             _stage.BgmAudio = camera.AddComponent<AudioSource>();
             _stage.BgmAudio.playOnAwake = false;
             _stage.BgmAudio.loop = true;

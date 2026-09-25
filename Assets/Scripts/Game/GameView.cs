@@ -51,6 +51,8 @@ namespace MixVerse.Game
         public void Render(KartRace race, float gain, bool ready, float countdown, bool midi)
             => _stage.Render(race, gain, ready, countdown, midi);
 
+        public void PlayDriftSe() => _stage.PlayDriftSe();
+
         public void ResetRace() => _stage.ResetObjects();
 
         public void Hide()

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Minis;
 using MixVerse.Game.Model.Kart;
+using R3;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -39,8 +40,10 @@ namespace MixVerse.Game.Kart
         private bool _useItem;
         private bool _syncPressed;
         private bool _bound;
+        private readonly Subject<Unit> _onDriftInputTriggered = new Subject<Unit>();
         public float Gain => _gain;
         public bool HasMidi => _devices.Count > 0;
+        public Observable<Unit> OnDriftInputTriggered => _onDriftInputTriggered;
 
         private sealed class Handlers
         {
@@ -126,8 +129,16 @@ namespace MixVerse.Game.Kart
             var raw = Mathf.RoundToInt(value * 127f);
             if (_mapping.driftMode == KartDriftControlMode.PairedControls)
             {
-                if (controlNumber == _mapping.leftDriftControl && raw > 0) _jog = -1;
-                else if (controlNumber == _mapping.driftControl && raw > 0) _jog = 1;
+                if (controlNumber == _mapping.leftDriftControl && raw > 0)
+                {
+                    _jog = -1;
+                    _onDriftInputTriggered.OnNext(Unit.Default);
+                }
+                else if (controlNumber == _mapping.driftControl && raw > 0)
+                {
+                    _jog = 1;
+                    _onDriftInputTriggered.OnNext(Unit.Default);
+                }
                 else if (raw == 0) ReleaseDrift(controlNumber);
                 return;
             }

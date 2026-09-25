@@ -37,6 +37,7 @@ namespace MixVerse.Game.Kart
         public AudioSource Audio;
         public AudioClip RadioClip;
         public AudioClip AlertClip;
+        public AudioClip DriftClip;
         public AudioSource BgmAudio;
         public ParticleSystem[] DriftSparks;
         public RectTransform[] PaperBlinds;
@@ -78,6 +79,10 @@ namespace MixVerse.Game.Kart
 
         public void Initialize(KartRaceSettings settings) => _settings = settings;
         public void ToggleDebug() => _debug = !_debug;
+        public void PlayDriftSe()
+        {
+            if (DriftClip != null) Audio.PlayOneShot(DriftClip, 0.6f);
+        }
 
         public Vector3 Point(float distance, float lane = 0f)
         {
