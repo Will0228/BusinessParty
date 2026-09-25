@@ -11,6 +11,7 @@ namespace MixVerse.Home
     public sealed class HomeControlGuideView : MonoBehaviour
     {
         private const string ControllerImageResourcePath = "UI/DjControllerGuide";
+        private const float ControllerScale = 0.6f;
 
         private static readonly Color Navy = new Color(0.025f, 0.055f, 0.09f, 0.98f);
         private static readonly Color Cyan = new Color(0.12f, 0.9f, 1f);
@@ -118,30 +119,30 @@ namespace MixVerse.Home
                 new Vector2(0f, -91f), new Vector2(1450f, 36f), 21f, new Color(0.7f, 0.83f, 0.88f), font,
                 TextAlignmentOptions.Center);
 
-            var controllerFrame = CreatePanel(panel.transform, "Controller Frame", new Vector2(0f, 0.5f),
-                new Vector2(35f, -30f), new Vector2(1000f, 670f), new Color(0.015f, 0.025f, 0.045f, 1f));
+            var controllerFrame = CreatePanel(panel.transform, "Controller Frame", new Vector2(0f, 1f),
+                new Vector2(35f, -140f), new Vector2(760f, 410f), new Color(0.015f, 0.025f, 0.045f, 1f));
             var controller = CreateRect("DJ Controller Illustration", controllerFrame.transform, Vector2.one * 0.5f,
-                Vector2.one * 0.5f, Vector2.zero, new Vector2(980f, 650f));
+                Vector2.one * 0.5f, Vector2.zero, new Vector2(980f, 650f) * ControllerScale);
             var controllerImage = controller.gameObject.AddComponent<RawImage>();
             controllerImage.texture = Resources.Load<Texture2D>(ControllerImageResourcePath);
             controllerImage.color = Color.white;
             controllerImage.raycastTarget = false;
 
-            CreateHighlight(controller, "Gain Highlight", new Vector2(90f, -57f), new Vector2(72f, 166f), Cyan, "1", font);
-            CreateHighlight(controller, "Steering Highlight", new Vector2(-10f, -171f), new Vector2(206f, 77f), Magenta, "2", font);
-            CreateHighlight(controller, "Drift Highlight Left", new Vector2(-259f, -71f), new Vector2(331f, 324f), Orange, "3", font);
-            CreateHighlight(controller, "Drift Highlight Right", new Vector2(335f, 6f), new Vector2(231f, 261f), Orange, "3", font);
-            CreateHighlight(controller, "Item Highlight", new Vector2(197f, -174f), new Vector2(98f, 62f), Green, "4", font);
+            CreateHighlight(controller, "Gain Highlight", new Vector2(75.3f, -66.3f), new Vector2(62.2f, 132.5f), Cyan, "1", font);
+            CreateHighlight(controller, "Steering Highlight", new Vector2(2.5f, -170.5f), new Vector2(207.8f, 51.9f), Magenta, "2", font);
+            CreateHighlight(controller, "Drift Highlight Left", new Vector2(-278.6f, -8.3f), new Vector2(301.7f, 263.4f), Orange, "3", font);
+            CreateHighlight(controller, "Drift Highlight Right", new Vector2(284.6f, -7.2f), new Vector2(273.1f, 261f), Orange, "3", font);
+            CreateHighlight(controller, "Item Highlight", new Vector2(185.7f, -182.4f), new Vector2(75.4f, 45.3f), Green, "4", font);
 
-            var legend = CreateRect("Legend", panel.transform, new Vector2(1f, 0.5f), new Vector2(1f, 0.5f),
-                new Vector2(-30f, -17f), new Vector2(500f, 690f));
-            CreateLegend(legend, new Vector2(0f, 250f), Cyan, "1", "速度",
+            var legend = CreateRect("Legend", panel.transform, new Vector2(0f, 1f), new Vector2(0f, 1f),
+                new Vector2(35f, -565f), new Vector2(760f, 224f));
+            CreateLegend(legend, new Vector2(-192.5f, 58.5f), Cyan, "1", "速度",
                 "フェーダーを上へ → 加速\n下へ → 減速", font);
-            CreateLegend(legend, new Vector2(0f, 83f), Magenta, "2", "左右操作",
+            CreateLegend(legend, new Vector2(192.5f, 58.5f), Magenta, "2", "左右操作",
                 "中央フェーダーを左右へ\n動かして走行ラインを変更", font);
-            CreateLegend(legend, new Vector2(0f, -84f), Orange, "3", "ドリフト",
+            CreateLegend(legend, new Vector2(-192.5f, -58.5f), Orange, "3", "ドリフト",
                 "スクラッチをこすることでドリフト\nドリフトが溜まると加速", font);
-            CreateLegend(legend, new Vector2(0f, -251f), Green, "4", "アイテム",
+            CreateLegend(legend, new Vector2(192.5f, -58.5f), Green, "4", "アイテム",
                 "ボタンを押す → 所持中の\nアイテムを使用", font);
 
             CloseButton = CreateButton(panel.transform, "Close Button", new Vector2(0f, -389f),
@@ -152,33 +153,33 @@ namespace MixVerse.Home
             string heading, string body, TMP_FontAsset font)
         {
             var card = CreatePanel(parent, "Guide " + number, Vector2.one * 0.5f, position,
-                new Vector2(490f, 146f), new Color(color.r, color.g, color.b, 0.13f));
+                new Vector2(375f, 107f), new Color(color.r, color.g, color.b, 0.13f));
             var outline = card.gameObject.AddComponent<Outline>();
             outline.effectColor = new Color(color.r, color.g, color.b, 0.9f);
             outline.effectDistance = new Vector2(2f, -2f);
 
-            var badge = CreatePanel(card.transform, "Badge", new Vector2(0f, 0.5f), new Vector2(22f, 0f),
-                new Vector2(62f, 62f), color);
-            CreateLabel(badge.transform, number, Vector2.one * 0.5f, Vector2.zero, new Vector2(62f, 62f),
-                31f, Color.black, font, TextAlignmentOptions.Center);
-            CreateLabel(card.transform, heading, new Vector2(0f, 1f), new Vector2(104f, -17f),
-                new Vector2(360f, 42f), 23f, color, font, TextAlignmentOptions.Left);
-            CreateLabel(card.transform, body, new Vector2(0f, 0f), new Vector2(104f, 13f),
-                new Vector2(360f, 76f), 19f, Color.white, font, TextAlignmentOptions.MidlineLeft);
+            var badge = CreatePanel(card.transform, "Badge", new Vector2(0f, 0.5f), new Vector2(16f, 0f),
+                new Vector2(48f, 48f), color);
+            CreateLabel(badge.transform, number, Vector2.one * 0.5f, Vector2.zero, new Vector2(48f, 48f),
+                25f, Color.black, font, TextAlignmentOptions.Center);
+            CreateLabel(card.transform, heading, new Vector2(0f, 1f), new Vector2(80f, -10f),
+                new Vector2(285f, 36f), 21f, color, font, TextAlignmentOptions.Left);
+            CreateLabel(card.transform, body, new Vector2(0f, 0f), new Vector2(80f, 8f),
+                new Vector2(285f, 52f), 17f, Color.white, font, TextAlignmentOptions.MidlineLeft);
         }
 
         private void CreateHighlight(RectTransform parent, string name, Vector2 position, Vector2 size,
             Color color, string number, TMP_FontAsset font)
         {
-            var highlight = CreatePanel(parent, name, Vector2.one * 0.5f, position, size,
-                new Color(color.r, color.g, color.b, 0.18f));
+            var highlight = CreatePanel(parent, name, Vector2.one * 0.5f, position * ControllerScale,
+                size * ControllerScale, new Color(color.r, color.g, color.b, 0.18f));
             var outline = highlight.gameObject.AddComponent<Outline>();
             outline.effectColor = color;
-            outline.effectDistance = new Vector2(4f, -4f);
-            var badge = CreatePanel(highlight.transform, "Badge", new Vector2(1f, 1f), new Vector2(12f, 12f),
-                new Vector2(48f, 48f), color);
-            CreateLabel(badge.transform, number, Vector2.one * 0.5f, Vector2.zero, new Vector2(48f, 48f),
-                27f, Color.black, font, TextAlignmentOptions.Center);
+            outline.effectDistance = new Vector2(3f, -3f);
+            var badge = CreatePanel(highlight.transform, "Badge", new Vector2(1f, 1f), new Vector2(10f, 10f),
+                new Vector2(36f, 36f), color);
+            CreateLabel(badge.transform, number, Vector2.one * 0.5f, Vector2.zero, new Vector2(36f, 36f),
+                21f, Color.black, font, TextAlignmentOptions.Center);
         }
 
         private Button CreateButton(Transform parent, string name, Vector2 position, Vector2 size, Color color,
