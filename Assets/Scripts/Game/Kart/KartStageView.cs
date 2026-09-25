@@ -86,7 +86,7 @@ namespace MixVerse.Game.Kart
         private const float EngineSeMinPitch = 0.85f;
         private const float EngineSeMaxPitch = 1.6f;
         private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
-        private readonly MaterialPropertyBlock _rainbowBlock = new MaterialPropertyBlock();
+        private MaterialPropertyBlock _rainbowBlock;
         private KartRaceSettings _settings;
         private bool _debug;
         private bool _worldLabelsHidden;
@@ -95,6 +95,8 @@ namespace MixVerse.Game.Kart
         private float _paperAttackStartedAt;
         private readonly string[] _sectionNames = { "01  市街地", "02  峠の上り", "03  ギャラリー", "04  トンネル", "05  連続ヘアピン", "06  ゴール前直線" };
         private readonly string[] _racerNames = { "あなた", "上司", "部下" };
+
+        private void Awake() => _rainbowBlock = new MaterialPropertyBlock();
 
         public void Initialize(KartRaceSettings settings) => _settings = settings;
         public void ToggleDebug() => _debug = !_debug;
