@@ -54,14 +54,6 @@ namespace MixVerse.Home
             }
         }
 
-        public Observable<Unit> OnTestPlayStartRequested
-        {
-            get
-            {
-                EnsureTestPlay();
-                return _testPlayView.OnStartRequested;
-            }
-        }
 
         private bool _isFading;
 
@@ -72,7 +64,7 @@ namespace MixVerse.Home
         private Texture2D _screenshotTexture;
 
         private TweenUtility _tweenUtility;
-        private KartStageFactory _stageFactory;
+        private KartTestPlayStageFactory _testPlayStageFactory;
 
         private void Awake() => EnsureControlGuide();
 
@@ -106,14 +98,15 @@ namespace MixVerse.Home
                 _testPlayView = gameObject.AddComponent<HomeTestPlayView>();
             }
 
-            _testPlayView.Initialize(_stageFactory, _controlGuideView.TestPlayScreen, _controlGuideView.TestPlayStatus);
+            _testPlayView.Initialize(_testPlayStageFactory, _controlGuideView.TestPlayScreen,
+                _controlGuideView.TestPlayHud, _controlGuideView.TestPlayStatus);
         }
 
         [Inject]
-        public void Construct(TweenUtility tweenUtility, KartStageFactory stageFactory)
+        public void Construct(TweenUtility tweenUtility, KartTestPlayStageFactory testPlayStageFactory)
         {
             _tweenUtility = tweenUtility;
-            _stageFactory = stageFactory;
+            _testPlayStageFactory = testPlayStageFactory;
         }
 
         /// <summary>
@@ -147,16 +140,13 @@ namespace MixVerse.Home
             _controlGuideView.HideGuide();
         }
 
-        public void ShowTestPlay(KartRaceSettings settings)
+        public void ShowTestPlay()
         {
             EnsureTestPlay();
-            _testPlayView.Show(settings);
+            _testPlayView.Show();
         }
 
-        public void RenderTestPlay(KartRace race, float gain, bool ready, float countdown, bool midi)
-            => _testPlayView.Render(race, gain, ready, countdown, midi);
-
-        public void ResetTestPlay() => _testPlayView.ResetRace();
+        public void RenderTestPlay(KartTestDrive drive, float gain, bool midi) => _testPlayView.Render(drive, gain, midi);
 
         public void PlayTestPlayDriftSe() => _testPlayView.PlayDriftSe();
 

@@ -21,6 +21,7 @@ namespace MixVerse.Tests.Home
             Assert.That(view.CloseButton, Is.Not.Null);
             Assert.That(view.TestPlayScreen, Is.Not.Null);
             Assert.That(view.TestPlayScreen.enabled, Is.False);
+            Assert.That(view.TestPlayHud, Is.Not.Null);
             Assert.That(view.TestPlayStatus, Is.Not.Null);
             Assert.That(view.CloseButton.transform.root.gameObject.activeSelf, Is.True);
             Assert.That(view.CloseButton.transform.parent.parent.gameObject.activeSelf, Is.False);

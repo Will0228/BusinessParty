@@ -24,6 +24,7 @@ namespace MixVerse.Home
         public Button GuideButton { get; private set; }
         public Button CloseButton { get; private set; }
         public RawImage TestPlayScreen { get; private set; }
+        public TMP_Text TestPlayHud { get; private set; }
         public TMP_Text TestPlayStatus { get; private set; }
 
         public void Initialize(Button startButton)
@@ -59,6 +60,7 @@ namespace MixVerse.Home
             GuideButton = transform.Find("Control Guide Button")?.GetComponent<Button>();
             CloseButton = existingRoot.Find("Guide Panel/Close Button")?.GetComponent<Button>();
             TestPlayScreen = existingRoot.Find("Guide Panel/Test Play Frame/Test Play Screen")?.GetComponent<RawImage>();
+            TestPlayHud = existingRoot.Find("Guide Panel/Test Play Frame/Test Play Hud")?.GetComponent<TMP_Text>();
             TestPlayStatus = existingRoot.Find("Guide Panel/Test Play Info/Test Play Status")?.GetComponent<TMP_Text>();
             return true;
         }
@@ -66,7 +68,7 @@ namespace MixVerse.Home
         // テストプレイ欄を追加する前に保存されたシーンのガイドには欄が無いので、その場合だけ足す
         private void EnsureTestPlayArea(TMP_FontAsset font)
         {
-            if (TestPlayScreen != null && TestPlayStatus != null)
+            if (TestPlayScreen != null && TestPlayHud != null && TestPlayStatus != null)
             {
                 return;
             }
@@ -177,6 +179,9 @@ namespace MixVerse.Home
             TestPlayScreen = screen.gameObject.AddComponent<RawImage>();
             TestPlayScreen.raycastTarget = false;
             TestPlayScreen.enabled = false;
+            TestPlayHud = CreateLabel(frame.transform, string.Empty, Vector2.zero, new Vector2(20f, 14f),
+                new Vector2(360f, 110f), 18f, Cyan, font, TextAlignmentOptions.BottomLeft);
+            TestPlayHud.gameObject.name = "Test Play Hud";
 
             var info = CreatePanel(panel, "Test Play Info", new Vector2(1f, 1f), new Vector2(-35f, -583f),
                 new Vector2(760f, 206f), new Color(Cyan.r, Cyan.g, Cyan.b, 0.13f));
@@ -187,7 +192,7 @@ namespace MixVerse.Home
                 new Vector2(712f, 36f), 23f, Cyan, font, TextAlignmentOptions.Left);
             CreateLabel(info.transform,
                 "DJコントローラーを操作すると、上の画面のカートが実際に動きます\n" +
-                "SYNC / SPACE：スタート・リトライ\n" +
+                "SYNC / SPACE：アイテム（ダッシュ）\n" +
                 "キーボード：W/S 速度   A/D 左右   Q/E ドリフト",
                 new Vector2(0f, 1f), new Vector2(24f, -56f), new Vector2(712f, 96f), 18f, Color.white, font,
                 TextAlignmentOptions.TopLeft);
