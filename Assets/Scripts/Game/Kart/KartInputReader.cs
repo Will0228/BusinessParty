@@ -131,13 +131,13 @@ namespace MixVerse.Game.Kart
             {
                 if (controlNumber == _mapping.leftDriftControl && raw > 0)
                 {
+                    if (_jog != -1) _onDriftInputTriggered.OnNext(Unit.Default);
                     _jog = -1;
-                    _onDriftInputTriggered.OnNext(Unit.Default);
                 }
                 else if (controlNumber == _mapping.driftControl && raw > 0)
                 {
+                    if (_jog != 1) _onDriftInputTriggered.OnNext(Unit.Default);
                     _jog = 1;
-                    _onDriftInputTriggered.OnNext(Unit.Default);
                 }
                 else if (raw == 0) ReleaseDrift(controlNumber);
                 return;

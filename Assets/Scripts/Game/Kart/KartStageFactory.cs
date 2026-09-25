@@ -71,6 +71,8 @@ namespace MixVerse.Game.Kart
             _stage.BgmAudio.playOnAwake = false;
             _stage.BgmAudio.loop = true;
             _stage.BgmAudio.volume = 0.4f;
+            // SEの多重再生でボイス数上限に達してもBGMが仮想化(無音化)されないよう最優先にする
+            _stage.BgmAudio.priority = 0;
             _stage.BgmAudio.clip = _assets != null ? _assets.bgmClip : null;
             if (_stage.BgmAudio.clip != null) _stage.BgmAudio.Play();
             _stage.TailgateZone = Shape(root.transform, "Tailgate debug range", PrimitiveType.Cube, Vector3.zero,
