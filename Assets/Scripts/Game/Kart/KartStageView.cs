@@ -37,6 +37,7 @@ namespace MixVerse.Game.Kart
         public AudioSource Audio;
         public AudioClip RadioClip;
         public AudioClip AlertClip;
+        public AudioSource BgmAudio;
         public ParticleSystem[] DriftSparks;
         public RectTransform[] PaperBlinds;
         public readonly List<Object> GeneratedAssets = new List<Object>();

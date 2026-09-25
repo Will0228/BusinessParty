@@ -45,3 +45,4 @@ MonoBehaviour:
   - {fileID: 2100000, guid: bc4dfc49b3e44ad42935e1c92fb6bc3c, type: 2}
   pavementMaterial: {fileID: 2100000, guid: abc00000000013600010078466846187, type: 2}
   skybox: {fileID: 2100000, guid: 1295f76fbce1ca546a0c7f8fc50dc2d2, type: 2}
+  bgmClip: {fileID: 8300000, guid: ff6900be4b8cc48da88a7497a5c9ff3f, type: 3}

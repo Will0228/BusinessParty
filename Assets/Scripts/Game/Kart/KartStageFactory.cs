@@ -65,6 +65,12 @@ namespace MixVerse.Game.Kart
             _stage.Audio.playOnAwake = false;
             _stage.RadioClip = Tone("Radio alert", 620f, 0.35f);
             _stage.AlertClip = Tone("Attack confirmed", 1100f, 0.12f);
+            _stage.BgmAudio = camera.AddComponent<AudioSource>();
+            _stage.BgmAudio.playOnAwake = false;
+            _stage.BgmAudio.loop = true;
+            _stage.BgmAudio.volume = 0.4f;
+            _stage.BgmAudio.clip = _assets != null ? _assets.bgmClip : null;
+            if (_stage.BgmAudio.clip != null) _stage.BgmAudio.Play();
             _stage.TailgateZone = Shape(root.transform, "Tailgate debug range", PrimitiveType.Cube, Vector3.zero,
                 new Vector3(3.2f, 0.025f, settings.tailgateDistance), _coral).transform;
             _stage.TailgateZone.gameObject.SetActive(false);
