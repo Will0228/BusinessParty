@@ -226,6 +226,7 @@ namespace MixVerse.Game.Kart
         private void BuildKarts()
         {
             _stage.Karts = new Transform[3];
+            _stage.BodyRenderers = new MeshRenderer[3][];
             _stage.Tags = new Transform[3];
             _stage.TagLabels = new TextMeshPro[3];
             var colors = new[] { _cyan, _gold, _coral };
@@ -253,6 +254,7 @@ namespace MixVerse.Game.Kart
                     Shape(kart, "Tail light", PrimitiveType.Cube, new Vector3(side * 0.55f, 0.12f, -1.26f), new Vector3(0.38f, 0.12f, 0.05f), new Color(4f, 0.12f, 0.08f));
                 }
                 Headlamp(kart);
+                _stage.BodyRenderers[i] = kart.GetComponentsInChildren<MeshRenderer>();
                 if (i == (int)RacerId.Player)
                     _stage.DriftSparks = new[] { DriftSparkEmitter(kart, -1f), DriftSparkEmitter(kart, 1f) };
                 var label = WorldLabel(_stage.transform, "", colors[i], 7f);

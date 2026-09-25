@@ -11,6 +11,7 @@ namespace MixVerse.Game.Kart
         public Camera Camera;
         public AudioListener Listener;
         public Transform[] Karts;
+        public MeshRenderer[][] BodyRenderers;
         public Transform[] Tags;
         public TextMeshPro[] TagLabels;
         public TextMeshProUGUI Ranking;
@@ -78,6 +79,8 @@ namespace MixVerse.Game.Kart
         private const float BossTurnTime = 0.85f;
         private const float JumpWarningDistance = 70f;
         private const float BossCrashTime = 1.55f;
+        private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
+        private readonly MaterialPropertyBlock _rainbowBlock = new MaterialPropertyBlock();
         private KartRaceSettings _settings;
         private bool _debug;
         private bool _worldLabelsHidden;
@@ -120,6 +123,29 @@ namespace MixVerse.Game.Kart
         public Quaternion DirectionAt(float distance)
         {
             return Quaternion.LookRotation(Point(distance + 1f) - Point(Mathf.Max(0f, distance - 1f)), Vector3.up);
+        }
+
+        private void ApplyRainbowBody(MeshRenderer[] renderers, float time)
+        {
+            if (renderers == null) return;
+            foreach (var renderer in renderers)
+            {
+                var local = renderer.transform.localPosition;
+                var hue = Mathf.Repeat((local.x + local.y * 1.6f) * 0.4f + time * 1.4f, 1f);
+                renderer.GetPropertyBlock(_rainbowBlock);
+                _rainbowBlock.SetColor(BaseColorId, Color.HSVToRGB(hue, 0.9f, 1f));
+                renderer.SetPropertyBlock(_rainbowBlock);
+            }
+        }
+        private void ClearRainbowBody(MeshRenderer[] renderers)
+        {
+            if (renderers == null) return;
+            foreach (var renderer in renderers)
+            {
+                if (!renderer.HasPropertyBlock()) continue;
+                _rainbowBlock.Clear();
+                renderer.SetPropertyBlock(_rainbowBlock);
+            }
         }
 
         public void Render(KartRace race, float gain, bool ready, float countdown, bool midi)
@@ -209,9 +235,9 @@ namespace MixVerse.Game.Kart
                 }
                 Karts[i].localPosition = kartPosition;
                 Karts[i].localRotation = kartRotation;
-                Karts[i].localScale = racer.InvincibleSeconds > 0f
-                    ? Vector3.one * (1f + Mathf.Sin(race.Time * 14f) * 0.08f)
-                    : Vector3.one;
+                Karts[i].localScale = Vector3.one;
+                if (racer.InvincibleSeconds > 0f) ApplyRainbowBody(BodyRenderers[i], race.Time);
+                else ClearRainbowBody(BodyRenderers[i]);
                 Tags[i].gameObject.SetActive(race.Phase == RacePhase.Racing && i != (int)RacerId.Player);
                 Tags[i].localPosition = position + Vector3.up * (3.2f + racer.Height);
                 Tags[i].rotation = Camera.transform.rotation;
