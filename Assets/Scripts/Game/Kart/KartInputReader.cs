@@ -37,12 +37,14 @@ namespace MixVerse.Game.Kart
         private int _jog;
         private int _releasedDriftDirection;
         private bool _driftHeld;
+        private bool _driftActive;
         private bool _useItem;
         private bool _syncPressed;
         private bool _bound;
         private readonly Subject<Unit> _onDriftInputTriggered = new Subject<Unit>();
         public float Gain => _gain;
         public bool HasMidi => _devices.Count > 0;
+        public bool IsDriftActive => _driftActive;
         public Observable<Unit> OnDriftInputTriggered => _onDriftInputTriggered;
 
         private sealed class Handlers
@@ -91,6 +93,7 @@ namespace MixVerse.Game.Kart
                     _jog = 0;
                     _releasedDriftDirection = 0;
                     _driftHeld = false;
+                    _driftActive = false;
                     _syncPressed = false;
                 }
             }
@@ -101,7 +104,12 @@ namespace MixVerse.Game.Kart
         public void ApplyNoteOn(int channel, int noteNumber, float velocity)
         {
             if (_mapping.channel > 0 && channel != _mapping.channel - 1) return;
-            if (velocity > 0f && noteNumber == _mapping.syncControl) _useItem = true;
+            if (velocity <= 0f)
+            {
+                ApplyNoteOff(channel, noteNumber);
+                return;
+            }
+            if (noteNumber == _mapping.syncControl) _useItem = true;
         }
 
         // ドリフト解除（#77/#78）も実機では NoteOff（NoteOn の velocity 0 を含む）で届くため、CC の値 0 と同じ扱いにする
@@ -129,16 +137,8 @@ namespace MixVerse.Game.Kart
             var raw = Mathf.RoundToInt(value * 127f);
             if (_mapping.driftMode == KartDriftControlMode.PairedControls)
             {
-                if (controlNumber == _mapping.leftDriftControl && raw > 0)
-                {
-                    _jog = -1;
-                    _onDriftInputTriggered.OnNext(Unit.Default);
-                }
-                else if (controlNumber == _mapping.driftControl && raw > 0)
-                {
-                    _jog = 1;
-                    _onDriftInputTriggered.OnNext(Unit.Default);
-                }
+                if (controlNumber == _mapping.leftDriftControl && raw > 0) StartDrift(-1);
+                else if (controlNumber == _mapping.driftControl && raw > 0) StartDrift(1);
                 else if (raw == 0) ReleaseDrift(controlNumber);
                 return;
             }
@@ -159,20 +159,30 @@ namespace MixVerse.Game.Kart
             }
         }
 
+        // ドリフトは #25/#24 の入力で開始し、#78/#77 のどちらかが離されるか、ゲームのリセットまで継続する。
+        // 継続していない間は Read が必ず Jog=0 を返すため、入力が途切れてもドリフトが残り続けることはない
+        private void StartDrift(int direction)
+        {
+            _jog = direction;
+            _driftActive = true;
+            _onDriftInputTriggered.OnNext(Unit.Default);
+        }
+
         private void ReleaseDrift(int number)
         {
-            if ((_jog != -1 || number != _mapping.leftDriftReleaseControl) &&
-                (_jog != 1 || number != _mapping.rightDriftReleaseControl)) return;
+            if (number != _mapping.leftDriftReleaseControl && number != _mapping.rightDriftReleaseControl) return;
+            if (!_driftActive) return;
             _releasedDriftDirection = _jog;
             _jog = 0;
+            _driftActive = false;
         }
 
         public KartInput Read(float dt)
         {
             var keyboard = Keyboard.current;
             var steering = _steering;
-            var jog = _mapping.driftMode == KartDriftControlMode.Absolute ||
-                      _mapping.driftMode == KartDriftControlMode.PairedControls ? _jog :
+            var jog = _mapping.driftMode == KartDriftControlMode.PairedControls ? _driftActive ? _jog : 0 :
+                _mapping.driftMode == KartDriftControlMode.Absolute ? _jog :
                 Time.unscaledTime - _jogAt <= _mapping.jogTimeout ? _jog : 0;
             var use = _useItem;
             _useItem = false;
@@ -217,6 +227,7 @@ namespace MixVerse.Game.Kart
             _releasedDriftDirection = 0;
             _jogAt = -10f;
             _driftHeld = false;
+            _driftActive = false;
         }
 
         private void Unbind(MidiDevice device, Handlers handlers)

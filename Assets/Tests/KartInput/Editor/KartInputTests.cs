@@ -82,24 +82,21 @@ namespace MixVerse.Game.Tests
             Assert.That(reader.Read(0f).Jog, Is.EqualTo(-1));
         }
 
-        [TestCase(25, 78, -1)]
-        [TestCase(24, 77, 1)]
-        public void PairedDriftStartsOnNonZeroValueAndPersistsUntilMatchingReleaseReachesZero(int start, int release, int direction)
+        [TestCase(25, -1)]
+        [TestCase(24, 1)]
+        public void PairedDriftStartsOnNonZeroValueAndStopsOnEitherReleaseControlReachingZero(int start, int direction)
         {
             var reader = new KartInputReader(new KartMidiMapping());
             reader.ApplyControlChange(0, start, 0f);
             Assert.That(reader.Read(0f).Jog, Is.Zero);
-            foreach (var value in new[] { 1f / 127f, 0.5f, 1f })
+            foreach (var release in new[] { 78, 77 })
             {
-                reader.ApplyControlChange(0, start, value);
+                reader.ApplyControlChange(0, start, 0.5f);
                 Assert.That(reader.Read(0f).Jog, Is.EqualTo(direction));
-                reader.ApplyControlChange(0, 10, direction < 0 ? 0f : 1f);
-                Assert.That(reader.Read(1f).Jog, Is.EqualTo(direction));
                 reader.ApplyControlChange(0, start, 0f);
-                reader.ApplyControlChange(0, release == 78 ? 77 : 78, 0f);
                 reader.ApplyControlChange(1, release, 0f);
-                reader.ApplyControlChange(0, release, value);
-                Assert.That(reader.Read(0f).Jog, Is.EqualTo(direction));
+                reader.ApplyControlChange(0, release, 0.5f);
+                Assert.That(reader.Read(1f).Jog, Is.EqualTo(direction));
                 reader.ApplyControlChange(0, release, 0f);
                 var input = reader.Read(0f);
                 Assert.That(input.Jog, Is.Zero);
@@ -108,19 +105,48 @@ namespace MixVerse.Game.Tests
             }
         }
 
-        [TestCase(25, 78, -1)]
-        [TestCase(24, 77, 1)]
-        public void PairedDriftReleasesOnMatchingNoteOff(int start, int release, int direction)
+        [TestCase(25, -1)]
+        [TestCase(24, 1)]
+        public void PairedDriftStopsOnEitherReleaseNoteOff(int start, int direction)
+        {
+            foreach (var release in new[] { 78, 77 })
+            {
+                var reader = new KartInputReader(new KartMidiMapping());
+                reader.ApplyControlChange(0, start, 0.5f);
+                reader.ApplyNoteOff(1, release);
+                Assert.That(reader.Read(0f).Jog, Is.EqualTo(direction));
+                reader.ApplyNoteOff(0, release);
+                var input = reader.Read(0f);
+                Assert.That(input.Jog, Is.Zero);
+                Assert.That(input.ReleasedDriftDirection, Is.EqualTo(direction));
+                Assert.That(reader.IsDriftActive, Is.False);
+            }
+        }
+
+        [TestCase(78)]
+        [TestCase(77)]
+        public void ReleaseNoteOnWithZeroVelocityStopsDrift(int release)
         {
             var reader = new KartInputReader(new KartMidiMapping());
-            reader.ApplyControlChange(0, start, 0.5f);
-            reader.ApplyNoteOff(0, release == 78 ? 77 : 78);
-            reader.ApplyNoteOff(1, release);
-            Assert.That(reader.Read(0f).Jog, Is.EqualTo(direction));
-            reader.ApplyNoteOff(0, release);
-            var input = reader.Read(0f);
-            Assert.That(input.Jog, Is.Zero);
-            Assert.That(input.ReleasedDriftDirection, Is.EqualTo(direction));
+            reader.ApplyControlChange(0, 25, 1f);
+            reader.ApplyNoteOn(0, release, 0f);
+            Assert.That(reader.Read(0f).Jog, Is.Zero);
+            Assert.That(reader.IsDriftActive, Is.False);
+        }
+
+        [Test]
+        public void DriftStaysStoppedUntilNextStartControlArrives()
+        {
+            var reader = new KartInputReader(new KartMidiMapping());
+            reader.ApplyControlChange(0, 24, 0.5f);
+            reader.ApplyNoteOff(0, 78);
+            for (var i = 0; i < 10; i++) Assert.That(reader.Read(1f / 60f).Jog, Is.Zero);
+            reader.ApplyControlChange(0, 9, 1f);
+            reader.ApplyControlChange(0, 10, 0f);
+            reader.ApplyControlChange(0, 71, 1f);
+            Assert.That(reader.Read(1f / 60f).Jog, Is.Zero);
+            reader.ApplyControlChange(0, 25, 1f);
+            Assert.That(reader.Read(0f).Jog, Is.EqualTo(-1));
         }
 
         [Test]
