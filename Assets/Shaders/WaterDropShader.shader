@@ -97,7 +97,7 @@ Shader "Custom/WaterDropShader"
                     color = half4(1, 0, 0, 1);
                 }
                 color *= 0;
-                color.rg = id * 0.1;
+                color.rg = N2to1(id * 0.1f);
                 
                 return color;
             }
