@@ -27,10 +27,11 @@ namespace MixVerse.Game.Kart
         }
 
         // 吹っ飛びカメラから戻る際、今の見え方からそのまま動かし始めてカットインにならないようにする
-        public void Takeover()
+        public void Takeover(float fieldOfView)
         {
             _position = _camera.localPosition;
             _initialized = true;
+            FieldOfView = fieldOfView;
         }
 
         public void Follow(Vector3 kart, Quaternion track, float speedRatio, float turnAngle, float deltaTime)

@@ -408,9 +408,10 @@ namespace MixVerse.Game.Kart
             var blowAway = race.Phase == RacePhase.Racing && IsBlownAway(race.Player);
             if (blowAway != _blowAwayCameraActive)
             {
+                var fieldOfView = ActiveFieldOfView;
                 _blowAwayCameraActive = blowAway;
-                if (blowAway) BlowAwayCamera.Takeover();
-                else ChaseCamera.Takeover();
+                if (blowAway) BlowAwayCamera.Takeover(fieldOfView);
+                else ChaseCamera.Takeover(fieldOfView);
             }
             if (blowAway)
             {
