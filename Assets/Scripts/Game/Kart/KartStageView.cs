@@ -96,14 +96,19 @@ namespace MixVerse.Game.Kart
         private const float EngineSeMinPitch = 0.85f;
         private const float EngineSeMaxPitch = 1.6f;
         private KartRaceSettings _settings;
+        private KartCourseLayout _layout;
         private bool _debug;
         private bool _worldLabelsHidden;
         private bool _bossCrashExploded;
         private bool _blowAwayCameraActive;
-        private readonly string[] _sectionNames = { "01  市街地", "02  峠の上り", "03  ギャラリー", "04  トンネル", "05  連続ヘアピン", "06  ゴール前直線" };
+        private readonly string[] _sectionNames = { "01  山頂からの下り", "02  峠の下り", "03  山腹ギャラリー", "04  ロングカーブ・トンネル", "05  下り連続ヘアピン", "06  麓の市街地へ" };
         private readonly string[] _racerNames = { "あなた", "上司", "部下" };
 
-        public void Initialize(KartRaceSettings settings) => _settings = settings;
+        public void Initialize(KartRaceSettings settings)
+        {
+            _settings = settings;
+            _layout = new KartCourseLayout(settings.courseLength);
+        }
         public void ToggleDebug() => _debug = !_debug;
         public void PlayDriftSe()
         {
@@ -302,7 +307,7 @@ namespace MixVerse.Game.Kart
                 TagLabels[i].text = $"{race.Rank(racer)}  {_racerNames[i]}" + (racer.InvincibleSeconds > 0f ? "  <color=#FFD84A>★ 無敵</color>" : "");
             }
             RenderCamera(race);
-            var inTunnel = race.SectionAt(race.Player.Distance) == CourseSection.Tunnel;
+            var inTunnel = _layout.InTunnel(race.Player.Distance);
             Atmosphere.SetTunnel(inTunnel);
             Windshield.SetTunnel(inTunnel);
             foreach (var gate in Gates) gate.Value.SetActive(gate.Key > race.Player.Distance + 15f);

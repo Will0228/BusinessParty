@@ -70,8 +70,9 @@ namespace MixVerse.Game.Kart
             _root = new GameObject("Cyberpunk city").transform;
             _root.SetParent(_stage.transform, false);
             _root.gameObject.SetActive(false);
-            _tunnelStart = _settings.courseLength / 2f;
-            _tunnelEnd = _settings.courseLength * 4f / 6f;
+            var layout = new KartCourseLayout(_settings.courseLength);
+            _tunnelStart = layout.TunnelStart;
+            _tunnelEnd = layout.TunnelEnd;
             _edge = _settings.roadHalfWidth + SidewalkWidth + 0.4f;
             _end = _settings.courseLength + 50f;
             _leftClearance = Clearances(-1);
@@ -80,6 +81,7 @@ namespace MixVerse.Game.Kart
             BuildRoad();
             BuildPuddles();
             BuildGround();
+            BuildMountain();
             BuildTunnel();
             BuildChasm();
             for (var side = -1; side <= 1; side += 2)
@@ -143,14 +145,60 @@ namespace MixVerse.Game.Kart
         {
             var ground = _materials.Lit(new Color(0.035f, 0.035f, 0.045f), 0.62f);
             var inner = _settings.roadHalfWidth + SidewalkWidth - 0.05f;
-            Surface("Ground", ground, 0f, _end, d => -GroundExtent(d, -1), _ => -inner, GroundHeight, d => !InTunnel(d, 0f));
-            Surface("Ground", ground, 0f, _end, _ => inner, d => GroundExtent(d, 1), GroundHeight, d => !InTunnel(d, 0f));
+            Surface("Ground", ground, 0f, _end, d => -GroundExtent(d, -1), _ => -inner, GroundHeight, d => !InTunnel(d, 0f) && !OnMountain(d));
+            Surface("Ground", ground, 0f, _end, _ => inner, d => GroundExtent(d, 1), GroundHeight, d => !InTunnel(d, 0f) && !OnMountain(d));
             var lowest = float.MaxValue;
             foreach (var point in _stage.Path) lowest = Mathf.Min(lowest, point.y);
             var middle = _stage.Point(_settings.courseLength * 0.5f);
             middle.y = lowest - 1.2f;
             Primitive("Base ground", PrimitiveType.Quad, _root, middle, new Vector3(4000f, 4000f, 1f), ground)
                 .transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+        }
+
+        private void BuildMountain()
+        {
+            var rock = _materials.Lit(new Color(0.085f, 0.09f, 0.11f), 0.38f);
+            var rail = _materials.Lit(new Color(0.28f, 0.32f, 0.38f), 0.65f, 0.65f);
+            var inner = _settings.roadHalfWidth + SidewalkWidth - 0.05f;
+            for (var side = -1; side <= 1; side += 2)
+            {
+                var s = side;
+                for (var band = 0; band < 4; band++)
+                {
+                    var near = band / 4f;
+                    var far = (band + 1f) / 4f;
+                    Sheet("Mountain slope", rock, 0f, _end,
+                        d => MountainEdge(d, s, s < 0 ? far : near, inner),
+                        d => MountainEdge(d, s, s < 0 ? near : far, inner), OnMountain);
+                }
+                Wall("Mountain guardrail", rail, 0f, _end, s * (inner - 0.15f), 0.65f, 1.1f, s, OnMountain);
+                Wall("Mountain rail neon", _materials.Unlit(s < 0 ? _neonCyan : _neonMagenta), 0f, _end,
+                    s * (inner - 0.17f), 1.05f, 1.1f, s, OnMountain);
+                for (var d = 0f; d < _end; d += 8f)
+                {
+                    if (!OnMountain(d)) continue;
+                    Primitive("Guardrail post", PrimitiveType.Cube, Bucket(d), At(d, s * (inner - 0.15f), 0.55f),
+                        new Vector3(0.15f, 1.1f, 0.15f), rail);
+                }
+            }
+        }
+
+        private Vector2 MountainEdge(float distance, int side, float fraction, float inner)
+        {
+            var extent = GroundExtent(distance, side);
+            var width = extent - inner;
+            var slope = side < 0 ? 0.8f : -0.85f;
+            var ridge = 1f + 0.18f * Mathf.Sin(distance * 0.045f) + 0.1f * Mathf.Sin(distance * 0.11f);
+            var t = distance / _settings.courseLength;
+            var boundary = Mathf.Min(Mathf.Abs(t - 0.04f), Mathf.Abs(t - 0.29f), Mathf.Abs(t - 0.5f), Mathf.Abs(t - 0.94f));
+            var blend = Mathf.SmoothStep(0f, 1f, boundary * _settings.courseLength / 15f);
+            return new Vector2(side * Mathf.Lerp(inner, extent, fraction), GroundHeight + width * fraction * slope * ridge * blend);
+        }
+
+        private bool OnMountain(float distance)
+        {
+            var t = distance / _settings.courseLength;
+            return (t >= 0.04f && t < 0.29f || t >= 0.5f && t < 0.94f) && !InTunnel(distance, 0f);
         }
 
         // ジャンプ台の先で道路と歩道を丸ごと欠落させ、下の地面まで落ち込む崖を作る
@@ -229,6 +277,11 @@ namespace MixVerse.Game.Kart
             var d = 2f;
             while (d < _end)
             {
+                if (OnMountain(d))
+                {
+                    d += 8f;
+                    continue;
+                }
                 if (InTunnel(d, 12f))
                 {
                     d = _tunnelEnd + 12f;
@@ -295,6 +348,7 @@ namespace MixVerse.Game.Kart
         {
             for (var d = 0f; d < _end + 20f; d += 14f + (float)_random.NextDouble() * 12f)
             {
+                if (d < _settings.courseLength * 0.94f) continue;
                 var width = 14f + (float)_random.NextDouble() * 16f;
                 var depth = 14f + (float)_random.NextDouble() * 14f;
                 var height = 40f + (float)_random.NextDouble() * 110f;
@@ -365,7 +419,7 @@ namespace MixVerse.Game.Kart
             if (prefabs == null || prefabs.Length == 0) return;
             for (var d = 30f; d < _settings.courseLength; d += 34f + (float)_random.NextDouble() * 22f)
             {
-                if (InTunnel(d, 10f)) continue;
+                if (InTunnel(d, 10f) || OnMountain(d - 15f) || OnMountain(d) || OnMountain(d + 15f)) continue;
                 var prefab = prefabs[_random.Next(prefabs.Length)];
                 if (prefab == null) continue;
                 var bounds = PrefabBounds(prefab);
@@ -566,6 +620,7 @@ namespace MixVerse.Game.Kart
         private void Sheet(string name, Material material, float start, float end, Func<float, Vector2> from, Func<float, Vector2> to, Func<float, bool> include)
         {
             var vertices = new List<Vector3>();
+            var normals = new List<Vector3>();
             var uvs = new List<Vector2>();
             var triangles = new List<int>();
             for (var d = start; d < end - 0.01f; d += Step)
@@ -581,6 +636,10 @@ namespace MixVerse.Game.Kart
                 vertices.Add(At(next, b.x, b.y));
                 vertices.Add(At(next, c.x, c.y));
                 vertices.Add(At(d, e.x, e.y));
+                normals.Add(SheetNormal(d, from, from, to));
+                normals.Add(SheetNormal(next, from, from, to));
+                normals.Add(SheetNormal(next, to, from, to));
+                normals.Add(SheetNormal(d, to, from, to));
                 uvs.Add(new Vector2(0f, d * 0.25f));
                 uvs.Add(new Vector2(0f, next * 0.25f));
                 uvs.Add(new Vector2(Vector2.Distance(b, c) * 0.25f, next * 0.25f));
@@ -592,7 +651,7 @@ namespace MixVerse.Game.Kart
             mesh.SetVertices(vertices);
             mesh.SetUVs(0, uvs);
             mesh.SetTriangles(triangles, 0);
-            mesh.RecalculateNormals();
+            mesh.SetNormals(normals);
             mesh.RecalculateTangents();
             mesh.RecalculateBounds();
             _stage.GeneratedAssets.Add(mesh);
@@ -602,6 +661,17 @@ namespace MixVerse.Game.Kart
             var renderer = obj.GetComponent<MeshRenderer>();
             renderer.sharedMaterial = material;
             renderer.shadowCastingMode = ShadowCastingMode.Off;
+        }
+
+        private Vector3 SheetNormal(float distance, Func<float, Vector2> edge, Func<float, Vector2> from, Func<float, Vector2> to)
+        {
+            var before = edge(distance - Step);
+            var after = edge(distance + Step);
+            var a = from(distance);
+            var b = to(distance);
+            var along = At(distance + Step, after.x, after.y) - At(distance - Step, before.x, before.y);
+            var across = At(distance, b.x, b.y) - At(distance, a.x, a.y);
+            return Vector3.Cross(along, across).normalized;
         }
 
         private GameObject Spawn(Transform parent, GameObject prefab, Vector3 position, Quaternion rotation)

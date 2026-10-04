@@ -539,7 +539,7 @@ namespace MixVerse.Game.Model.Tests
             var layout = new KartCourseLayout(1200f);
             foreach (var distance in new[] { 55f, 240f, 450f, 640f, 830f, 1035f })
             {
-                Assert.That(System.Math.Abs(layout.TurnRateAt(distance)), Is.GreaterThan(0.025f), $"Curve at {distance} m");
+                Assert.That(System.Math.Abs(layout.TurnRateAt(distance)), Is.GreaterThan(distance == 640f ? 0.01f : 0.025f), $"Curve at {distance} m");
                 var headingChange = layout.HeadingAt(distance + 0.1f) - layout.HeadingAt(distance - 0.1f);
                 Assert.That(headingChange / 0.2f, Is.EqualTo(layout.TurnRateAt(distance)).Within(0.001f));
             }

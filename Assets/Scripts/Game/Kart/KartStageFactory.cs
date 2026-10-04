@@ -109,11 +109,12 @@ namespace MixVerse.Game.Kart
             for (var i = 0; i <= Mathf.CeilToInt(settings.courseLength / 5f) + 12; i++)
             {
                 var distance = i * 5f;
+                position.y = layout.ElevationAt(distance);
                 _stage.Path.Add(position);
-                var t = distance / settings.courseLength;
-                var heading = layout.HeadingAt(distance);
-                var slope = t > 0.16f && t < 0.33f ? 0.12f : t > 0.66f && t < 0.84f ? -0.11f : 0f;
-                position += new Vector3(Mathf.Sin(heading), slope, Mathf.Cos(heading)).normalized * 5f;
+                var heading = layout.HeadingAt(distance + 2.5f);
+                var drop = layout.ElevationAt(distance + 5f) - position.y;
+                var horizontalStep = Mathf.Sqrt(25f - drop * drop);
+                position += new Vector3(Mathf.Sin(heading), 0f, Mathf.Cos(heading)) * horizontalStep;
             }
         }
 
@@ -125,7 +126,7 @@ namespace MixVerse.Game.Kart
             for (var section = 0; section < 6; section++)
             {
                 var distance = section * settings.courseLength / 6f;
-                var words = new[] { "START", "峠の上り", "社長・取引先 観戦中", "TUNNEL", "HAIRPIN", "FINAL STRAIGHT" };
+                var words = new[] { "SUMMIT / 山頂", "峠の下り", "社長・取引先 観戦中", "LONG CURVE", "DOWNHILL HAIRPIN", "麓へ / FINAL" };
                 Gate(distance, words[section], section == 2 ? _coral : _cyan, settings);
             }
             Gate(settings.courseLength, "FINISH  /  上司に花を", _gold, settings);
