@@ -25,6 +25,7 @@ namespace MixVerse.Game.Kart
         public KartDriftControlMode driftMode = KartDriftControlMode.PairedControls;
         public bool binaryOffsetJog;
         [Range(0.05f, 0.5f)] public float jogTimeout = 0.16f;
+        [Range(0.05f, 1f)] public float driftHoldSeconds = 0.4f;
     }
 
     public sealed class KartInputReader : IDisposable
@@ -35,10 +36,13 @@ namespace MixVerse.Game.Kart
         private float _master = 1f;
         private float _steering;
         private float _jogAt = -10f;
+        private float _time;
+        private float _driftInputAt = float.NegativeInfinity;
         private int _jog;
         private int _releasedDriftDirection;
         private bool _driftHeld;
         private bool _driftActive;
+        private bool _driftBlocked;
         private bool _driftLogged;
         private bool _useItem;
         private bool _syncPressed;
@@ -46,7 +50,8 @@ namespace MixVerse.Game.Kart
         private readonly Subject<Unit> _onDriftInputTriggered = new Subject<Unit>();
         public float Gain => _gain;
         public bool HasMidi => _devices.Count > 0;
-        public bool IsDriftActive => _driftActive;
+        public bool IsDriftActive => _driftActive && !DriftInputStale;
+        private bool DriftInputStale => _time - _driftInputAt > Mathf.Max(0.05f, _mapping.driftHoldSeconds);
         public Observable<Unit> OnDriftInputTriggered => _onDriftInputTriggered;
 
         private sealed class Handlers
@@ -92,11 +97,8 @@ namespace MixVerse.Game.Kart
                     Unbind(midi, handlers);
                     _devices.Remove(midi);
                     _steering = 0f;
-                    _jog = 0;
-                    _releasedDriftDirection = 0;
-                    _driftHeld = false;
-                    _driftActive = false;
                     _syncPressed = false;
+                    CancelDrift();
                 }
             }
         }
@@ -112,6 +114,9 @@ namespace MixVerse.Game.Kart
                 return;
             }
             if (noteNumber == _mapping.syncControl) _useItem = true;
+            // ジョグに触り直した合図。解除直後の惰性入力と区別できるのでブロックを解く
+            if (_mapping.driftMode == KartDriftControlMode.PairedControls && IsDriftReleaseNumber(noteNumber))
+                _driftBlocked = false;
         }
 
         // ドリフト解除（#77/#78）も実機では NoteOff（NoteOn の velocity 0 を含む）で届くため、CC の値 0 と同じ扱いにする
@@ -161,28 +166,52 @@ namespace MixVerse.Game.Kart
             }
         }
 
-        // ドリフトは #25/#24 の入力で開始し、#78/#77 のどちらかが離されるか、ゲームのリセットまで継続する。
-        // 継続していない間は Read が必ず Jog=0 を返すため、入力が途切れてもドリフトが残り続けることはない
+        private bool IsDriftReleaseNumber(int number) =>
+            number == _mapping.leftDriftReleaseControl || number == _mapping.rightDriftReleaseControl;
+
+        // ドリフトは #25/#24 が driftHoldSeconds 以内に届き続けている間だけ継続する。
+        // 1回の入力で掴み続けると #78/#77 の Note Off を取りこぼしたときに解除できなくなるため、
+        // 入力が途切れたら必ず終了させる
         private void StartDrift(int direction)
         {
+            var continued = _driftActive && !DriftInputStale && _jog == direction;
+            _driftInputAt = _time;
+            if (_driftBlocked || continued) return;
             _jog = direction;
             _driftActive = true;
             _onDriftInputTriggered.OnNext(Unit.Default);
         }
 
+        // Note Off が届いた＝完全にドリフトを終えた合図。ジョグが惰性で流し続ける #25/#24 で再開しないよう、
+        // 触り直すか入力が途切れるまでドリフトをブロックする
         private void ReleaseDrift(int number)
         {
-            if (number != _mapping.leftDriftReleaseControl && number != _mapping.rightDriftReleaseControl) return;
-            if (!_driftActive) return;
+            if (!IsDriftReleaseNumber(number)) return;
+            if (!_driftActive || DriftInputStale)
+            {
+                _jog = 0;
+                _driftActive = false;
+                return;
+            }
             _releasedDriftDirection = _jog;
             _jog = 0;
             _driftActive = false;
+            _driftBlocked = true;
+        }
+
+        private void EndDrift()
+        {
+            _jog = 0;
+            _driftActive = false;
+            _driftBlocked = false;
         }
 
         public KartInput Read(float dt)
         {
+            _time += dt;
             var keyboard = Keyboard.current;
             var steering = _steering;
+            if (_mapping.driftMode == KartDriftControlMode.PairedControls && DriftInputStale) EndDrift();
             var jog = _mapping.driftMode == KartDriftControlMode.PairedControls ? _driftActive ? _jog : 0 :
                 _mapping.driftMode == KartDriftControlMode.Absolute ? _jog :
                 Time.unscaledTime - _jogAt <= _mapping.jogTimeout ? _jog : 0;
@@ -229,8 +258,9 @@ namespace MixVerse.Game.Kart
             _jog = 0;
             _releasedDriftDirection = 0;
             _jogAt = -10f;
+            _driftInputAt = float.NegativeInfinity;
             _driftHeld = false;
-            _driftActive = false;
+            EndDrift();
         }
 
         private void LogDrift(bool drifting)

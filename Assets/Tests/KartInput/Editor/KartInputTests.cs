@@ -86,19 +86,33 @@ namespace MixVerse.Game.Tests
 
         [TestCase(25, -1)]
         [TestCase(24, 1)]
-        public void PairedDriftStartsOnNonZeroValueAndStopsOnEitherReleaseControlReachingZero(int start, int direction)
+        public void PairedDriftContinuesOnlyWhileJogInputKeepsArriving(int start, int direction)
         {
-            var reader = new KartInputReader(new KartMidiMapping());
+            var mapping = new KartMidiMapping();
+            var reader = new KartInputReader(mapping);
             reader.ApplyControlChange(0, start, 0f);
             Assert.That(reader.Read(0f).Jog, Is.Zero);
-            foreach (var release in new[] { 78, 77 })
+            for (var i = 0; i < 60; i++)
             {
                 reader.ApplyControlChange(0, start, 0.5f);
-                Assert.That(reader.Read(0f).Jog, Is.EqualTo(direction));
-                reader.ApplyControlChange(0, start, 0f);
+                Assert.That(reader.Read(1f / 60f).Jog, Is.EqualTo(direction));
+            }
+            Assert.That(reader.Read(mapping.driftHoldSeconds / 2f).Jog, Is.EqualTo(direction));
+            Assert.That(reader.Read(mapping.driftHoldSeconds).Jog, Is.Zero);
+            Assert.That(reader.IsDriftActive, Is.False);
+        }
+
+        [TestCase(25, -1)]
+        [TestCase(24, 1)]
+        public void PairedDriftStopsOnEitherReleaseControlReachingZero(int start, int direction)
+        {
+            foreach (var release in new[] { 78, 77 })
+            {
+                var reader = new KartInputReader(new KartMidiMapping());
+                reader.ApplyControlChange(0, start, 0.5f);
                 reader.ApplyControlChange(1, release, 0f);
                 reader.ApplyControlChange(0, release, 0.5f);
-                Assert.That(reader.Read(1f).Jog, Is.EqualTo(direction));
+                Assert.That(reader.Read(0f).Jog, Is.EqualTo(direction));
                 reader.ApplyControlChange(0, release, 0f);
                 var input = reader.Read(0f);
                 Assert.That(input.Jog, Is.Zero);
@@ -137,18 +151,34 @@ namespace MixVerse.Game.Tests
         }
 
         [Test]
-        public void DriftStaysStoppedUntilNextStartControlArrives()
+        public void JogInputAfterReleaseCannotRestartDriftUntilInputStops()
+        {
+            var mapping = new KartMidiMapping();
+            var reader = new KartInputReader(mapping);
+            reader.ApplyControlChange(0, 25, 0.5f);
+            Assert.That(reader.Read(0f).Jog, Is.EqualTo(-1));
+            reader.ApplyNoteOff(0, 78);
+            for (var i = 0; i < 60; i++)
+            {
+                reader.ApplyControlChange(0, 25, 0.5f);
+                Assert.That(reader.Read(1f / 60f).Jog, Is.Zero);
+            }
+            reader.Read(mapping.driftHoldSeconds + 0.01f);
+            reader.ApplyControlChange(0, 25, 0.5f);
+            Assert.That(reader.Read(0f).Jog, Is.EqualTo(-1));
+        }
+
+        [Test]
+        public void TouchingJogAgainAfterReleaseRestartsDriftImmediately()
         {
             var reader = new KartInputReader(new KartMidiMapping());
             reader.ApplyControlChange(0, 24, 0.5f);
-            reader.ApplyNoteOff(0, 78);
-            for (var i = 0; i < 10; i++) Assert.That(reader.Read(1f / 60f).Jog, Is.Zero);
-            reader.ApplyControlChange(0, 9, 1f);
-            reader.ApplyControlChange(0, 10, 0f);
-            reader.ApplyControlChange(0, 71, 1f);
+            reader.ApplyNoteOff(0, 77);
+            reader.ApplyControlChange(0, 24, 0.5f);
             Assert.That(reader.Read(1f / 60f).Jog, Is.Zero);
-            reader.ApplyControlChange(0, 25, 1f);
-            Assert.That(reader.Read(0f).Jog, Is.EqualTo(-1));
+            reader.ApplyNoteOn(0, 77, 1f);
+            reader.ApplyControlChange(0, 24, 0.5f);
+            Assert.That(reader.Read(1f / 60f).Jog, Is.EqualTo(1));
         }
 
         [Test]
@@ -157,8 +187,11 @@ namespace MixVerse.Game.Tests
             var reader = new KartInputReader(new KartMidiMapping());
             var race = CreateRace();
             reader.ApplyControlChange(0, 9, 0.5f);
-            reader.ApplyControlChange(0, 24, 0.5f);
-            for (var i = 0; i < 120; i++) race.Tick(1f / 120f, reader.Read(1f / 120f));
+            for (var i = 0; i < 120; i++)
+            {
+                reader.ApplyControlChange(0, 24, 0.5f);
+                race.Tick(1f / 120f, reader.Read(1f / 120f));
+            }
             Assert.That(race.DriftTier, Is.EqualTo(1));
             reader.ApplyNoteOff(0, 77);
             race.Tick(1f / 120f, reader.Read(1f / 120f));
@@ -209,8 +242,11 @@ namespace MixVerse.Game.Tests
             var reader = new KartInputReader(new KartMidiMapping());
             var race = CreateRace();
             reader.ApplyControlChange(0, 9, 0.5f);
-            reader.ApplyControlChange(0, start, 0.5f);
-            for (var i = 0; i < (int)(seconds * 120f); i++) race.Tick(1f / 120f, reader.Read(1f / 120f));
+            for (var i = 0; i < (int)(seconds * 120f); i++)
+            {
+                reader.ApplyControlChange(0, start, 0.5f);
+                race.Tick(1f / 120f, reader.Read(1f / 120f));
+            }
             Assert.That(race.DriftDirection, Is.EqualTo(direction));
             Assert.That(race.DriftTier, Is.EqualTo(tier));
             Assert.That(race.Player.TurboSeconds, Is.Zero);
@@ -228,9 +264,13 @@ namespace MixVerse.Game.Tests
             var reader = new KartInputReader(new KartMidiMapping());
             var race = CreateRace();
             reader.ApplyControlChange(0, 9, 0.5f);
-            reader.ApplyControlChange(0, 25, 0.5f);
-            for (var i = 0; i < 120; i++) race.Tick(1f / 120f, reader.Read(1f / 120f));
+            for (var i = 0; i < 120; i++)
+            {
+                reader.ApplyControlChange(0, 25, 0.5f);
+                race.Tick(1f / 120f, reader.Read(1f / 120f));
+            }
             reader.ApplyControlChange(0, 78, 0f);
+            reader.ApplyNoteOn(0, 78, 1f);
             reader.ApplyControlChange(0, 25, 0.5f);
             race.Tick(1f / 480f, reader.Read(0f));
             race.Tick(1f / 120f, reader.Read(0f));
