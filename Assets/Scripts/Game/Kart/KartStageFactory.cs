@@ -346,7 +346,9 @@ namespace MixVerse.Game.Kart
             velocity.enabled = true;
             velocity.space = ParticleSystemSimulationSpace.Local;
             velocity.orbitalY = new ParticleSystem.MinMaxCurve(220f);
+            velocity.x = new ParticleSystem.MinMaxCurve(0f, 0f);
             velocity.y = new ParticleSystem.MinMaxCurve(1.1f, 2.2f);
+            velocity.z = new ParticleSystem.MinMaxCurve(0f, 0f);
             var colors = particles.colorOverLifetime;
             colors.enabled = true;
             var gradient = new Gradient();
