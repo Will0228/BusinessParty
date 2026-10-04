@@ -1580,15 +1580,8 @@ MonoBehaviour:
     explosionRadius: 4.5
     explosionFlightScale: 1.7
     explosionTumbleScale: 1.2
-    paperLifetime: 14
-    paperEffectSeconds: 2.2
-    cpuPaperSlowSeconds: 3
-    cpuPaperSpeedMultiplier: 0.65
-    mineFanDistance: 12
-    mineFlightSeconds: 0.65
-    mineLifetime: 16
-    mushroomSeconds: 3
-    mushroomSpeedMultiplier: 1.2
+    testDriveTurboSeconds: 3
+    turboSpeedMultiplier: 1.2
     salaryOrderSeconds: 5
     salaryOrderSpeedMultiplier: 1.1
     jumpRampPosition: 0.3
@@ -1601,7 +1594,7 @@ MonoBehaviour:
     jumpFallSeconds: 1.6
     jumpRespawnOffset: 1.5
     cameraReviewEnabled: 1
-    debugUnlimitedItem: 5
+    debugUnlimitedItem: 2
   _midiMapping:
     channel: 1
     gainControl: 9

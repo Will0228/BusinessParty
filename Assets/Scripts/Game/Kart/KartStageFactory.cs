@@ -580,7 +580,7 @@ namespace MixVerse.Game.Kart
         {
             if (obj.Kind == TrackObjectKind.Explosion)
             {
-                var severe = obj.Item == KartItem.Rocket || obj.Item == KartItem.Mine || obj.Item == KartItem.SalaryOrder;
+                var severe = obj.Item == KartItem.Rocket || obj.Item == KartItem.SalaryOrder;
                 var effect = _explosions.Create(severe, obj.Id);
                 if (severe)
                 {
@@ -594,29 +594,14 @@ namespace MixVerse.Game.Kart
             {
                 stage.PlayRocketFireSe();
             }
-            if (obj.Kind == TrackObjectKind.Mine)
-            {
-                var mine = new GameObject("Mine").transform;
-                mine.SetParent(stage.transform, false);
-                Shape(mine, "Core", PrimitiveType.Sphere, Vector3.zero, Vector3.one * 1.1f, new Color(0.12f, 0.13f, 0.16f));
-                for (var axis = 0; axis < 6; axis++)
-                {
-                    var direction = axis < 2 ? Vector3.right * (axis == 0 ? 1f : -1f) :
-                        axis < 4 ? Vector3.up * (axis == 2 ? 1f : -1f) : Vector3.forward * (axis == 4 ? 1f : -1f);
-                    var spike = Shape(mine, "Spike", PrimitiveType.Cube, direction * 0.65f, new Vector3(0.18f, 0.18f, 0.65f), _coral);
-                    spike.transform.localRotation = Quaternion.LookRotation(direction, direction == Vector3.up || direction == Vector3.down ? Vector3.forward : Vector3.up);
-                }
-                return mine;
-            }
             var color = obj.Kind == TrackObjectKind.Crate ? new Color(0.65f, 0.39f, 0.17f) :
-                obj.Kind == TrackObjectKind.Rocket ? _coral : obj.Kind == TrackObjectKind.Papers ? Color.white : _cyan;
-            var scale = obj.Kind == TrackObjectKind.Papers ? new Vector3(2f, 0.1f, 2f) : obj.Kind == TrackObjectKind.Rocket ? new Vector3(0.35f, 0.35f, 1.4f) : Vector3.one * 1.5f;
+                obj.Kind == TrackObjectKind.Rocket ? _coral : _cyan;
+            var scale = obj.Kind == TrackObjectKind.Rocket ? new Vector3(0.35f, 0.35f, 1.4f) : Vector3.one * 1.5f;
             var shape = PrimitiveType.Cube;
             var root = Shape(stage.transform, obj.Kind.ToString(), shape, Vector3.zero, scale, color).transform;
             if (obj.Kind == TrackObjectKind.ItemBox)
             {
-                var label = WorldLabel(root, obj.Item == KartItem.Papers ? "書" : obj.Item == KartItem.Rocket ? "弾" :
-                    obj.Item == KartItem.Mine ? "地" : obj.Item == KartItem.Mushroom ? "茸" : "給", _navy, 7f);
+                var label = WorldLabel(root, obj.Item == KartItem.Rocket ? "弾" : "給", _navy, 7f);
                 label.transform.localPosition = new Vector3(0f, 0f, -0.52f);
             }
             return root;
@@ -688,7 +673,6 @@ namespace MixVerse.Game.Kart
             _stage.DriftFill.gameObject.SetActive(false);
             _stage.Progress = Bar(parent, new Vector2(0.5f, 0f), new Vector2(0f, 65f), new Vector2(1552f, 5f), _gold);
             _stage.Controls = Label(parent, "", new Vector2(0.5f, 0f), new Vector2(0f, 17f), new Vector2(1560f, 35f), 19, Color.white, TextAlignmentOptions.Center);
-            BuildPaperBlind(canvasObject.transform);
             var modal = Panel(canvasObject.transform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1100f, 650f), new Color(0.035f, 0.065f, 0.1f, 0.94f));
             _stage.Modal = modal.gameObject;
             _stage.ModalTitle = Label(modal.transform, "", new Vector2(0.5f, 1f), new Vector2(0f, -40f), new Vector2(1000f, 90f), 50, _gold, TextAlignmentOptions.Center);
@@ -722,35 +706,11 @@ namespace MixVerse.Game.Kart
             return view;
         }
 
-        private void BuildPaperBlind(Transform parent)
-        {
-            _stage.PaperBlinds = new RectTransform[5];
-            for (var i = 0; i < _stage.PaperBlinds.Length; i++)
-            {
-                var page = Panel(parent, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(285f, 350f), new Color(0.94f, 0.92f, 0.82f));
-                page.gameObject.name = "社内報 blind " + i;
-                var rect = page.rectTransform;
-                _stage.PaperBlinds[i] = rect;
-                Label(rect, "社 内 報", new Vector2(0.5f, 1f), new Vector2(0f, -20f), new Vector2(250f, 50f), 31, _navy, TextAlignmentOptions.Center);
-                Label(rect, "今月の躍進\n全社で共有！", new Vector2(0.5f, 0.5f), new Vector2(0f, 30f), new Vector2(235f, 110f), 25, _coral, TextAlignmentOptions.Center);
-                for (var line = 0; line < 6; line++)
-                    Panel(rect, new Vector2(0.5f, 0f), new Vector2(0f, 28f + line * 15f), new Vector2(225f - line % 2 * 35f, 5f), new Color(0.27f, 0.29f, 0.27f));
-                page.gameObject.SetActive(false);
-            }
-        }
-
         private void BuildItemIcons(Transform parent)
         {
-            _stage.ItemIcons = new GameObject[6];
+            _stage.ItemIcons = new GameObject[3];
             _stage.EmptyItemIcon = Label(parent, "—", new Vector2(0.5f, 0.5f), Vector2.zero,
                 new Vector2(70f, 70f), 46, new Color(0.45f, 0.58f, 0.61f), TextAlignmentOptions.Center).gameObject;
-
-            var papers = IconGroup(parent, "Papers icon");
-            _stage.ItemIcons[(int)KartItem.Papers] = papers.gameObject;
-            IconShape(papers, new Vector2(-7f, 2f), new Vector2(32f, 43f), _cyan, -13f);
-            IconShape(papers, new Vector2(5f, -2f), new Vector2(32f, 43f), _gold, 10f);
-            var page = IconShape(papers, new Vector2(-1f, 0f), new Vector2(32f, 43f), Color.white);
-            for (var i = 0; i < 3; i++) IconShape(page.transform, new Vector2(0f, 9f - i * 9f), new Vector2(22f, 3f), _navy);
 
             var rocket = IconGroup(parent, "Rocket icon");
             _stage.ItemIcons[(int)KartItem.Rocket] = rocket.gameObject;
@@ -760,22 +720,6 @@ namespace MixVerse.Game.Kart
             IconShape(rocket, new Vector2(0f, 0f), new Vector2(21f, 43f), Color.white);
             IconShape(rocket, new Vector2(0f, 22f), new Vector2(17f, 17f), _coral, 45f);
             IconShape(rocket, new Vector2(0f, 2f), new Vector2(9f, 9f), _cyan, 45f);
-
-            var mine = IconGroup(parent, "Mine icon");
-            _stage.ItemIcons[(int)KartItem.Mine] = mine.gameObject;
-            IconShape(mine, Vector2.zero, new Vector2(43f, 43f), new Color(0.12f, 0.13f, 0.16f), 45f);
-            for (var i = 0; i < 8; i++)
-            {
-                var angle = i * 45f;
-                var radians = angle * Mathf.Deg2Rad;
-                IconShape(mine, new Vector2(-Mathf.Sin(radians), Mathf.Cos(radians)) * 28f, new Vector2(8f, 25f), _coral, angle);
-            }
-
-            var mushroom = IconGroup(parent, "Real mushroom icon");
-            _stage.ItemIcons[(int)KartItem.Mushroom] = mushroom.gameObject;
-            var mushroomImage = IconShape(mushroom, Vector2.zero, new Vector2(72f, 72f), Color.white);
-            mushroomImage.sprite = Resources.Load<Sprite>("KartItems/RealMushroom");
-            mushroomImage.preserveAspect = true;
 
             var salary = IconGroup(parent, "Salary order icon");
             _stage.ItemIcons[(int)KartItem.SalaryOrder] = salary.gameObject;

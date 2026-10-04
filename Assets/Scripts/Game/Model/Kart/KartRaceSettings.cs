@@ -47,15 +47,8 @@ namespace MixVerse.Game.Model.Kart
         public float explosionRadius = 4.5f;
         public float explosionFlightScale = 1.7f;
         public float explosionTumbleScale = 1.2f;
-        public float paperLifetime = 14f;
-        public float paperEffectSeconds = 2.2f;
-        public float cpuPaperSlowSeconds = 3f;
-        public float cpuPaperSpeedMultiplier = 0.65f;
-        public float mineFanDistance = 12f;
-        public float mineFlightSeconds = 0.65f;
-        public float mineLifetime = 16f;
-        public float mushroomSeconds = 3f;
-        public float mushroomSpeedMultiplier = 1.2f;
+        public float testDriveTurboSeconds = 3f;
+        public float turboSpeedMultiplier = 1.2f;
         public float salaryOrderSeconds = 5f;
         public float salaryOrderSpeedMultiplier = 1.1f;
         public float jumpRampPosition = 0.3f;
@@ -115,15 +108,8 @@ namespace MixVerse.Game.Model.Kart
             explosionRadius = Math.Max(1f, explosionRadius);
             explosionFlightScale = Math.Max(0.1f, explosionFlightScale);
             explosionTumbleScale = Math.Max(0.1f, explosionTumbleScale);
-            paperLifetime = Math.Max(1f, paperLifetime);
-            paperEffectSeconds = Math.Max(0.5f, paperEffectSeconds);
-            cpuPaperSlowSeconds = Math.Max(0.1f, cpuPaperSlowSeconds);
-            cpuPaperSpeedMultiplier = Math.Max(0.1f, Math.Min(1f, cpuPaperSpeedMultiplier));
-            mineFanDistance = Math.Max(4f, mineFanDistance);
-            mineFlightSeconds = Math.Max(0.1f, mineFlightSeconds);
-            mineLifetime = Math.Max(1f, mineLifetime);
-            mushroomSeconds = Math.Max(0.1f, mushroomSeconds);
-            mushroomSpeedMultiplier = Math.Max(1f, mushroomSpeedMultiplier);
+            testDriveTurboSeconds = Math.Max(0.1f, testDriveTurboSeconds);
+            turboSpeedMultiplier = Math.Max(1f, turboSpeedMultiplier);
             salaryOrderSeconds = Math.Max(0.1f, salaryOrderSeconds);
             salaryOrderSpeedMultiplier = Math.Max(1f, salaryOrderSpeedMultiplier);
             jumpRampPosition = Math.Max(0.05f, Math.Min(0.9f, jumpRampPosition));
@@ -142,7 +128,7 @@ namespace MixVerse.Game.Model.Kart
     public enum RacePhase { Racing, Cleared, Failed }
     public enum FailureScene { None, Distance, BossHit }
     public enum CourseSection { City, Uphill, Gallery, Tunnel, Hairpins, FinishStraight }
-    public enum KartItem { None, Papers, Rocket, Mine, Mushroom, SalaryOrder }
+    public enum KartItem { None, Rocket, SalaryOrder }
 
     public struct KartInput
     {
@@ -164,7 +150,6 @@ namespace MixVerse.Game.Model.Kart
         public float Speed;
         public float DisabledSeconds;
         public float TurboSeconds;
-        public float SlowedSeconds;
         public float InvincibleSeconds;
         public float Height;
         public float VerticalSpeed;

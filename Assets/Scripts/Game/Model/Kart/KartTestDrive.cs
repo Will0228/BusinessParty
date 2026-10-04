@@ -29,7 +29,7 @@ namespace MixVerse.Game.Model.Kart
             if (deltaTime <= 0f) return;
             if (input.Master < 0.35f) Direction = -1;
             else if (input.Master > 0.65f) Direction = 1;
-            if (input.UseItem) TurboSeconds = Math.Max(TurboSeconds, _settings.mushroomSeconds);
+            if (input.UseItem) TurboSeconds = Math.Max(TurboSeconds, _settings.testDriveTurboSeconds);
             UpdateDrift(deltaTime, input.Jog, input.ReleasedDriftDirection);
 
             var steer = Math.Abs(input.Steering) < _settings.steeringDeadZone ? 0f : input.Steering;
@@ -39,7 +39,7 @@ namespace MixVerse.Game.Model.Kart
             var turbo = TurboSeconds > 0f;
             TurboSeconds = Math.Max(0f, TurboSeconds - deltaTime);
             var target = Math.Max(0f, Math.Min(1f, input.Gain)) * 100f * Direction;
-            if (turbo) target *= _settings.mushroomSpeedMultiplier;
+            if (turbo) target *= _settings.turboSpeedMultiplier;
             var rate = Math.Abs(target) < Math.Abs(Speed) ? _settings.braking : _settings.acceleration * (turbo ? 1.5f : 1f);
             Speed += Math.Max(-rate * deltaTime, Math.Min(rate * deltaTime, target - Speed));
 
