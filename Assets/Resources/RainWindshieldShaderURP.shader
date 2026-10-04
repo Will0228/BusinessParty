@@ -2,6 +2,9 @@ Shader "MixVerse/RainWindshieldShaderURP"
 {
     Properties
     {
+        // CanvasRenderer が UI の描画テクスチャを _MainTex に流し込むため、UI 用シェーダは必ず持つ必要がある
+        [HideInInspector] _MainTex ("Sprite Texture", 2D) = "white" {}
+
         [Header(Rain)]
         _RainAmount ("Rain Amount", Range(0, 1)) = 1
 
@@ -87,6 +90,9 @@ Shader "MixVerse/RainWindshieldShaderURP"
                 half4 _TintColor;
                 float _TintAmount;
             CBUFFER_END
+
+            TEXTURE2D(_MainTex);
+            SAMPLER(sampler_MainTex);
 
             float3 Hash23(float2 cell)
             {
@@ -206,7 +212,8 @@ Shader "MixVerse/RainWindshieldShaderURP"
                 float pixelSize = 1.0 / max(_ScreenParams.y, 1.0);
                 float2 uv = float2(input.uv.x * aspect, input.uv.y);
                 WaterSurface water = FlowingDrops(uv, pixelSize);
-                float alpha = water.mask * saturate(_RainAmount) * input.color.a;
+                half4 baseMap = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, input.uv);
+                float alpha = water.mask * saturate(_RainAmount) * input.color.a * baseMap.a;
                 if (alpha <= 0.001) return half4(0.0, 0.0, 0.0, 0.0);
 
                 float3 normal = normalize(float3(-water.slope * _NormalStrength, 1.0));
@@ -226,7 +233,7 @@ Shader "MixVerse/RainWindshieldShaderURP"
                 half3 transmission = scene * lerp(half3(1, 1, 1), _TintColor.rgb, _TintAmount);
                 half3 color = lerp(transmission, reflection * _RimColor.rgb, fresnel);
                 color += highlight * _RimColor.rgb;
-                return half4(color * input.color.rgb, alpha);
+                return half4(color * input.color.rgb * baseMap.rgb, alpha);
             }
             ENDHLSL
         }
