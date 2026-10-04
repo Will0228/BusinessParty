@@ -279,73 +279,6 @@ namespace MixVerse.Game.Model.Tests
             Assert.That(race.ResultTime, Is.GreaterThan(0f));
             Assert.That(race.Boss.DisabledSeconds, Is.LessThan(disabled));
         }
-        [Test] public void PapersHitJuniorAndConsumeSingleStock()
-        {
-            var race = NewRace();
-            race.Objects.Clear();
-            race.Player.Distance = 30f;
-            race.Boss.Distance = 40f;
-            race.Junior.Distance = 27f;
-            race.Player.Item = KartItem.Papers;
-            var input = Forward(); input.UseItem = true;
-            race.Tick(0.02f, input);
-            Assert.That(race.Player.Item, Is.EqualTo(KartItem.None));
-            Assert.That(race.Junior.SlowedSeconds, Is.GreaterThan(0f));
-            Assert.That(race.Boss.SlowedSeconds, Is.GreaterThan(0f));
-            Assert.That(race.Objects.FindAll(value => value.Kind == TrackObjectKind.Papers), Has.Count.EqualTo(5));
-        }
-        [Test] public void CpuPapersBlindPlayerOnlyWhenUsedFromAhead()
-        {
-            var race = NewRace();
-            race.Objects.Clear();
-            race.Player.Distance = 30f;
-            race.Boss.Distance = 40f;
-            race.Boss.Item = KartItem.Papers;
-            Advance(race, 1f, Forward(0f));
-            Assert.That(race.PlayerBlindSeconds, Is.GreaterThan(0f));
-            Assert.That(race.PaperAttackSource, Is.EqualTo(RacerId.Boss));
-
-            var behind = NewRace();
-            behind.Objects.Clear();
-            behind.Player.Distance = 40f;
-            behind.Junior.Distance = 30f;
-            behind.Junior.Item = KartItem.Papers;
-            Advance(behind, 1f, Forward(0f));
-            Assert.That(behind.PlayerBlindSeconds, Is.Zero);
-        }
-
-        [Test] public void MineItemThrowsASingleMineAhead()
-        {
-            var race = NewRace();
-            race.Objects.Clear();
-            race.Player.Distance = 30f;
-            race.Player.Lane = 0f;
-            race.Player.Item = KartItem.Mine;
-            var input = Forward(0f); input.UseItem = true;
-            race.Tick(0.02f, input);
-            var mines = race.Objects.FindAll(value => value.Kind == TrackObjectKind.Mine);
-            Assert.That(mines, Has.Count.EqualTo(1));
-            Assert.That(mines[0].Distance, Is.GreaterThan(race.Player.Distance));
-            Assert.That(mines[0].Lane, Is.EqualTo(race.Player.Lane));
-        }
-
-        [Test] public void PlayerCanTriggerOwnMineWithRocketStrengthExplosion()
-        {
-            var settings = new KartRaceSettings { maximumBossDistance = 1000f, mineFlightSeconds = 0.1f };
-            var race = new KartRace(settings);
-            race.Objects.Clear();
-            race.Player.Distance = 30f;
-            race.Player.Lane = 0f;
-            race.Player.Item = KartItem.Mine;
-            var input = Forward(0f); input.UseItem = true;
-            race.Tick(0.02f, input);
-            var mine = race.Objects.Find(value => value.Kind == TrackObjectKind.Mine);
-            race.Player.Distance = mine.Distance;
-            race.Player.Lane = mine.Lane;
-            Advance(race, 0.15f, Forward(0f));
-            Assert.That(race.Player.DisabledSeconds, Is.GreaterThan(0f));
-            Assert.That(race.Objects.Exists(value => value.Kind == TrackObjectKind.Explosion && value.Item == KartItem.Mine), Is.True);
-        }
         [Test] public void CameraMisconductIsReviewedOnlyAtFinish()
         {
             var race = NewRace();
@@ -459,15 +392,13 @@ namespace MixVerse.Game.Model.Tests
             race.Tick(0.02f, Forward());
             Assert.That(race.IsDrifting, Is.False);
         }
-        [Test] public void MushroomTemporarilyBoostsSpeed()
+        [Test] public void ItemBoxesOnlyHoldRocketAndSalaryOrder()
         {
-            var race = NewRace();
-            race.Objects.Clear();
-            race.Junior.Item = KartItem.Mushroom;
-            race.Player.Lane = 0f;
-            Advance(race, 3f, Forward());
-            Assert.That(race.Junior.Speed, Is.GreaterThan(70f));
-            Assert.That(race.Junior.Speed, Is.LessThanOrEqualTo(84f));
+            var boxes = NewRace().Objects.FindAll(value => value.Kind == TrackObjectKind.ItemBox);
+            Assert.That(boxes, Is.Not.Empty);
+            Assert.That(boxes.TrueForAll(value => value.Item == KartItem.Rocket || value.Item == KartItem.SalaryOrder), Is.True);
+            Assert.That(boxes.Exists(value => value.Item == KartItem.Rocket), Is.True);
+            Assert.That(boxes.Exists(value => value.Item == KartItem.SalaryOrder), Is.True);
         }
 
         [Test] public void SalaryOrderRaisesTopSpeedByTenPercent()
@@ -483,7 +414,7 @@ namespace MixVerse.Game.Model.Tests
             Assert.That(race.Player.Speed, Is.EqualTo(110f).Within(0.01f));
         }
 
-        [Test] public void SalaryOrderInvincibilityPreventsMineKnockback()
+        [Test] public void SalaryOrderInvincibilityPreventsRocketKnockback()
         {
             var settings = new KartRaceSettings { maximumBossDistance = 1000f };
             var race = new KartRace(settings);
@@ -496,10 +427,10 @@ namespace MixVerse.Game.Model.Tests
             race.Objects.Add(new TrackObject
             {
                 Id = 999,
-                Kind = TrackObjectKind.Mine,
-                Item = KartItem.Mine,
-                Owner = RacerId.Player,
-                Distance = race.Player.Distance,
+                Kind = TrackObjectKind.Rocket,
+                Item = KartItem.Rocket,
+                Owner = RacerId.Junior,
+                Distance = race.Player.Distance - 1f,
                 Lane = race.Player.Lane,
                 Lifetime = 2f,
                 CreatedAt = -1f
@@ -507,7 +438,7 @@ namespace MixVerse.Game.Model.Tests
             race.Tick(0.02f, Forward(0f));
             Assert.That(race.Player.DisabledSeconds, Is.Zero);
             Assert.That(race.Player.InvincibleSeconds, Is.GreaterThan(0f));
-            Assert.That(race.Objects.Exists(value => value.Kind == TrackObjectKind.Explosion && value.Item == KartItem.Mine), Is.True);
+            Assert.That(race.Objects.Exists(value => value.Kind == TrackObjectKind.Explosion && value.Item == KartItem.Rocket), Is.True);
         }
         [Test] public void SalaryOrderKnocksBossAwayInsteadOfFailing()
         {
