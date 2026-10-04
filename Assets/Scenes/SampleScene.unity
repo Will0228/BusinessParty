@@ -1552,6 +1552,7 @@ MonoBehaviour:
     maxHeadingOffsetDegrees: 75
     nonDriftMaxVisualTiltDegrees: 15
     maximumBossDistance: 95
+    raceBossDistanceMultiplier: 3
     tailgateDistance: 7
     tailgateSeconds: 3
     blockingDistance: 8

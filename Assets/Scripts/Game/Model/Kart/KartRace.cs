@@ -43,6 +43,8 @@ namespace MixVerse.Game.Model.Kart
         public int Attacks { get; private set; }
         public float FinishGap { get; private set; }
         public float MaximumDistance => Math.Max(Math.Abs(Player.Distance - Boss.Distance), Math.Abs(Junior.Distance - Boss.Distance));
+        public float RaceBossDistanceLimit => _settings.maximumBossDistance * _settings.raceBossDistanceMultiplier;
+        public float GoalBossDistanceLimit => _settings.maximumBossDistance;
         public string Message { get; private set; } = "部下を止めて、上司に花を持たせよう。";
         public string ResultReason { get; private set; } = "";
         public FailureScene ResultScene { get; private set; }
@@ -313,7 +315,7 @@ namespace MixVerse.Game.Model.Kart
                 _tailgateTime += dt;
             else _tailgateTime = 0f;
             if (_tailgateTime >= _settings.tailgateSeconds) Fail("上司を煽り続けました");
-            if (MaximumDistance >= _settings.maximumBossDistance) Fail("上司との距離が離れすぎました", FailureScene.Distance);
+            if (MaximumDistance >= RaceBossDistanceLimit) Fail("上司との距離が離れすぎました", FailureScene.Distance);
             if (SlipRemaining > 0f)
             {
                 SlipRemaining -= dt;
@@ -341,6 +343,7 @@ namespace MixVerse.Game.Model.Kart
             FinishGap = (second < float.MaxValue ? second : Time) - Boss.FinishTime;
             if (FinishGap >= 3f) { Fail("上司と2位の着差が3秒以上でした"); return; }
             if (second == float.MaxValue) return;
+            if (MaximumDistance >= GoalBossDistanceLimit) { Fail("ゴール時に上司との距離が離れすぎていました"); return; }
             if (CameraEvidence.Count > 0) { Fail("監視カメラの確認：" + CameraEvidence[0]); return; }
             Phase = RacePhase.Cleared;
             ResultReason = "接待成功！ 上司が僅差で1位です。";

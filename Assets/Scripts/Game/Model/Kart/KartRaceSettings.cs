@@ -18,6 +18,7 @@ namespace MixVerse.Game.Model.Kart
         public float nonDriftMaxVisualTiltDegrees = 15f;
         public float driftMaxVisualTiltDegrees = 40f;
         public float maximumBossDistance = 95f;
+        public float raceBossDistanceMultiplier = 3f;
         public float tailgateDistance = 7f;
         public float tailgateSeconds = 3f;
         public float blockingDistance = 8f;
@@ -83,6 +84,7 @@ namespace MixVerse.Game.Model.Kart
             nonDriftMaxVisualTiltDegrees = Math.Max(1f, Math.Min(maxHeadingOffsetDegrees, nonDriftMaxVisualTiltDegrees));
             driftMaxVisualTiltDegrees = Math.Max(nonDriftMaxVisualTiltDegrees, Math.Min(maxHeadingOffsetDegrees, driftMaxVisualTiltDegrees));
             maximumBossDistance = Math.Max(30f, maximumBossDistance);
+            raceBossDistanceMultiplier = Math.Max(1f, raceBossDistanceMultiplier);
             tailgateDistance = Math.Max(3f, tailgateDistance);
             tailgateSeconds = Math.Max(0.5f, tailgateSeconds);
             blockingDistance = Math.Max(3f, blockingDistance);

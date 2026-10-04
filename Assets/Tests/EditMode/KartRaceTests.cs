@@ -121,11 +121,28 @@ namespace MixVerse.Game.Model.Tests
         [Test] public void DistanceRuleIncludesJuniorBehindBoss()
         {
             var race = NewRace();
-            race.Boss.Distance = 150f;
-            race.Player.Distance = 140f;
+            race.Boss.Distance = 300f;
+            race.Player.Distance = 290f;
             race.Junior.Distance = 0f;
             race.Tick(0.02f, Forward());
             Assert.That(race.ResultReason, Does.Contain("距離"));
+        }
+        [Test] public void RaceDistanceLimitIsThreeTimesTheGoalLimit()
+        {
+            var race = NewRace();
+            Assert.That(race.RaceBossDistanceLimit, Is.EqualTo(race.GoalBossDistanceLimit * 3f).Within(0.001f));
+        }
+        [Test] public void DistanceOverGoalLimitButUnderRaceLimitKeepsRacing()
+        {
+            var race = NewRace();
+            race.Objects.Clear();
+            race.Boss.Distance = 200f;
+            race.Junior.Distance = 200f;
+            race.Player.Distance = 60f;
+            race.Tick(0.02f, Forward());
+            Assert.That(race.MaximumDistance, Is.GreaterThan(race.GoalBossDistanceLimit));
+            Assert.That(race.MaximumDistance, Is.LessThan(race.RaceBossDistanceLimit));
+            Assert.That(race.Phase, Is.EqualTo(RacePhase.Racing));
         }
         [Test] public void DistanceFailureCoastsWithoutAcceptingControlsThenLaunchesPlayer()
         {
@@ -133,8 +150,8 @@ namespace MixVerse.Game.Model.Tests
             race.Objects.Clear();
             race.Player.Lane = 0f;
             race.Player.Speed = 80f;
-            race.Boss.Distance = 110f;
-            race.Junior.Distance = 100f;
+            race.Boss.Distance = 300f;
+            race.Junior.Distance = 290f;
             race.Tick(0.02f, Forward(1f));
             Assert.That(race.ResultScene, Is.EqualTo(FailureScene.Distance));
             var distance = race.Player.Distance;
@@ -193,6 +210,19 @@ namespace MixVerse.Game.Model.Tests
             race.Junior.FinishTime = 4f;
             race.Tick(0.02f, Forward());
             Assert.That(race.Phase, Is.EqualTo(RacePhase.Cleared));
+        }
+        [Test] public void BossFarFromTheOthersAtTheGoalFails()
+        {
+            var race = NewRace();
+            race.Objects.Clear();
+            race.Boss.Distance = CourseLength;
+            race.Player.Distance = CourseLength;
+            race.Junior.Distance = CourseLength - race.GoalBossDistanceLimit - 10f;
+            race.Boss.FinishTime = 1f;
+            race.Player.FinishTime = 2f;
+            race.Tick(0.02f, Forward());
+            Assert.That(race.Phase, Is.EqualTo(RacePhase.Failed));
+            Assert.That(race.ResultReason, Does.Contain("ゴール時"));
         }
         [Test] public void ExactlyThreeSecondGapFails()
         {
