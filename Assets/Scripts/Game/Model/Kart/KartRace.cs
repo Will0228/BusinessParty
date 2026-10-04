@@ -38,6 +38,7 @@ namespace MixVerse.Game.Model.Kart
         public float DriftTime => _driftTime;
         public int DriftTier => _driftTime >= _settings.driftSecondSeconds ? 2 : _driftTime >= _settings.driftFirstSeconds ? 1 : 0;
         public bool IsDrifting => _driftDirection != 0;
+        public bool IsOnRoadEdge { get; private set; }
         public int DriftDirection => _driftDirection;
         public int Direction => _direction;
         public int Attacks { get; private set; }
@@ -132,6 +133,7 @@ namespace MixVerse.Game.Model.Kart
             UpdateDrift(dt, input.Jog, input.ReleasedDriftDirection);
             var steer = Math.Abs(input.Steering) < _settings.steeringDeadZone ? 0f : input.Steering;
             steer = Math.Sign(steer) * steer * steer;
+            var onRoadEdge = false;
             if (Player.DisabledSeconds <= 0f && !Player.Finished)
             {
                 // ステアリング/ドリフト入力だけが機首の向き(HeadingOffset、トラック接線からの相対角)を動かす。
@@ -149,7 +151,7 @@ namespace MixVerse.Game.Model.Kart
                 if (Math.Abs(Player.Lane) > _settings.roadHalfWidth - 0.7f)
                 {
                     Player.Lane = Clamp(Player.Lane, -_settings.roadHalfWidth + 0.7f, _settings.roadHalfWidth - 0.7f);
-                    Player.Speed *= 0.6f;
+                    onRoadEdge = true;
                     RecordMisconduct("壁に激突しました", false);
                 }
             }
@@ -170,10 +172,13 @@ namespace MixVerse.Game.Model.Kart
             UpdateCpuLaneTarget(Junior, dt);
             AvoidObstacles(Boss, dt);
             UpdateJuniorLane(dt);
-            Move(Player, Clamp(input.Gain, 0f, 1f) * 100f * _direction, dt);
+            var playerTarget = Clamp(input.Gain, 0f, 1f) * 100f * _direction;
+            if (onRoadEdge) playerTarget *= _settings.roadEdgeSpeedMultiplier;
+            Move(Player, playerTarget, dt);
             Move(Boss, bossTarget, dt);
             Move(Junior, juniorTarget, dt, blocking);
             for (var i = 0; i < Racers.Length; i++) UpdateJump(Racers[i], _previousDistances[i], dt);
+            IsOnRoadEdge = onRoadEdge;
             if (Phase != RacePhase.Racing) return;
             CheckContacts(dt);
             if (_direction < 0 && Player.Speed < -1f) RecordMisconduct("バック走行が見つかりました");

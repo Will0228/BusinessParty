@@ -189,6 +189,22 @@ namespace MixVerse.Game.Model.Tests
             Assert.That(race.Phase, Is.EqualTo(RacePhase.Racing));
             Assert.That(race.Player.Speed, Is.LessThan(50f));
         }
+        [Test] public void WallContactKeepsPlayerRunningAtReducedTargetSpeed()
+        {
+            var settings = new KartRaceSettings { maximumBossDistance = 1000f };
+            var race = new KartRace(settings);
+            race.Objects.Clear();
+            race.Player.Distance = Scaled(170f);
+            race.Player.Lane = settings.roadHalfWidth;
+            race.Player.Speed = 0f;
+            race.Boss.Distance = Scaled(170f) + 70f;
+            race.Junior.Distance = Scaled(170f) + 70f;
+            var input = Forward(1f);
+            input.Steering = 1f;
+            Advance(race, 3f, input);
+            Assert.That(race.IsOnRoadEdge, Is.True);
+            Assert.That(race.Player.Speed, Is.EqualTo(100f * settings.roadEdgeSpeedMultiplier).Within(1f));
+        }
         [Test] public void FirstPlaceJuniorTriggersAndUnansweredSlipFails()
         {
             var settings = new KartRaceSettings { slipMinSeconds = 1f, slipMaxSeconds = 1f, maximumBossDistance = 1000f };
