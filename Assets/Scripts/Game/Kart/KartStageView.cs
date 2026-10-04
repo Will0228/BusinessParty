@@ -203,7 +203,7 @@ namespace MixVerse.Game.Kart
             }
         }
 
-        public void Render(KartRace race, float gain, bool ready, float countdown, bool midi)
+        public void Render(KartRace race, float gain, float countdown, bool midi)
         {
             for (var i = 0; i < race.Racers.Length; i++)
             {
@@ -351,26 +351,20 @@ namespace MixVerse.Game.Kart
             else if (race.Player.Distance > race.Jump.Start - JumpWarningDistance && race.Player.Distance < race.Jump.Takeoff)
                 Warning.text += "\n<color=#FFD84A>この先ジャンプ台：速度を保って道の切れ目を飛び越えろ</color>";
             else if (race.InCamera(race.Player.Distance)) Warning.text += "\n監視カメラ録画中：ゴール後に確認";
-            Radio.gameObject.SetActive(!ready && countdown <= 0f && race.Phase == RacePhase.Racing);
+            Radio.gameObject.SetActive(countdown <= 0f && race.Phase == RacePhase.Racing);
             Radio.text = race.SlipRemaining > 0f ? $"<color=#FFAA70>無線：課長、遅くないっすか？</color>\nあと <size=36>{race.SlipRemaining:0.0}</size> 秒以内に部下を攻撃！" : race.Message;
             Controls.text = "W/S 速度   A/D 操舵   Q/E ドリフト   X 前後切替   SPACE アイテム   TAB 判定範囲   ESC ホーム" + (midi ? "   • MIDI 接続中" : "");
             TailgateZone.gameObject.SetActive(_debug);
             TailgateZone.localPosition = Point(race.Boss.Distance - _settings.tailgateDistance * 0.5f, race.Boss.Lane) + Vector3.up * 0.05f;
             TailgateZone.localRotation = DirectionAt(race.Boss.Distance);
-            var result = !ready && countdown <= 0f && race.Phase != RacePhase.Racing;
+            var result = countdown <= 0f && race.Phase != RacePhase.Racing;
             RaceHud.SetActive(!result);
             SetWorldLabelsVisible(!result);
             ConfigureModal(result);
-            Modal.SetActive(ready || countdown > 0f || result);
+            Modal.SetActive(countdown > 0f || result);
             ActionButton.gameObject.SetActive(countdown <= 0f);
             ExitButton.gameObject.SetActive(countdown <= 0f);
-            if (ready)
-            {
-                ModalTitle.text = "接待カートレース";
-                ModalBody.text = string.Empty;
-                ActionLabel.text = "接待を始める  [ ENTER / SYNC ]";
-            }
-            else if (countdown > 0f)
+            if (countdown > 0f)
             {
                 ModalTitle.text = Mathf.CeilToInt(countdown).ToString();
                 ModalBody.text = string.Empty;

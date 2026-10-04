@@ -15,7 +15,6 @@ namespace MixVerse.Game
         private KartRace _race;
         private float _lastTick;
         private float _countdown;
-        private bool _ready;
         private bool _visible;
 
         public Observable<Unit> OnExitRequested => _view.OnExitRequested;
@@ -29,9 +28,7 @@ namespace MixVerse.Game
 
         public void Prepare()
         {
-            _race = new KartRace(_settings, _raceSeeds.Next());
             _input.Reset();
-            _ready = true;
             _countdown = 0f;
         }
 
@@ -46,6 +43,7 @@ namespace MixVerse.Game
         {
             await _view.ShowAsync(token);
             _visible = true;
+            StartCountdown();
             Render();
         }
 
@@ -54,11 +52,15 @@ namespace MixVerse.Game
         private void Begin()
         {
             if (!_visible || _countdown > 0f) return;
-            if (!_ready && _race.Phase == RacePhase.Racing) return;
+            if (_race.Phase == RacePhase.Racing) return;
+            StartCountdown();
+        }
+
+        private void StartCountdown()
+        {
             _race = new KartRace(_settings, _raceSeeds.Next());
             _view.ResetRace();
             _input.CancelDrift();
-            _ready = false;
             _countdown = 3f;
         }
 
@@ -68,20 +70,16 @@ namespace MixVerse.Game
             var dt = System.Math.Max(0f, System.Math.Min(now - _lastTick, 0.1f));
             _lastTick = now;
             var input = _input.Read(dt);
-            if (_ready && input.UseItem) Begin();
-            if (!_ready)
+            if (_countdown > 0f)
             {
-                if (_countdown > 0f)
-                {
-                    _countdown = System.Math.Max(0f, _countdown - dt);
-                    if (_countdown <= 0f) _input.CancelDrift();
-                }
-                else _race.Tick(dt, input);
+                _countdown = System.Math.Max(0f, _countdown - dt);
+                if (_countdown <= 0f) _input.CancelDrift();
             }
+            else _race.Tick(dt, input);
             Render();
         }
 
-        private void Render() => _view.Render(_race, _input.Gain, _ready, _countdown, _input.HasMidi);
+        private void Render() => _view.Render(_race, _input.Gain, _countdown, _input.HasMidi);
 
         public void Hide()
         {

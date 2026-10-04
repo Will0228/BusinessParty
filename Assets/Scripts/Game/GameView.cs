@@ -48,8 +48,8 @@ namespace MixVerse.Game
             _stage.ExitButton.OnClickAsObservable().Subscribe(_ => _onExitRequested.OnNext(Unit.Default)).AddTo(_stageBindings);
         }
 
-        public void Render(KartRace race, float gain, bool ready, float countdown, bool midi)
-            => _stage.Render(race, gain, ready, countdown, midi);
+        public void Render(KartRace race, float gain, float countdown, bool midi)
+            => _stage.Render(race, gain, countdown, midi);
 
         public void PlayDriftSe() => _stage.PlayDriftSe();
 
