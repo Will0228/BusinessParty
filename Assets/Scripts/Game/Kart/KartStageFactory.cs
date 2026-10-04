@@ -52,6 +52,7 @@ namespace MixVerse.Game.Kart
             cameraData.requiresColorOption = CameraOverrideOption.On;
             cameraData.requiresDepthOption = CameraOverrideOption.On;
             _stage.ChaseCamera = new KartChaseCamera(camera.transform);
+            _stage.BlowAwayCamera = new KartBlowAwayCamera(camera.transform);
             var atmosphere = root.AddComponent<KartAtmosphereView>();
             var skybox = _assets != null ? _assets.skybox : null;
             atmosphere.Apply(skybox);

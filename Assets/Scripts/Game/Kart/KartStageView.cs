@@ -68,10 +68,12 @@ namespace MixVerse.Game.Kart
         private const float SegmentVisibleAhead = 260f;
         public KartStageFactory Factory;
         public KartChaseCamera ChaseCamera;
+        public KartBlowAwayCamera BlowAwayCamera;
         public KartAtmosphereView Atmosphere;
         public KartWindshieldRainView Windshield;
         public Transform CityRoot;
         public float RoadHalfWidth => _settings.roadHalfWidth;
+        private float ActiveFieldOfView => _blowAwayCameraActive ? BlowAwayCamera.FieldOfView : ChaseCamera.FieldOfView;
         private float _lastSlip;
         private int _lastAttacks;
         private RacePhase _lastPhase;
@@ -96,6 +98,7 @@ namespace MixVerse.Game.Kart
         private bool _debug;
         private bool _worldLabelsHidden;
         private bool _bossCrashExploded;
+        private bool _blowAwayCameraActive;
         private readonly string[] _sectionNames = { "01  市街地", "02  峠の上り", "03  ギャラリー", "04  トンネル", "05  連続ヘアピン", "06  ゴール前直線" };
         private readonly string[] _racerNames = { "あなた", "上司", "部下" };
 
@@ -402,6 +405,19 @@ namespace MixVerse.Game.Kart
         private void RenderCamera(KartRace race)
         {
             var deltaTime = Time.deltaTime;
+            var blowAway = race.Phase == RacePhase.Racing && IsBlownAway(race.Player);
+            if (blowAway != _blowAwayCameraActive)
+            {
+                _blowAwayCameraActive = blowAway;
+                if (blowAway) BlowAwayCamera.Takeover();
+                else ChaseCamera.Takeover();
+            }
+            if (blowAway)
+            {
+                BlowAwayCamera.Follow(Karts[(int)RacerId.Player].localPosition, Point(race.Player.Distance, race.Player.Lane),
+                    DirectionAt(race.Player.Distance), deltaTime);
+                return;
+            }
             if (race.Phase == RacePhase.Failed)
             {
                 var focusRacer = race.ResultScene == FailureScene.BossHit ? race.Boss : race.Player;
@@ -418,6 +434,10 @@ namespace MixVerse.Game.Kart
             var kart = Point(distance, race.Player.Lane) + Vector3.up * (0.45f + Mathf.Max(race.Player.Height, 0f));
             ChaseCamera.Follow(kart, DirectionAt(distance), Mathf.Abs(race.Player.Speed) / 100f, turn, deltaTime);
         }
+
+        // コース外まで吹っ飛ばされている間は、道路を映す走行カメラではプレイヤーが画面から外れてしまう
+        private static bool IsBlownAway(RacerState racer) =>
+            racer.DisabledSeconds > 0f && racer.IsCourseOut && !racer.IsSpinning && !racer.IsFalling;
 
         private void ConfigureModal(bool result)
         {
@@ -590,7 +610,7 @@ namespace MixVerse.Game.Kart
                 var distance = Vector3.Distance(Camera.transform.position, effect.transform.position);
                 impact = Mathf.Max(impact, effect.Impact * Mathf.Clamp01(1f - distance / 65f));
             }
-            Camera.fieldOfView = ChaseCamera.FieldOfView + impact * 4f;
+            Camera.fieldOfView = ActiveFieldOfView + impact * 4f;
             Camera.transform.position += Camera.transform.right * (Mathf.Sin(Time.time * 93f) * impact * 0.24f)
                 + Camera.transform.up * (Mathf.Cos(Time.time * 117f) * impact * 0.16f);
             Camera.transform.Rotate(0f, 0f, Mathf.Sin(Time.time * 71f) * impact * 1.2f);
@@ -610,7 +630,9 @@ namespace MixVerse.Game.Kart
             Explosions.Clear();
             _finishedExplosions.Clear();
             ChaseCamera.Reset();
-            Camera.fieldOfView = ChaseCamera.FieldOfView;
+            BlowAwayCamera.Reset();
+            _blowAwayCameraActive = false;
+            Camera.fieldOfView = ActiveFieldOfView;
             _lastSlip = 0f;
             _lastAttacks = 0;
             _lastPhase = RacePhase.Racing;
