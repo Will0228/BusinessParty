@@ -31,15 +31,17 @@ namespace MixVerse.Game.Tests
         }
 
         [Test]
-        public void SteeringCenterAndEndpointsMatchPlayerRightPositiveLane()
+        public void SteeringLeansGentlyRightAtZeroAndLeftAtMax()
         {
-            var reader = new KartInputReader(new KartMidiMapping());
+            var mapping = new KartMidiMapping();
+            var reader = new KartInputReader(mapping);
+            Assert.That(mapping.steeringRange, Is.LessThan(0.5f));
             reader.ApplyControlChange(0, 10, 0.5f);
             Assert.That(reader.Read(0f).Steering, Is.EqualTo(0f).Within(0.001f));
             reader.ApplyControlChange(0, 10, 0f);
-            Assert.That(reader.Read(0f).Steering, Is.EqualTo(1f).Within(0.001f));
+            Assert.That(reader.Read(0f).Steering, Is.EqualTo(mapping.steeringRange).Within(0.001f));
             reader.ApplyControlChange(0, 10, 1f);
-            Assert.That(reader.Read(0f).Steering, Is.EqualTo(-1f).Within(0.001f));
+            Assert.That(reader.Read(0f).Steering, Is.EqualTo(-mapping.steeringRange).Within(0.001f));
         }
 
         [Test]

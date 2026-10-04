@@ -16,6 +16,7 @@ namespace MixVerse.Game.Kart
         [Range(0, 16)] public int channel = 1;
         [Range(0, 127)] public int gainControl = 9;
         [Range(0, 127)] public int steeringControl = 10;
+        [Range(0.05f, 1f)] public float steeringRange = 0.35f;
         [Range(0, 127)] public int driftControl = 24;
         [Range(0, 127)] public int syncControl = 71;
         [Range(0, 127)] public int leftDriftControl = 25;
@@ -134,7 +135,7 @@ namespace MixVerse.Game.Kart
                 else if (value <= 0.5f) _syncPressed = false;
             }
             if (controlNumber == _mapping.gainControl) _gain = value;
-            if (controlNumber == _mapping.steeringControl) _steering = 1f - value * 2f;
+            if (controlNumber == _mapping.steeringControl) _steering = (1f - value * 2f) * _mapping.steeringRange;
             var raw = Mathf.RoundToInt(value * 127f);
             if (_mapping.driftMode == KartDriftControlMode.PairedControls)
             {

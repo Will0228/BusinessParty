@@ -1605,6 +1605,7 @@ MonoBehaviour:
     channel: 1
     gainControl: 9
     steeringControl: 10
+    steeringRange: 0.35
     driftControl: 24
     syncControl: 71
     leftDriftControl: 25
