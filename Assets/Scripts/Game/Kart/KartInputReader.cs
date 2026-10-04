@@ -38,6 +38,7 @@ namespace MixVerse.Game.Kart
         private int _releasedDriftDirection;
         private bool _driftHeld;
         private bool _driftActive;
+        private bool _driftLogged;
         private bool _useItem;
         private bool _syncPressed;
         private bool _bound;
@@ -202,6 +203,7 @@ namespace MixVerse.Game.Kart
                 if (keyboard.qKey.isPressed) jog = -1;
                 if (keyboard.eKey.isPressed) jog = 1;
             }
+            LogDrift(jog != 0);
             var releasedDriftDirection = _releasedDriftDirection;
             _releasedDriftDirection = 0;
             return new KartInput
@@ -228,6 +230,13 @@ namespace MixVerse.Game.Kart
             _jogAt = -10f;
             _driftHeld = false;
             _driftActive = false;
+        }
+
+        private void LogDrift(bool drifting)
+        {
+            if (_driftLogged == drifting) return;
+            _driftLogged = drifting;
+            Debug.Log(drifting ? "<color=red>【ドリフト開始】</color>" : "<color=blue>【ドリフト終了】</color>");
         }
 
         private void Unbind(MidiDevice device, Handlers handlers)
