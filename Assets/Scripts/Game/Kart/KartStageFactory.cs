@@ -676,6 +676,7 @@ namespace MixVerse.Game.Kart
             _stage.Controls = Label(parent, "", new Vector2(0.5f, 0f), new Vector2(0f, 17f), new Vector2(1560f, 35f), 19, Color.white, TextAlignmentOptions.Center);
             var modal = Panel(canvasObject.transform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1100f, 650f), new Color(0.035f, 0.065f, 0.1f, 0.94f));
             _stage.Modal = modal.gameObject;
+            _stage.ModalBackground = modal;
             _stage.ModalTitle = Label(modal.transform, "", new Vector2(0.5f, 1f), new Vector2(0f, -40f), new Vector2(1000f, 90f), 50, _gold, TextAlignmentOptions.Center);
             _stage.ModalBody = Label(modal.transform, "", new Vector2(0.5f, 0.5f), new Vector2(0f, 18f), new Vector2(1000f, 370f), 25, Color.white, TextAlignmentOptions.Center);
             _stage.ActionButton = Button(modal.transform, new Vector2(-145f, 45f), new Vector2(610f, 60f), _cyan, out var action);

@@ -35,6 +35,7 @@ namespace MixVerse.Game.Kart
         public TextMeshProUGUI ModalBody;
         public TextMeshProUGUI ActionLabel;
         public GameObject Modal;
+        public Image ModalBackground;
         public GameObject RaceHud;
         public Button ActionButton;
         public Button ExitButton;
@@ -365,6 +366,8 @@ namespace MixVerse.Game.Kart
             SetWorldLabelsVisible(!result);
             ConfigureModal(result);
             Modal.SetActive(countdown > 0f || result);
+            // カウントダウン中はコース映像を遮らないようにモーダルの背景だけ消す
+            ModalBackground.enabled = countdown <= 0f;
             ActionButton.gameObject.SetActive(countdown <= 0f);
             ExitButton.gameObject.SetActive(countdown <= 0f);
             if (countdown > 0f)
