@@ -10,7 +10,6 @@ namespace MixVerse.Game.Model.Kart
         private readonly Random _random;
         private float _blockingTime;
         private float _tailgateTime;
-        private float _nextSlip;
         private float _lastPush = -100f;
         private int _juniorPassingSide;
         private int _direction = 1;
@@ -33,7 +32,6 @@ namespace MixVerse.Game.Model.Kart
         public KartJumpRamp Jump { get; }
         public RacePhase Phase { get; private set; }
         public float Time { get; private set; }
-        public float SlipRemaining { get; private set; }
         public float TailgateTime => _tailgateTime;
         public float DriftTime => _driftTime;
         public int DriftTier => _driftTime >= _settings.driftSecondSeconds ? 2 : _driftTime >= _settings.driftFirstSeconds ? 1 : 0;
@@ -61,7 +59,6 @@ namespace MixVerse.Game.Model.Kart
             Lanes = new KartCourseLanes(_settings.roadHalfWidth);
             Jump = new KartJumpRamp(_settings);
             _random = new Random(seed);
-            ScheduleSlip();
             BuildObjects();
             InitializeCpuLanes();
             if (_settings.debugUnlimitedItem != KartItem.None) Player.Item = _settings.debugUnlimitedItem;
@@ -319,17 +316,6 @@ namespace MixVerse.Game.Model.Kart
             else _tailgateTime = 0f;
             if (_tailgateTime >= _settings.tailgateSeconds) Fail("上司を煽り続けました");
             if (MaximumDistance >= RaceBossDistanceLimit) Fail("上司との距離が離れすぎました", FailureScene.Distance);
-            if (SlipRemaining > 0f)
-            {
-                SlipRemaining -= dt;
-                if (SlipRemaining <= 0f) Fail("失言を10秒以内にたしなめませんでした");
-            }
-            else if (Time >= _nextSlip && !Junior.Finished && Rank(Junior) == 1)
-            {
-                SlipRemaining = _settings.slipResponseSeconds;
-                Message = "部下『課長、遅くないっすか？』 10秒以内に攻撃！";
-                ScheduleSlip();
-            }
             CheckFinish();
         }
 
@@ -352,13 +338,10 @@ namespace MixVerse.Game.Model.Kart
             ResultReason = "接待成功！ 上司が僅差で1位です。";
         }
 
-        private void ScheduleSlip() => _nextSlip = Time + _settings.slipMinSeconds + (float)_random.NextDouble() * (_settings.slipMaxSeconds - _settings.slipMinSeconds);
         private void RegisterAttack(string message)
         {
             Attacks++;
-            SlipRemaining = 0f;
             Message = message + " — 部下への妨害はセーフ";
-            ScheduleSlip();
         }
         private void RecordMisconduct(string reason, bool failInGallery = true)
         {

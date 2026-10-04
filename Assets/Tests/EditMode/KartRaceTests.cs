@@ -205,18 +205,6 @@ namespace MixVerse.Game.Model.Tests
             Assert.That(race.IsOnRoadEdge, Is.True);
             Assert.That(race.Player.Speed, Is.EqualTo(100f * settings.roadEdgeSpeedMultiplier).Within(1f));
         }
-        [Test] public void FirstPlaceJuniorTriggersAndUnansweredSlipFails()
-        {
-            var settings = new KartRaceSettings { slipMinSeconds = 1f, slipMaxSeconds = 1f, maximumBossDistance = 1000f };
-            var race = new KartRace(settings);
-            race.Objects.Clear();
-            race.Player.Distance = 500f;
-            race.Junior.Distance = 530f;
-            Advance(race, 2f, Forward(0f));
-            Assert.That(race.SlipRemaining, Is.GreaterThan(0f));
-            Advance(race, 10f, Forward(0f));
-            Assert.That(race.ResultReason, Does.Contain("失言"));
-        }
         [Test] public void BossWinWithGapUnderThreeSecondsClears()
         {
             var race = NewRace();

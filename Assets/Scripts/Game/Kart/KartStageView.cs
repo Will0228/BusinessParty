@@ -75,7 +75,6 @@ namespace MixVerse.Game.Kart
         public Transform CityRoot;
         public float RoadHalfWidth => _settings.roadHalfWidth;
         private float ActiveFieldOfView => _blowAwayCameraActive ? BlowAwayCamera.FieldOfView : ChaseCamera.FieldOfView;
-        private float _lastSlip;
         private int _lastAttacks;
         private RacePhase _lastPhase;
         private readonly List<int> _expired = new List<int>();
@@ -361,7 +360,7 @@ namespace MixVerse.Game.Kart
                 Warning.text += "\n<color=#FFD84A>この先ジャンプ台：速度を保って道の切れ目を飛び越えろ</color>";
             else if (race.InCamera(race.Player.Distance)) Warning.text += "\n監視カメラ録画中：ゴール後に確認";
             Radio.gameObject.SetActive(countdown <= 0f && race.Phase == RacePhase.Racing);
-            Radio.text = race.SlipRemaining > 0f ? $"<color=#FFAA70>無線：課長、遅くないっすか？</color>\nあと <size=36>{race.SlipRemaining:0.0}</size> 秒以内に部下を攻撃！" : race.Message;
+            Radio.text = race.Message;
             Controls.text = "W/S 速度   A/D 操舵   Q/E ドリフト   X 前後切替   SPACE アイテム   TAB 判定範囲   ESC ホーム" + (midi ? "   • MIDI 接続中" : "");
             TailgateZone.gameObject.SetActive(_debug);
             TailgateZone.localPosition = Point(race.Boss.Distance - _settings.tailgateDistance * 0.5f, race.Boss.Lane) + Vector3.up * 0.05f;
@@ -386,7 +385,6 @@ namespace MixVerse.Game.Kart
                 ModalBody.text = race.ResultReason;
                 ActionLabel.text = "もう一度プレイする";
             }
-            if (race.SlipRemaining > _lastSlip + 1f) Audio.PlayOneShot(RadioClip, 0.6f);
             if (race.Attacks > _lastAttacks) Audio.PlayOneShot(AlertClip, 0.35f);
             if (race.Phase != _lastPhase && race.Phase == RacePhase.Failed)
             {
@@ -394,7 +392,6 @@ namespace MixVerse.Game.Kart
                 if (GameOverClip != null) Audio.PlayOneShot(GameOverClip, 0.7f);
                 BgmAudio.Stop();
             }
-            _lastSlip = race.SlipRemaining;
             _lastAttacks = race.Attacks;
             _lastPhase = race.Phase;
         }
@@ -642,7 +639,6 @@ namespace MixVerse.Game.Kart
             BlowAwayCamera.Reset();
             _blowAwayCameraActive = false;
             Camera.fieldOfView = ActiveFieldOfView;
-            _lastSlip = 0f;
             _lastAttacks = 0;
             _lastPhase = RacePhase.Racing;
             if (BgmAudio.clip != null && !BgmAudio.isPlaying) BgmAudio.Play();

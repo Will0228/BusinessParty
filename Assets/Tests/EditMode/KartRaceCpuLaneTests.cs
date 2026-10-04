@@ -12,8 +12,6 @@ namespace MixVerse.Game.Model.Tests
             {
                 courseLength = 10000f,
                 maximumBossDistance = 10000f,
-                slipMinSeconds = 10000f,
-                slipMaxSeconds = 10000f,
                 cpuLaneChangeMinSeconds = minSeconds,
                 cpuLaneChangeMaxSeconds = maxSeconds,
                 cpuLaneChangeSpeed = steeringSpeed

@@ -40,9 +40,6 @@ namespace MixVerse.Game.Model.Kart
         public float driftFirstSeconds = 0.8f;
         public float driftSecondSeconds = 1.8f;
         public float turboSeconds = 1f;
-        public float slipMinSeconds = 9f;
-        public float slipMaxSeconds = 15f;
-        public float slipResponseSeconds = 10f;
         public float rocketSpeed = 55f;
         public float explosionRadius = 4.5f;
         public float explosionFlightScale = 1.7f;
@@ -101,9 +98,6 @@ namespace MixVerse.Game.Model.Kart
             driftFirstSeconds = Math.Max(0.1f, driftFirstSeconds);
             driftSecondSeconds = Math.Max(driftFirstSeconds + 0.1f, driftSecondSeconds);
             turboSeconds = Math.Max(0.1f, turboSeconds);
-            slipMinSeconds = Math.Max(1f, slipMinSeconds);
-            slipMaxSeconds = Math.Max(slipMinSeconds, slipMaxSeconds);
-            slipResponseSeconds = Math.Max(1f, slipResponseSeconds);
             rocketSpeed = Math.Max(30f, rocketSpeed);
             explosionRadius = Math.Max(1f, explosionRadius);
             explosionFlightScale = Math.Max(0.1f, explosionFlightScale);
