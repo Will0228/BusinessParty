@@ -1550,6 +1550,7 @@ MonoBehaviour:
     steeringYawRate: 1.6
     driftYawRate: 1.3
     maxHeadingOffsetDegrees: 75
+    steeringMaxHeadingOffsetDegrees: 15
     nonDriftMaxVisualTiltDegrees: 15
     maximumBossDistance: 95
     raceBossDistanceMultiplier: 3

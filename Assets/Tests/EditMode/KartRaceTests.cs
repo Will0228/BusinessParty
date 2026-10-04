@@ -560,12 +560,14 @@ namespace MixVerse.Game.Model.Tests
         }
         [Test] public void FullCourseCanBeClearedUsingNormalDrivingOnNarrowRoadWithStableCpuLanes()
         {
-            var race = new KartRace(new KartRaceSettings
+            var settings = new KartRaceSettings
             {
                 roadHalfWidth = 4f,
                 cpuLaneChangeMinSeconds = 1000f,
                 cpuLaneChangeMaxSeconds = 1000f
-            });
+            };
+            var race = new KartRace(settings);
+            var headingLimit = settings.steeringMaxHeadingOffsetDegrees * (float)System.Math.PI / 180f;
             race.Objects.Clear();
             var frameCap = (int)(18000 * (CourseLength / 1200f) * 1.1f);
             for (var frame = 0; frame < frameCap && race.Phase == RacePhase.Racing; frame++)
@@ -581,7 +583,7 @@ namespace MixVerse.Game.Model.Tests
                     lane = race.Boss.Lane > 0f ? -1f : 2f;
                 // Laneの誤差から目標機首角(desiredHeadingOffset)を出し、実際のHeadingOffsetとの差でステアリングを決める
                 // (Lane自体はHeadingOffsetを介した二重積分で動くため、位置誤差だけを見る単純比例制御だと発振する)
-                var desiredHeadingOffset = System.Math.Max(-0.9f, System.Math.Min(0.9f, (lane - race.Player.Lane) * 0.4f));
+                var desiredHeadingOffset = System.Math.Max(-headingLimit, System.Math.Min(headingLimit, (lane - race.Player.Lane) * 0.4f));
                 var headingError = desiredHeadingOffset - race.Player.HeadingOffset;
                 var steering = System.Math.Max(-1f, System.Math.Min(1f, headingError * 8f));
                 race.Tick(1f / 120f, new KartInput { Gain = gain, Master = 1f, Steering = steering });
@@ -635,6 +637,33 @@ namespace MixVerse.Game.Model.Tests
             Advance(assisted, 0.35f, input);
             Assert.That(unattended.Player.Lane, Is.LessThan(-1f));
             Assert.That(assisted.Player.Lane, Is.GreaterThan(0f));
+        }
+
+        [Test] public void SteeringAloneLeansGentlyWhileDriftStillSwingsWide()
+        {
+            var settings = new KartRaceSettings();
+            var steered = new KartRace(settings);
+            var drifted = new KartRace(settings);
+            foreach (var race in new[] { steered, drifted })
+            {
+                race.Objects.Clear();
+                race.Player.Distance = Scaled(170f);
+                race.Player.Lane = 0f;
+                race.Player.Speed = 80f;
+                race.Boss.Distance = Scaled(170f) + 70f;
+                race.Junior.Distance = Scaled(170f) + 70f;
+            }
+            var steerInput = Forward(0.8f);
+            steerInput.Steering = 1f;
+            Advance(steered, 1.5f, steerInput);
+            var driftInput = Forward(0.8f);
+            driftInput.Jog = 1;
+            Advance(drifted, 1.5f, driftInput);
+            var limit = settings.steeringMaxHeadingOffsetDegrees * (float)System.Math.PI / 180f;
+            Assert.That(steered.Player.HeadingOffset, Is.GreaterThan(0f));
+            Assert.That(steered.Player.HeadingOffset, Is.LessThanOrEqualTo(limit + 0.001f));
+            Assert.That(steered.Player.Lane, Is.GreaterThan(0f));
+            Assert.That(drifted.Player.HeadingOffset, Is.GreaterThan(limit * 2f));
         }
 
         [Test] public void DriftAlsoCountersSlipOnUphillCurve()

@@ -138,7 +138,7 @@ namespace MixVerse.Game.Model.Kart
             {
                 // ステアリング/ドリフト入力だけが機首の向き(HeadingOffset、トラック接線からの相対角)を動かす。
                 // 無操作ならHeadingOffsetはトラックの方位変化をそのまま打ち消す方向に動く＝ワールド座標上の機首は一定に保たれる。
-                var yawRate = (steer * _settings.steeringYawRate + _driftDirection * _settings.driftYawRate) * _direction;
+                var yawRate = (steer * _settings.steeringYawRate * SteeringAuthority(steer) + _driftDirection * _settings.driftYawRate) * _direction;
                 var trackYawRatePerSecond = _layout.TurnRateAt(Player.Distance) * Player.Speed * _settings.metersPerSpeedUnit;
                 var maxHeadingOffset = _settings.maxHeadingOffsetDegrees * (float)Math.PI / 180f;
                 Player.HeadingOffset = Clamp(Player.HeadingOffset + (yawRate - trackYawRatePerSecond) * dt, -maxHeadingOffset, maxHeadingOffset);
@@ -375,6 +375,16 @@ namespace MixVerse.Game.Model.Kart
             ResultScene = scene;
         }
         private bool SameLevel(RacerState a, RacerState b) => Math.Abs(a.Height - b.Height) < 1.2f;
+        // ステアリングだけでは機首を大きく振らせない。steeringMaxHeadingOffsetDegrees に近づくほど効きを弱め、
+        // 入力を入れ続けても浅い傾きのまま横へ流れるだけに留める（ドリフトの振り角はこの制限を受けない）
+        private float SteeringAuthority(float steer)
+        {
+            if (steer == 0f) return 0f;
+            var limit = _settings.steeringMaxHeadingOffsetDegrees * (float)Math.PI / 180f;
+            var ratio = Clamp(Player.HeadingOffset / limit, -1f, 1f);
+            return steer * ratio * _direction > 0f ? 1f - Math.Abs(ratio) : 1f;
+        }
+
         private float Clamp(float value, float min, float max) => Math.Max(min, Math.Min(max, value));
         private float MoveTowards(float value, float target, float step) => value + Clamp(target - value, -step, step);
     }
