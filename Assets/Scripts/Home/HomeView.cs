@@ -148,7 +148,6 @@ namespace MixVerse.Home
 
         public void RenderTestPlay(KartTestDrive drive, float gain, bool midi) => _testPlayView.Render(drive, gain, midi);
 
-        public void PlayTestPlayDriftSe() => _testPlayView.PlayDriftSe();
 
         public void HideTestPlay()
         {

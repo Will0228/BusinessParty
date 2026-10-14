@@ -46,7 +46,6 @@ namespace MixVerse.Game.Kart
         public AudioSource Audio;
         public AudioClip RadioClip;
         public AudioClip AlertClip;
-        public AudioClip DriftClip;
         public AudioClip ExplosionClip;
         public AudioClip RocketFireClip;
         public AudioClip BlowAwayClip;
@@ -55,7 +54,6 @@ namespace MixVerse.Game.Kart
         public AudioClip EngineClip;
         public AudioClip GameOverClip;
         public AudioSource BgmAudio;
-        public AudioSource DriftAudio;
         public AudioSource DistanceAlertAudio;
         public AudioSource EngineAudio;
         public ParticleSystem[] DriftSparks;
@@ -109,10 +107,6 @@ namespace MixVerse.Game.Kart
             _layout = new KartCourseLayout(settings.courseLength);
         }
         public void ToggleDebug() => _debug = !_debug;
-        public void PlayDriftSe()
-        {
-            if (DriftClip != null && !DriftAudio.isPlaying) DriftAudio.PlayOneShot(DriftClip, 0.6f);
-        }
         public void PlayExplosionSe()
         {
             if (ExplosionClip != null) Audio.PlayOneShot(ExplosionClip, 0.7f);

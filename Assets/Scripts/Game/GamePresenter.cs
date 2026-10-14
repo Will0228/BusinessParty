@@ -35,7 +35,6 @@ namespace MixVerse.Game
         public void Bind(CompositeDisposable lifetime)
         {
             _view.OnStartRequested.Subscribe(_ => Begin()).AddTo(lifetime);
-            _input.OnDriftInputTriggered.Subscribe(_ => _view.PlayDriftSe()).AddTo(lifetime);
             _input.Bind();
         }
 

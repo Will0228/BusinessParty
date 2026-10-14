@@ -50,7 +50,6 @@ namespace MixVerse.Home
                 : "<color=#9FB3BF>DJコントローラー未接続：キーボードでも操作できます</color>";
         }
 
-        public void PlayDriftSe() => _stage.PlayDriftSe();
 
         public void Hide()
         {

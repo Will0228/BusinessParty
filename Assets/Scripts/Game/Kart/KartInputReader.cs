@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using Minis;
 using MixVerse.Game.Model.Kart;
-using R3;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -47,12 +46,10 @@ namespace MixVerse.Game.Kart
         private bool _useItem;
         private bool _syncPressed;
         private bool _bound;
-        private readonly Subject<Unit> _onDriftInputTriggered = new Subject<Unit>();
         public float Gain => _gain;
         public bool HasMidi => _devices.Count > 0;
         public bool IsDriftActive => _driftActive && !DriftInputStale;
         private bool DriftInputStale => _time - _driftInputAt > Mathf.Max(0.05f, _mapping.driftHoldSeconds);
-        public Observable<Unit> OnDriftInputTriggered => _onDriftInputTriggered;
 
         private sealed class Handlers
         {
@@ -179,7 +176,6 @@ namespace MixVerse.Game.Kart
             if (_driftBlocked || continued) return;
             _jog = direction;
             _driftActive = true;
-            _onDriftInputTriggered.OnNext(Unit.Default);
         }
 
         // Note Off が届いた＝完全にドリフトを終えた合図。ジョグが惰性で流し続ける #25/#24 で再開しないよう、

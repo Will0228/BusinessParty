@@ -66,7 +66,6 @@ namespace MixVerse.Game.Kart
             _stage.Audio.playOnAwake = false;
             _stage.RadioClip = Tone("Radio alert", 620f, 0.35f);
             _stage.AlertClip = Tone("Attack confirmed", 1100f, 0.12f);
-            _stage.DriftClip = _assets != null ? _assets.driftSeClip : null;
             _stage.ExplosionClip = _assets != null ? _assets.explosionSeClip : null;
             _stage.RocketFireClip = _assets != null ? _assets.rocketFireSeClip : null;
             _stage.BlowAwayClip = _assets != null ? _assets.blowAwaySeClip : null;
@@ -74,9 +73,6 @@ namespace MixVerse.Game.Kart
             _stage.DistanceAlertClip = _assets != null ? _assets.distanceAlertSeClip : null;
             _stage.EngineClip = _assets != null ? _assets.engineSeClip : null;
             _stage.GameOverClip = _assets != null ? _assets.gameOverSeClip : null;
-            // ドリフトSE専用のAudioSource。isPlayingで再生中かどうかを判定し、再生中は再トリガーしない
-            _stage.DriftAudio = camera.AddComponent<AudioSource>();
-            _stage.DriftAudio.playOnAwake = false;
             // 上司との距離警告SE専用のAudioSource。閾値を超えている間ループ再生し続ける
             _stage.DistanceAlertAudio = camera.AddComponent<AudioSource>();
             _stage.DistanceAlertAudio.playOnAwake = false;

@@ -25,8 +25,6 @@ namespace MixVerse.Game.Kart
         public Transform Ground;
         public float GroundTile;
         public ParticleSystem[] DriftSparks;
-        public AudioSource DriftAudio;
-        public AudioClip DriftClip;
         public AudioSource EngineAudio;
         public KartChaseCamera ChaseCamera;
         public readonly List<Object> GeneratedAssets = new List<Object>();
@@ -60,11 +58,6 @@ namespace MixVerse.Game.Kart
             Camera.fieldOfView = ChaseCamera.FieldOfView;
             UpdateDriftSparks(drive);
             UpdateEngineSe(drive);
-        }
-
-        public void PlayDriftSe()
-        {
-            if (DriftClip != null && !DriftAudio.isPlaying) DriftAudio.PlayOneShot(DriftClip, 0.6f);
         }
 
         private void UpdateDriftSparks(KartTestDrive drive)

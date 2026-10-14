@@ -46,9 +46,6 @@ namespace MixVerse.Game.Kart
             cameraData.antialiasing = AntialiasingMode.SubpixelMorphologicalAntiAliasing;
             stage.ChaseCamera = new KartChaseCamera(camera.transform);
 
-            stage.DriftClip = assets != null ? assets.driftSeClip : null;
-            stage.DriftAudio = camera.AddComponent<AudioSource>();
-            stage.DriftAudio.playOnAwake = false;
             stage.EngineAudio = camera.AddComponent<AudioSource>();
             stage.EngineAudio.playOnAwake = false;
             stage.EngineAudio.loop = true;
