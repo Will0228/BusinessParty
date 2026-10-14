@@ -282,9 +282,30 @@ namespace MixVerse.Game.Tests
             Assert.That(race.Player.TurboSeconds, Is.LessThan(remaining));
         }
 
-        private KartRace CreateRace()
+        [Test]
+        public void EachDriftValueTiltsKartBySettingDegrees()
         {
-            var race = new KartRace(new KartRaceSettings { roadHalfWidth = 30f, maximumBossDistance = 1000f });
+            var reader = new KartInputReader(new KartMidiMapping());
+            var race = CreateRace(4f);
+            reader.ApplyControlChange(0, 24, 0.5f);
+            race.Tick(1f / 120f, reader.Read(1f / 120f));
+            var first = race.Player.HeadingOffset;
+            Assert.That(first, Is.EqualTo(4f * System.Math.PI / 180f).Within(0.005f));
+
+            race.Tick(1f / 120f, reader.Read(1f / 120f));
+            Assert.That(race.Player.HeadingOffset, Is.EqualTo(first).Within(0.005f));
+
+            for (var i = 0; i < 3; i++) reader.ApplyControlChange(0, 24, 0.5f);
+            race.Tick(1f / 120f, reader.Read(1f / 120f));
+            Assert.That(race.Player.HeadingOffset - first, Is.EqualTo(12f * System.Math.PI / 180f).Within(0.005f));
+        }
+
+        private KartRace CreateRace(float driftTiltDegreesPerInput = 1.5f)
+        {
+            var race = new KartRace(new KartRaceSettings
+            {
+                roadHalfWidth = 30f, maximumBossDistance = 1000f, driftTiltDegreesPerInput = driftTiltDegreesPerInput
+            });
             race.Objects.Clear();
             race.Player.Speed = 50f;
             race.Boss.Distance = 50f;

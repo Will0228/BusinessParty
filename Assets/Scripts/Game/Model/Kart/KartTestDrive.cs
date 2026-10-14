@@ -34,7 +34,8 @@ namespace MixVerse.Game.Model.Kart
 
             var steer = Math.Abs(input.Steering) < _settings.steeringDeadZone ? 0f : input.Steering;
             steer = Math.Sign(steer) * steer * steer;
-            Heading += (steer * _settings.steeringYawRate + DriftDirection * _settings.driftYawRate) * Direction * deltaTime;
+            var driftYawRate = input.PulseDrift ? 0f : DriftDirection * _settings.driftYawRate;
+            Heading += ((steer * _settings.steeringYawRate + driftYawRate) * deltaTime + DriftPulseOffset(input.DriftPulses)) * Direction;
 
             var turbo = TurboSeconds > 0f;
             TurboSeconds = Math.Max(0f, TurboSeconds - deltaTime);
@@ -46,6 +47,12 @@ namespace MixVerse.Game.Model.Kart
             var meters = Speed * _settings.metersPerSpeedUnit * deltaTime;
             X += (float)Math.Sin(Heading) * meters;
             Z += (float)Math.Cos(Heading) * meters;
+        }
+
+        private float DriftPulseOffset(int pulses)
+        {
+            if (DriftDirection == 0 || Math.Sign(pulses) != DriftDirection) return 0f;
+            return pulses * _settings.driftTiltDegreesPerInput * (float)Math.PI / 180f;
         }
 
         private void UpdateDrift(float deltaTime, int jog, int releasedDirection)

@@ -18,6 +18,7 @@ namespace MixVerse.Game.Model.Kart
         private float _accumulator;
         private bool _pendingItem;
         private int _pendingDriftRelease;
+        private int _pendingDriftPulses;
         private readonly float[] _previousDistances = new float[3];
 
         public RacerState[] Racers { get; } =
@@ -89,15 +90,18 @@ namespace MixVerse.Game.Model.Kart
             if (Phase != RacePhase.Racing) return;
             _pendingItem |= input.UseItem;
             if (input.ReleasedDriftDirection != 0) _pendingDriftRelease = input.ReleasedDriftDirection;
+            _pendingDriftPulses += input.DriftPulses;
             _accumulator += Math.Min(deltaTime, 0.25f);
             const float step = 1f / 120f;
             while (_accumulator >= step && Phase == RacePhase.Racing)
             {
                 input.UseItem = _pendingItem;
                 input.ReleasedDriftDirection = _pendingDriftRelease;
+                input.DriftPulses = _pendingDriftPulses;
                 Step(step, input);
                 _pendingItem = false;
                 _pendingDriftRelease = 0;
+                _pendingDriftPulses = 0;
                 _accumulator -= step;
             }
         }
@@ -135,10 +139,12 @@ namespace MixVerse.Game.Model.Kart
             {
                 // ステアリング/ドリフト入力だけが機首の向き(HeadingOffset、トラック接線からの相対角)を動かす。
                 // 無操作ならHeadingOffsetはトラックの方位変化をそのまま打ち消す方向に動く＝ワールド座標上の機首は一定に保たれる。
-                var yawRate = (steer * _settings.steeringYawRate * SteeringAuthority(steer) + _driftDirection * _settings.driftYawRate) * _direction;
+                var driftYawRate = input.PulseDrift ? 0f : _driftDirection * _settings.driftYawRate;
+                var yawRate = (steer * _settings.steeringYawRate * SteeringAuthority(steer) + driftYawRate) * _direction;
                 var trackYawRatePerSecond = _layout.TurnRateAt(Player.Distance) * Player.Speed * _settings.metersPerSpeedUnit;
                 var maxHeadingOffset = _settings.maxHeadingOffsetDegrees * (float)Math.PI / 180f;
-                Player.HeadingOffset = Clamp(Player.HeadingOffset + (yawRate - trackYawRatePerSecond) * dt, -maxHeadingOffset, maxHeadingOffset);
+                var driftPulseOffset = DriftPulseOffset(input.DriftPulses) * _direction;
+                Player.HeadingOffset = Clamp(Player.HeadingOffset + (yawRate - trackYawRatePerSecond) * dt + driftPulseOffset, -maxHeadingOffset, maxHeadingOffset);
                 Player.Lane += Player.Speed * _settings.metersPerSpeedUnit * (float)Math.Sin(Player.HeadingOffset) * dt;
                 // 見た目の車体傾きは移動計算用のHeadingOffsetから作るが、非ドリフト時は最大15度、ドリフト時も最大40度程度まで抑えて回転を緩める。
                 var visualMaxHeadingOffset = _driftDirection != 0
@@ -364,6 +370,12 @@ namespace MixVerse.Game.Model.Kart
             var limit = _settings.steeringMaxHeadingOffsetDegrees * (float)Math.PI / 180f;
             var ratio = Clamp(Player.HeadingOffset / limit, -1f, 1f);
             return steer * ratio * _direction > 0f ? 1f - Math.Abs(ratio) : 1f;
+        }
+
+        private float DriftPulseOffset(int pulses)
+        {
+            if (_driftDirection == 0 || Math.Sign(pulses) != _driftDirection) return 0f;
+            return pulses * _settings.driftTiltDegreesPerInput * (float)Math.PI / 180f;
         }
 
         private float Clamp(float value, float min, float max) => Math.Max(min, Math.Min(max, value));

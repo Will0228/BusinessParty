@@ -19,6 +19,7 @@ namespace MixVerse.Game.Model.Kart
         public float steeringDeadZone = 0.08f;
         public float steeringYawRate = 1.6f;
         public float driftYawRate = 1.3f;
+        public float driftTiltDegreesPerInput = 1.5f;
         public float maxHeadingOffsetDegrees = 75f;
         public float steeringMaxHeadingOffsetDegrees = 15f;
         public float roadEdgeSpeedMultiplier = 0.8f;
@@ -88,6 +89,7 @@ namespace MixVerse.Game.Model.Kart
             steeringYawRate = Math.Max(0.1f, steeringYawRate);
             driftYawRate = Math.Max(0f, driftYawRate);
             maxHeadingOffsetDegrees = Math.Max(10f, Math.Min(89f, maxHeadingOffsetDegrees));
+            driftTiltDegreesPerInput = Math.Max(0f, Math.Min(maxHeadingOffsetDegrees, driftTiltDegreesPerInput));
             steeringMaxHeadingOffsetDegrees = Math.Max(1f, Math.Min(maxHeadingOffsetDegrees, steeringMaxHeadingOffsetDegrees));
             roadEdgeSpeedMultiplier = Math.Max(0.1f, Math.Min(1f, roadEdgeSpeedMultiplier));
             nonDriftMaxVisualTiltDegrees = Math.Max(1f, Math.Min(maxHeadingOffsetDegrees, nonDriftMaxVisualTiltDegrees));
@@ -146,6 +148,9 @@ namespace MixVerse.Game.Model.Kart
         public float Master;
         public int Jog;
         public int ReleasedDriftDirection;
+        // MIDI の #24/#25 で届いた値の回数（右 +1 / 左 -1 の合計）。PulseDrift の間は回数ぶんだけ機首を振る
+        public int DriftPulses;
+        public bool PulseDrift;
         public bool UseItem;
     }
 

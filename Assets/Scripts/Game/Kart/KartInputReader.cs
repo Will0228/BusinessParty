@@ -39,6 +39,7 @@ namespace MixVerse.Game.Kart
         private float _driftInputAt = float.NegativeInfinity;
         private int _jog;
         private int _releasedDriftDirection;
+        private int _driftPulses;
         private bool _driftHeld;
         private bool _driftActive;
         private bool _driftBlocked;
@@ -173,7 +174,9 @@ namespace MixVerse.Game.Kart
         {
             var continued = _driftActive && !DriftInputStale && _jog == direction;
             _driftInputAt = _time;
-            if (_driftBlocked || continued) return;
+            if (_driftBlocked) return;
+            _driftPulses += direction;
+            if (continued) return;
             _jog = direction;
             _driftActive = true;
         }
@@ -224,18 +227,22 @@ namespace MixVerse.Game.Kart
             }
             if (_mapping.driftMode == KartDriftControlMode.Gate)
                 jog = _driftHeld && Mathf.Abs(steering) >= 0.08f ? Math.Sign(steering) : 0;
+            var pulseDrift = _mapping.driftMode == KartDriftControlMode.PairedControls && _driftActive;
             if (keyboard != null)
             {
                 if (keyboard.qKey.isPressed) jog = -1;
                 if (keyboard.eKey.isPressed) jog = 1;
+                if (keyboard.qKey.isPressed || keyboard.eKey.isPressed) pulseDrift = false;
             }
             LogDrift(jog != 0);
             var releasedDriftDirection = _releasedDriftDirection;
             _releasedDriftDirection = 0;
+            var driftPulses = _driftPulses;
+            _driftPulses = 0;
             return new KartInput
             {
                 Gain = _gain, Master = _master, Steering = steering, Jog = jog, UseItem = use,
-                ReleasedDriftDirection = releasedDriftDirection
+                ReleasedDriftDirection = releasedDriftDirection, DriftPulses = driftPulses, PulseDrift = pulseDrift
             };
         }
 
@@ -253,6 +260,7 @@ namespace MixVerse.Game.Kart
         {
             _jog = 0;
             _releasedDriftDirection = 0;
+            _driftPulses = 0;
             _jogAt = -10f;
             _driftInputAt = float.NegativeInfinity;
             _driftHeld = false;
