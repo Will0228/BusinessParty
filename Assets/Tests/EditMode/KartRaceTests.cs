@@ -385,91 +385,11 @@ namespace MixVerse.Game.Model.Tests
             race.Tick(0.02f, Forward());
             Assert.That(race.IsDrifting, Is.False);
         }
-        [Test] public void ItemBoxesOnlyHoldRocketAndSalaryOrder()
+        [Test] public void ItemBoxesOnlyHoldRocket()
         {
             var boxes = NewRace().Objects.FindAll(value => value.Kind == TrackObjectKind.ItemBox);
             Assert.That(boxes, Is.Not.Empty);
-            Assert.That(boxes.TrueForAll(value => value.Item == KartItem.Rocket || value.Item == KartItem.SalaryOrder), Is.True);
-            Assert.That(boxes.Exists(value => value.Item == KartItem.Rocket), Is.True);
-            Assert.That(boxes.Exists(value => value.Item == KartItem.SalaryOrder), Is.True);
-        }
-
-        [Test] public void SalaryOrderRaisesTopSpeedByTenPercent()
-        {
-            var settings = new KartRaceSettings();
-            var race = NewRace();
-            race.Objects.Clear();
-            race.Player.Lane = 0f;
-            race.Player.Item = KartItem.SalaryOrder;
-            var input = Forward(1f); input.UseItem = true;
-            race.Tick(0.02f, input);
-            Assert.That(race.Player.InvincibleSeconds, Is.GreaterThan(0f));
-            Advance(race, 3f, Forward(1f));
-            Assert.That(race.Player.Speed, Is.EqualTo(settings.PlayerMaxSpeed * settings.salaryOrderSpeedMultiplier).Within(0.01f));
-        }
-
-        [Test] public void SalaryOrderInvincibilityPreventsRocketKnockback()
-        {
-            var settings = new KartRaceSettings { maximumBossDistance = 1000f };
-            var race = new KartRace(settings);
-            race.Objects.Clear();
-            race.Player.Distance = 30f;
-            race.Player.Lane = 0f;
-            race.Player.Item = KartItem.SalaryOrder;
-            var input = Forward(0f); input.UseItem = true;
-            race.Tick(0.02f, input);
-            race.Objects.Add(new TrackObject
-            {
-                Id = 999,
-                Kind = TrackObjectKind.Rocket,
-                Item = KartItem.Rocket,
-                Owner = RacerId.Junior,
-                Distance = race.Player.Distance - 1f,
-                Lane = race.Player.Lane,
-                Lifetime = 2f,
-                CreatedAt = -1f
-            });
-            race.Tick(0.02f, Forward(0f));
-            Assert.That(race.Player.DisabledSeconds, Is.Zero);
-            Assert.That(race.Player.InvincibleSeconds, Is.GreaterThan(0f));
-            Assert.That(race.Objects.Exists(value => value.Kind == TrackObjectKind.Explosion && value.Item == KartItem.Rocket), Is.True);
-        }
-        [Test] public void SalaryOrderKnocksBossAwayInsteadOfFailing()
-        {
-            var race = NewRace();
-            race.Objects.Clear();
-            race.Player.Lane = race.Boss.Lane;
-            race.Player.Distance = race.Boss.Distance;
-            race.Player.InvincibleSeconds = 5f;
-            race.Tick(0.02f, Forward());
-            Assert.That(race.Phase, Is.EqualTo(RacePhase.Racing));
-            Assert.That(race.Boss.DisabledSeconds, Is.GreaterThan(0f));
-            Assert.That(race.Boss.IsBlownUp, Is.True);
-            Assert.That(race.Objects.Exists(value => value.Kind == TrackObjectKind.Explosion && value.Item == KartItem.SalaryOrder), Is.True);
-        }
-        [Test] public void SalaryOrderKnocksJuniorAwayAndCountsAsAttack()
-        {
-            var race = NewRace();
-            race.Objects.Clear();
-            race.Player.Lane = race.Junior.Lane;
-            race.Player.Distance = race.Junior.Distance;
-            race.Player.InvincibleSeconds = 5f;
-            race.Tick(0.02f, Forward());
-            Assert.That(race.Junior.DisabledSeconds, Is.GreaterThan(0f));
-            Assert.That(race.Junior.IsBlownUp, Is.True);
-            Assert.That(race.Attacks, Is.EqualTo(1));
-        }
-        [Test] public void BossSalaryOrderKnocksPlayerAwayInsteadOfFailing()
-        {
-            var race = NewRace();
-            race.Objects.Clear();
-            race.Player.Lane = race.Boss.Lane;
-            race.Player.Distance = race.Boss.Distance;
-            race.Boss.InvincibleSeconds = 5f;
-            race.Tick(0.02f, Forward());
-            Assert.That(race.Phase, Is.EqualTo(RacePhase.Racing));
-            Assert.That(race.Player.DisabledSeconds, Is.GreaterThan(0f));
-            Assert.That(race.Player.IsBlownUp, Is.True);
+            Assert.That(boxes.TrueForAll(value => value.Item == KartItem.Rocket), Is.True);
         }
         [Test] public void FixedStepGivesSameOutcomeAtDifferentFrameRates()
         {

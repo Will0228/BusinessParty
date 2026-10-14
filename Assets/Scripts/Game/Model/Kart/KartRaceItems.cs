@@ -34,7 +34,7 @@ namespace MixVerse.Game.Model.Kart
                 var index = (int)((distance - 45f) / 60f);
                 if (!Jump.Near(distance, 5f))
                     for (var lane = -1; lane <= 1; lane++)
-                        AddObject(TrackObjectKind.ItemBox, distance, lane * 3.4f, 0f, RacerId.Player, (KartItem)(1 + (index + lane + 5) % 2));
+                        AddObject(TrackObjectKind.ItemBox, distance, lane * 3.4f, 0f, RacerId.Player, KartItem.Rocket);
                 if (!Jump.Near(distance + 26f, 5f))
                     AddObject(TrackObjectKind.Crate, distance + 26f, index % 2 == 0 ? 3.7f : -3.7f);
             }
@@ -110,11 +110,11 @@ namespace MixVerse.Game.Model.Kart
                     }
                     else if (obj.Kind == TrackObjectKind.Crate)
                     {
-                        var disabled = Disable(racer, false);
+                        Disable(racer, false);
                         obj.Active = false;
                         AddObject(TrackObjectKind.Explosion, obj.Distance, obj.Lane, 0.5f);
-                        if (disabled && racer.Id == RacerId.Junior && Time - _lastPush <= _settings.pushCreditSeconds) RegisterAttack("箱への押し出し成功");
-                        if (disabled && racer.Id == RacerId.Player) RecordMisconduct("障害物に衝突して横転しました");
+                        if (racer.Id == RacerId.Junior && Time - _lastPush <= _settings.pushCreditSeconds) RegisterAttack("箱への押し出し成功");
+                        if (racer.Id == RacerId.Player) RecordMisconduct("障害物に衝突して横転しました");
                     }
                     if (!obj.Active) break;
                 }
@@ -127,15 +127,7 @@ namespace MixVerse.Game.Model.Kart
             var item = racer.Item;
             var isDebugUnlimited = racer.Id == RacerId.Player && item == _settings.debugUnlimitedItem && item != KartItem.None;
             racer.Item = isDebugUnlimited ? item : KartItem.None;
-            switch (item)
-            {
-                case KartItem.Rocket:
-                    AddObject(TrackObjectKind.Rocket, racer.Distance + 2.5f, racer.Lane, 4f, racer.Id);
-                    break;
-                case KartItem.SalaryOrder:
-                    racer.InvincibleSeconds = Math.Max(racer.InvincibleSeconds, _settings.salaryOrderSeconds);
-                    break;
-            }
+            if (item == KartItem.Rocket) AddObject(TrackObjectKind.Rocket, racer.Distance + 2.5f, racer.Lane, 4f, racer.Id);
         }
 
         private void MoveRocket(TrackObject rocket, float dt)
@@ -168,7 +160,7 @@ namespace MixVerse.Game.Model.Kart
             foreach (var racer in Racers)
             {
                 if (racer.Finished || DistanceSquared(racer.Distance, racer.Lane, explosive.Distance, explosive.Lane) > _settings.explosionRadius * _settings.explosionRadius) continue;
-                if (!Disable(racer, false, true)) continue;
+                Disable(racer, false, true);
                 if (explosive.Owner == RacerId.Player && racer.Id == RacerId.Boss) Fail("ロケランの爆発に上司を巻き込みました", FailureScene.BossHit);
                 if (explosive.Owner == RacerId.Player && racer.Id == RacerId.Junior) RegisterAttack("ロケランで部下を横転させました");
                 if (racer.Id == RacerId.Player) RecordMisconduct("爆発に巻き込まれて横転しました");
@@ -178,9 +170,8 @@ namespace MixVerse.Game.Model.Kart
             AddObject(TrackObjectKind.Explosion, explosive.Distance, explosive.Lane, 0.6f, explosive.Owner, KartItem.Rocket);
         }
 
-        private bool Disable(RacerState racer, bool spinning, bool severe = false)
+        private void Disable(RacerState racer, bool spinning, bool severe = false)
         {
-            if (racer.InvincibleSeconds > 0f) return false;
             racer.IsSpinning = spinning;
             if (spinning)
             {
@@ -195,13 +186,6 @@ namespace MixVerse.Game.Model.Kart
                 racer.DisabledSeconds = _settings.knockbackFlightSeconds + _settings.knockbackRecoverySeconds;
             }
             racer.Speed = 0f;
-            return true;
-        }
-        private bool StarKnockback(RacerState attacker, RacerState victim)
-        {
-            if (victim.DisabledSeconds > 0f || !Disable(victim, false, true)) return false;
-            AddObject(TrackObjectKind.Explosion, victim.Distance, victim.Lane, 0.6f, attacker.Id, KartItem.SalaryOrder);
-            return true;
         }
         private float DistanceSquared(float a, float x, float b, float y) => (a - b) * (a - b) + (x - y) * (x - y);
     }

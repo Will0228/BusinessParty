@@ -193,9 +193,7 @@ namespace MixVerse.Game.Model.Kart
         {
             if (racer.Finished) return;
             racer.TurboSeconds = Math.Max(0f, racer.TurboSeconds - dt);
-            racer.InvincibleSeconds = Math.Max(0f, racer.InvincibleSeconds - dt);
             if (racer.TurboSeconds > 0f && !capped) target *= _settings.turboSpeedMultiplier;
-            if (racer.InvincibleSeconds > 0f && !capped) target *= _settings.salaryOrderSpeedMultiplier;
             if (racer.DisabledSeconds > 0f)
             {
                 racer.DisabledSeconds = Math.Max(0f, racer.DisabledSeconds - dt);
@@ -228,20 +226,7 @@ namespace MixVerse.Game.Model.Kart
         private void CheckContacts(float dt)
         {
             if (!Player.Finished && !Boss.Finished && SameLevel(Player, Boss) && Math.Abs(Player.Distance - Boss.Distance) < 2.1f && Math.Abs(Player.Lane - Boss.Lane) < 1.35f)
-            {
-                if (Player.InvincibleSeconds > 0f && Boss.InvincibleSeconds <= 0f)
-                {
-                    if (StarKnockback(Player, Boss)) Message = "昇給辞令の勢いで上司を吹っ飛ばしました";
-                }
-                else if (Boss.InvincibleSeconds > 0f && Player.InvincibleSeconds <= 0f)
-                {
-                    if (StarKnockback(Boss, Player)) RecordMisconduct("上司の昇給辞令に弾き飛ばされました");
-                }
-                else if (Player.InvincibleSeconds <= 0f && Boss.InvincibleSeconds <= 0f)
-                {
-                    Fail("上司のカートに接触しました");
-                }
-            }
+                Fail("上司のカートに接触しました");
             ResolveJuniorContact(dt);
         }
 
@@ -280,17 +265,6 @@ namespace MixVerse.Game.Model.Kart
             var currentDifference = Player.Distance - Junior.Distance;
             var crossed = previousDifference * currentDifference <= 0f;
             if (!crossed && Math.Abs(currentDifference) >= _settings.racerContactLength) return;
-
-            if (Player.InvincibleSeconds > 0f && Junior.InvincibleSeconds <= 0f)
-            {
-                if (StarKnockback(Player, Junior)) RegisterAttack("昇給辞令の勢いで部下を吹っ飛ばしました");
-                return;
-            }
-            if (Junior.InvincibleSeconds > 0f && Player.InvincibleSeconds <= 0f)
-            {
-                if (StarKnockback(Junior, Player)) RecordMisconduct("部下の昇給辞令に弾き飛ばされました");
-                return;
-            }
 
             if (Math.Abs(laneDifference) > 0.65f)
             {

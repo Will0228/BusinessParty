@@ -1582,8 +1582,6 @@ MonoBehaviour:
     explosionTumbleScale: 1.2
     testDriveTurboSeconds: 3
     turboSpeedMultiplier: 1.2
-    salaryOrderSeconds: 5
-    salaryOrderSpeedMultiplier: 1.1
     jumpRampPosition: 0.3
     jumpRampLength: 7.5
     jumpRampHeight: 1.2
@@ -1594,7 +1592,7 @@ MonoBehaviour:
     jumpFallSeconds: 1.6
     jumpRespawnOffset: 1.5
     cameraReviewEnabled: 1
-    debugUnlimitedItem: 2
+    debugUnlimitedItem: 0
   _midiMapping:
     channel: 1
     gainControl: 9
