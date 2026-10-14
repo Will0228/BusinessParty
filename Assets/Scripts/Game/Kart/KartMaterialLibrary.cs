@@ -16,21 +16,12 @@ namespace MixVerse.Game.Kart
         private readonly List<Object> _generated;
         private readonly Shader _unlitShader;
         private readonly Shader _litShader;
-        private Material _rainbow;
 
         public KartMaterialLibrary(List<Object> generated)
         {
             _generated = generated;
             _unlitShader = Shader.Find("Universal Render Pipeline/Unlit") ?? Shader.Find("Unlit/Color");
             _litShader = Shader.Find("Universal Render Pipeline/Lit") ?? _unlitShader;
-        }
-
-        // 昇給辞令の無敵演出用。色相をシェーダー側でアニメーションさせるので全レーサーで1つを共有できる
-        public Material Rainbow()
-        {
-            if (_rainbow != null) return _rainbow;
-            _rainbow = Register(new Material(Shader.Find("MixVerse/KartRainbowBody")));
-            return _rainbow;
         }
 
         public Material Unlit(Color color)

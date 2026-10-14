@@ -231,20 +231,8 @@ namespace MixVerse.Game.Kart
         private void BuildKarts()
         {
             _stage.Karts = new Transform[3];
-            _stage.BodyRenderers = new MeshRenderer[3][];
-            _stage.BodyMaterials = new Material[3][];
-            _stage.RainbowMaterial = _materials.Rainbow();
-            _stage.StarAuras = new ParticleSystem[3];
-            _stage.StarLights = new Light[3];
-            _stage.RainbowRings = new MeshRenderer[3];
-            _stage.Sparkles = new ParticleSystem[3];
-            _stage.Stars = new ParticleSystem[3];
             _stage.Tags = new Transform[3];
             _stage.TagLabels = new TextMeshPro[3];
-            var ringMesh = RingMesh(1.3f, 1.5f, 0.1f, 28);
-            _stage.GeneratedAssets.Add(ringMesh);
-            var starMesh = StarMesh();
-            _stage.GeneratedAssets.Add(starMesh);
             var colors = new[] { _cyan, _gold, _coral };
             for (var i = 0; i < 3; i++)
             {
@@ -270,16 +258,6 @@ namespace MixVerse.Game.Kart
                     Shape(kart, "Tail light", PrimitiveType.Cube, new Vector3(side * 0.55f, 0.12f, -1.26f), new Vector3(0.38f, 0.12f, 0.05f), new Color(4f, 0.12f, 0.08f));
                 }
                 Headlamp(kart);
-                var bodyRenderers = kart.GetComponentsInChildren<MeshRenderer>();
-                _stage.BodyRenderers[i] = bodyRenderers;
-                var bodyMaterials = new Material[bodyRenderers.Length];
-                for (var r = 0; r < bodyRenderers.Length; r++) bodyMaterials[r] = bodyRenderers[r].sharedMaterial;
-                _stage.BodyMaterials[i] = bodyMaterials;
-                _stage.StarAuras[i] = StarAuraEmitter(kart);
-                _stage.StarLights[i] = StarLight(kart);
-                _stage.RainbowRings[i] = RainbowRing(kart, ringMesh);
-                _stage.Sparkles[i] = SparkleEmitter(kart);
-                _stage.Stars[i] = StarBurstEmitter(kart, starMesh);
                 if (i == (int)RacerId.Player)
                     _stage.DriftSparks = new[] { DriftSparkEmitter(kart, -1f), DriftSparkEmitter(kart, 1f) };
                 var label = WorldLabel(_stage.transform, "", colors[i], 7f);
@@ -300,232 +278,6 @@ namespace MixVerse.Game.Kart
             light.range = 32f;
             light.spotAngle = 70f;
             light.shadows = LightShadows.None;
-        }
-
-        private Light StarLight(Transform kart)
-        {
-            var light = new GameObject("Star light", typeof(Light)).GetComponent<Light>();
-            light.transform.SetParent(kart, false);
-            light.transform.localPosition = new Vector3(0f, 0.9f, 0f);
-            light.type = LightType.Point;
-            light.range = 7f;
-            light.intensity = 0f;
-            light.shadows = LightShadows.None;
-            return light;
-        }
-
-        // 昇給辞令の無敵中にカートの周りを渦巻くように舞う虹色の光の粒。色相はライフタイム全体でループさせている
-        private ParticleSystem StarAuraEmitter(Transform parent)
-        {
-            var obj = new GameObject("Star aura");
-            obj.transform.SetParent(parent, false);
-            obj.transform.localPosition = new Vector3(0f, 0.55f, 0f);
-            var particles = obj.AddComponent<ParticleSystem>();
-            particles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
-            var main = particles.main;
-            main.loop = true;
-            main.playOnAwake = false;
-            main.startLifetime = new ParticleSystem.MinMaxCurve(0.7f, 1.1f);
-            main.startSpeed = new ParticleSystem.MinMaxCurve(0.4f, 0.9f);
-            main.startSize = new ParticleSystem.MinMaxCurve(0.18f, 0.34f);
-            main.startColor = Color.white;
-            main.gravityModifier = 0f;
-            main.simulationSpace = ParticleSystemSimulationSpace.Local;
-            main.maxParticles = 140;
-            var emission = particles.emission;
-            emission.enabled = false;
-            emission.rateOverTime = 55f;
-            var shape = particles.shape;
-            shape.shapeType = ParticleSystemShapeType.Circle;
-            shape.radius = 1.5f;
-            shape.rotation = new Vector3(-90f, 0f, 0f);
-            shape.arc = 360f;
-            var velocity = particles.velocityOverLifetime;
-            velocity.enabled = true;
-            velocity.space = ParticleSystemSimulationSpace.Local;
-            velocity.orbitalY = new ParticleSystem.MinMaxCurve(220f);
-            velocity.x = new ParticleSystem.MinMaxCurve(0f, 0f);
-            velocity.y = new ParticleSystem.MinMaxCurve(1.1f, 2.2f);
-            velocity.z = new ParticleSystem.MinMaxCurve(0f, 0f);
-            var colors = particles.colorOverLifetime;
-            colors.enabled = true;
-            var gradient = new Gradient();
-            gradient.SetKeys(new[]
-            {
-                new GradientColorKey(Color.red, 0f), new GradientColorKey(Color.yellow, 0.2f),
-                new GradientColorKey(Color.green, 0.4f), new GradientColorKey(Color.cyan, 0.6f),
-                new GradientColorKey(Color.blue, 0.8f), new GradientColorKey(Color.magenta, 1f)
-            }, new[] { new GradientAlphaKey(1f, 0f), new GradientAlphaKey(0.9f, 0.6f), new GradientAlphaKey(0f, 1f) });
-            colors.color = gradient;
-            var size = particles.sizeOverLifetime;
-            size.enabled = true;
-            size.size = new ParticleSystem.MinMaxCurve(1f, AnimationCurve.EaseInOut(0f, 0.3f, 1f, 1f));
-            var renderer = particles.GetComponent<ParticleSystemRenderer>();
-            renderer.sharedMaterial = _explosions.Glow;
-            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            renderer.receiveShadows = false;
-            particles.Play();
-            return particles;
-        }
-
-        // カートを帯状に取り巻くリングメッシュ。虹色シェーダーを貼るとオブジェクト座標に応じて縁全体に色相が流れる
-        private Mesh RingMesh(float innerRadius, float outerRadius, float height, int segments)
-        {
-            var vertices = new Vector3[segments * 4];
-            var triangles = new List<int>();
-            for (var s = 0; s < segments; s++)
-            {
-                var angle = s / (float)segments * Mathf.PI * 2f;
-                var dir = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle));
-                var b = s * 4;
-                vertices[b + 0] = dir * innerRadius + Vector3.up * height * 0.5f;
-                vertices[b + 1] = dir * outerRadius + Vector3.up * height * 0.5f;
-                vertices[b + 2] = dir * outerRadius - Vector3.up * height * 0.5f;
-                vertices[b + 3] = dir * innerRadius - Vector3.up * height * 0.5f;
-            }
-            for (var s = 0; s < segments; s++)
-            {
-                var b = s * 4;
-                var n = ((s + 1) % segments) * 4;
-                triangles.AddRange(new[] { b + 0, n + 0, n + 1, b + 0, n + 1, b + 1 });
-                triangles.AddRange(new[] { b + 1, n + 1, n + 2, b + 1, n + 2, b + 2 });
-                triangles.AddRange(new[] { b + 2, n + 2, n + 3, b + 2, n + 3, b + 3 });
-                triangles.AddRange(new[] { b + 3, n + 3, n + 0, b + 3, n + 0, b + 0 });
-            }
-            var mesh = new Mesh { name = "Rainbow ring", vertices = vertices, triangles = triangles.ToArray() };
-            mesh.RecalculateNormals();
-            mesh.RecalculateBounds();
-            return mesh;
-        }
-
-        private MeshRenderer RainbowRing(Transform kart, Mesh mesh)
-        {
-            var obj = new GameObject("Rainbow ring", typeof(MeshFilter), typeof(MeshRenderer));
-            obj.transform.SetParent(kart, false);
-            obj.transform.localPosition = new Vector3(0f, 0.5f, 0f);
-            obj.GetComponent<MeshFilter>().sharedMesh = mesh;
-            var renderer = obj.GetComponent<MeshRenderer>();
-            renderer.sharedMaterial = _stage.RainbowMaterial;
-            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            renderer.receiveShadows = false;
-            renderer.enabled = false;
-            return renderer;
-        }
-
-        // 昇給辞令の無敵中にカート周辺へ舞うキラキラした瞬き粒子。虹色オーラより短命かつ小粒にして瞬く印象にしている
-        private ParticleSystem SparkleEmitter(Transform parent)
-        {
-            var obj = new GameObject("Star sparkle");
-            obj.transform.SetParent(parent, false);
-            obj.transform.localPosition = new Vector3(0f, 0.6f, 0f);
-            var particles = obj.AddComponent<ParticleSystem>();
-            particles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
-            var main = particles.main;
-            main.loop = true;
-            main.playOnAwake = false;
-            main.startLifetime = new ParticleSystem.MinMaxCurve(0.18f, 0.34f);
-            main.startSpeed = new ParticleSystem.MinMaxCurve(0f, 0.3f);
-            main.startSize = new ParticleSystem.MinMaxCurve(0.06f, 0.16f);
-            main.startColor = Color.white;
-            main.gravityModifier = 0f;
-            main.simulationSpace = ParticleSystemSimulationSpace.Local;
-            main.maxParticles = 200;
-            var emission = particles.emission;
-            emission.enabled = false;
-            emission.rateOverTime = 90f;
-            var shape = particles.shape;
-            shape.shapeType = ParticleSystemShapeType.Sphere;
-            shape.radius = 1.7f;
-            shape.radiusThickness = 0.35f;
-            var colors = particles.colorOverLifetime;
-            colors.enabled = true;
-            var gradient = new Gradient();
-            gradient.SetKeys(
-                new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(new Color(1f, 0.95f, 0.6f), 1f) },
-                new[] { new GradientAlphaKey(0f, 0f), new GradientAlphaKey(1f, 0.35f), new GradientAlphaKey(0f, 1f) });
-            colors.color = gradient;
-            var size = particles.sizeOverLifetime;
-            size.enabled = true;
-            size.size = new ParticleSystem.MinMaxCurve(1f, new AnimationCurve(
-                new Keyframe(0f, 0f), new Keyframe(0.3f, 1f), new Keyframe(1f, 0f)));
-            var renderer = particles.GetComponent<ParticleSystemRenderer>();
-            renderer.sharedMaterial = _explosions.Glow;
-            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            renderer.receiveShadows = false;
-            particles.Play();
-            return particles;
-        }
-
-        // ☆型の平面メッシュ。中心から外周・内周の頂点を交互に結んだ5角の星形
-        private Mesh StarMesh()
-        {
-            const int points = 5;
-            var vertices = new Vector3[points * 2 + 1];
-            var triangles = new List<int>();
-            vertices[0] = Vector3.zero;
-            for (var p = 0; p < points * 2; p++)
-            {
-                var angle = p / (float)(points * 2) * Mathf.PI * 2f - Mathf.PI * 0.5f;
-                var radius = p % 2 == 0 ? 0.5f : 0.2f;
-                vertices[p + 1] = new Vector3(Mathf.Cos(angle) * radius, Mathf.Sin(angle) * radius, 0f);
-            }
-            for (var p = 0; p < points * 2; p++)
-            {
-                var a = p + 1;
-                var b = (p + 1) % (points * 2) + 1;
-                triangles.Add(0); triangles.Add(a); triangles.Add(b);
-            }
-            var mesh = new Mesh { name = "Star", vertices = vertices, triangles = triangles.ToArray() };
-            mesh.RecalculateNormals();
-            mesh.RecalculateBounds();
-            return mesh;
-        }
-
-        // 昇給辞令の無敵中にプレイヤーの周りへ大量に散らばせる☆型パーティクル。虹色シェーダーでキラキラ色が変わりながら舞う
-        private ParticleSystem StarBurstEmitter(Transform parent, Mesh starMesh)
-        {
-            var obj = new GameObject("Star burst");
-            obj.transform.SetParent(parent, false);
-            obj.transform.localPosition = new Vector3(0f, 0.6f, 0f);
-            var particles = obj.AddComponent<ParticleSystem>();
-            particles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
-            var main = particles.main;
-            main.loop = true;
-            main.playOnAwake = false;
-            main.startLifetime = new ParticleSystem.MinMaxCurve(0.5f, 0.9f);
-            main.startSpeed = new ParticleSystem.MinMaxCurve(0.3f, 1f);
-            main.startSize = new ParticleSystem.MinMaxCurve(0.22f, 0.4f);
-            main.startColor = Color.white;
-            main.startRotation = new ParticleSystem.MinMaxCurve(0f, Mathf.PI * 2f);
-            main.gravityModifier = 0f;
-            main.simulationSpace = ParticleSystemSimulationSpace.Local;
-            main.maxParticles = 260;
-            var emission = particles.emission;
-            emission.enabled = false;
-            emission.rateOverTime = 90f;
-            var shape = particles.shape;
-            shape.shapeType = ParticleSystemShapeType.Sphere;
-            shape.radius = 1.9f;
-            shape.radiusThickness = 0.5f;
-            var velocity = particles.velocityOverLifetime;
-            velocity.enabled = true;
-            velocity.space = ParticleSystemSimulationSpace.Local;
-            velocity.orbitalY = new ParticleSystem.MinMaxCurve(90f);
-            var rotation = particles.rotationOverLifetime;
-            rotation.enabled = true;
-            rotation.z = new ParticleSystem.MinMaxCurve(-360f * Mathf.Deg2Rad, 360f * Mathf.Deg2Rad);
-            var size = particles.sizeOverLifetime;
-            size.enabled = true;
-            size.size = new ParticleSystem.MinMaxCurve(1f, new AnimationCurve(
-                new Keyframe(0f, 0f), new Keyframe(0.25f, 1f), new Keyframe(0.75f, 1f), new Keyframe(1f, 0f)));
-            var renderer = particles.GetComponent<ParticleSystemRenderer>();
-            renderer.renderMode = ParticleSystemRenderMode.Mesh;
-            renderer.mesh = starMesh;
-            renderer.sharedMaterial = _stage.RainbowMaterial;
-            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            renderer.receiveShadows = false;
-            particles.Play();
-            return particles;
         }
 
         // 後輪の接地点から地面との摩擦火花を飛ばす。色は KartStageView がドリフトの溜め具合に応じて毎フレーム切り替える
@@ -578,7 +330,7 @@ namespace MixVerse.Game.Kart
         {
             if (obj.Kind == TrackObjectKind.Explosion)
             {
-                var severe = obj.Item == KartItem.Rocket || obj.Item == KartItem.SalaryOrder;
+                var severe = obj.Item == KartItem.Rocket;
                 var effect = _explosions.Create(severe, obj.Id);
                 if (severe)
                 {
@@ -599,7 +351,7 @@ namespace MixVerse.Game.Kart
             var root = Shape(stage.transform, obj.Kind.ToString(), shape, Vector3.zero, scale, color).transform;
             if (obj.Kind == TrackObjectKind.ItemBox)
             {
-                var label = WorldLabel(root, obj.Item == KartItem.Rocket ? "弾" : "給", _navy, 7f);
+                var label = WorldLabel(root, "弾", _navy, 7f);
                 label.transform.localPosition = new Vector3(0f, 0f, -0.52f);
             }
             return root;
@@ -707,7 +459,7 @@ namespace MixVerse.Game.Kart
 
         private void BuildItemIcons(Transform parent)
         {
-            _stage.ItemIcons = new GameObject[3];
+            _stage.ItemIcons = new GameObject[2];
             _stage.EmptyItemIcon = Label(parent, "—", new Vector2(0.5f, 0.5f), Vector2.zero,
                 new Vector2(70f, 70f), 46, new Color(0.45f, 0.58f, 0.61f), TextAlignmentOptions.Center).gameObject;
 
@@ -719,11 +471,6 @@ namespace MixVerse.Game.Kart
             IconShape(rocket, new Vector2(0f, 0f), new Vector2(21f, 43f), Color.white);
             IconShape(rocket, new Vector2(0f, 22f), new Vector2(17f, 17f), _coral, 45f);
             IconShape(rocket, new Vector2(0f, 2f), new Vector2(9f, 9f), _cyan, 45f);
-
-            var salary = IconGroup(parent, "Salary order icon");
-            _stage.ItemIcons[(int)KartItem.SalaryOrder] = salary.gameObject;
-            IconShape(salary, Vector2.zero, new Vector2(54f, 66f), new Color(1f, 0.94f, 0.67f), -5f);
-            Label(salary, "昇給\n辞令", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(52f, 58f), 20, _coral, TextAlignmentOptions.Center);
         }
 
         private RectTransform IconGroup(Transform parent, string name)
