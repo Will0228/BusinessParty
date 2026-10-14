@@ -31,6 +31,7 @@ namespace MixVerse.Game.Kart
         private readonly TMP_FontAsset _font;
         private readonly KartJumpRamp _jump;
         private readonly Random _random = new Random(1116);
+        private readonly KartBuildingClearance _buildingClearance = new KartBuildingClearance();
         private readonly Dictionary<GameObject, Bounds> _bounds = new Dictionary<GameObject, Bounds>();
         private readonly Dictionary<Color, Material> _neonText = new Dictionary<Color, Material>();
         private readonly List<Material> _facades = new List<Material>();
@@ -335,13 +336,7 @@ namespace MixVerse.Game.Kart
             var right = Vector3.Cross(Vector3.up, forward);
             rotation = Quaternion.LookRotation(forward, Vector3.up);
             center = _stage.Point(along) + right * side * (_edge + depth * 0.5f);
-            for (var x = -1; x <= 1; x++)
-                for (var z = -1; z <= 1; z++)
-                {
-                    var sample = center + right * (x * depth * 0.5f) + forward * (z * length * 0.5f);
-                    if (DistanceToRoad(sample) < _edge - 0.3f) return false;
-                }
-            return true;
+            return !_buildingClearance.OverlapsRoad(_stage.Path, center, rotation, depth, length, _edge - 0.3f);
         }
 
         private void BuildSkyline(int side)
@@ -358,6 +353,7 @@ namespace MixVerse.Game.Kart
                 var center = _stage.Point(d) + right * side * lateral;
                 if (DistanceToRoad(center) < _edge + 12f + Mathf.Max(width, depth) * 0.75f) continue;
                 var rotation = Quaternion.LookRotation(forward) * Quaternion.Euler(0f, (float)_random.NextDouble() * 24f - 12f, 0f);
+                if (_buildingClearance.OverlapsRoad(_stage.Path, center, rotation, depth, width, _edge)) continue;
                 var size = new Vector3(depth, height, width);
                 var bucket = Bucket(d);
                 Block(bucket, center + Vector3.up * (GroundHeight - 2f), rotation, size, Facade());
