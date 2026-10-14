@@ -36,19 +36,17 @@ namespace MixVerse.Game.Model.Kart
             _turns = new[]
             {
                 new Turn(35f, 80f, 1.35f, scale),
-                new Turn(100f, 145f, -1.35f, scale),
-                new Turn(215f, 265f, -1.5f, scale),
-                new Turn(285f, 335f, 1.5f, scale),
-                new Turn(425f, 475f, 1.15f, scale),
-                new Turn(495f, 545f, -1.15f, scale),
+                new Turn(100f, 145f, -(float)Math.PI, scale),
+                new Turn(180f, 335f, 2f * (float)Math.PI, scale),
+                new Turn(425f, 475f, (float)Math.PI, scale),
+                new Turn(495f, 545f, -(float)Math.PI, scale),
                 new Turn(600f, 735f, -1.35f, scale),
                 new Turn(750f, 795f, 1.35f, scale),
                 new Turn(770f, 800f, -0.2f, scale),
                 new Turn(820f, 860f, (float)Math.PI, scale),
                 new Turn(900f, 940f, -(float)Math.PI, scale),
                 new Turn(980f, 1000f, 0.2f, scale),
-                new Turn(1015f, 1060f, 1.15f, scale),
-                new Turn(1080f, 1125f, -1.15f, scale)
+                new Turn(1010f, 1125f, -2f * (float)Math.PI, scale)
             };
         }
 
