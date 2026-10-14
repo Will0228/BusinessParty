@@ -528,9 +528,9 @@ namespace MixVerse.Game.Model.Tests
         [Test] public void HairpinSectionHasTwoOppositeHalfCircleTurns()
         {
             var layout = new KartCourseLayout(1200f);
-            Assert.That(layout.HeadingAt(820f), Is.EqualTo(-0.2f).Within(0.001f));
+            var entryHeading = layout.HeadingAt(820f);
             Assert.That(layout.HeadingAt(860f) - layout.HeadingAt(820f), Is.EqualTo(System.Math.PI).Within(0.001));
-            Assert.That(layout.HeadingAt(940f), Is.EqualTo(-0.2f).Within(0.001f));
+            Assert.That(layout.HeadingAt(940f), Is.EqualTo(entryHeading).Within(0.001f));
             Assert.That(layout.TurnRateAt(830f), Is.GreaterThan(0.07f));
             Assert.That(layout.TurnRateAt(910f), Is.LessThan(-0.07f));
         }
@@ -545,8 +545,8 @@ namespace MixVerse.Game.Model.Tests
                 Assert.That(headingChange / 0.2f, Is.EqualTo(layout.TurnRateAt(distance)).Within(0.001f));
             }
             Assert.That(layout.HeadingAt(85f), Is.GreaterThan(1.2f));
-            Assert.That(layout.HeadingAt(270f), Is.LessThan(-1.4f));
-            Assert.That(layout.HeadingAt(1130f), Is.EqualTo(0f).Within(0.001f));
+            Assert.That(layout.HeadingAt(335f) - layout.HeadingAt(180f), Is.EqualTo(2f * System.Math.PI).Within(0.001f));
+            Assert.That(layout.HeadingAt(1200f), Is.EqualTo(layout.HeadingAt(1130f)).Within(0.001f));
         }
 
         [Test] public void SteeringAndDriftCounterOutwardSlipOnHairpin()
@@ -598,7 +598,7 @@ namespace MixVerse.Game.Model.Tests
             Assert.That(drifted.Player.HeadingOffset, Is.GreaterThan(limit * 2f));
         }
 
-        [Test] public void DriftAlsoCountersSlipOnUphillCurve()
+        [Test] public void DriftAlsoCountersSlipOnDownhillSpiral()
         {
             var unattended = NewRace();
             var assisted = NewRace();
@@ -613,11 +613,11 @@ namespace MixVerse.Game.Model.Tests
             }
             Advance(unattended, 0.45f, Forward(0.8f));
             var input = Forward(0.8f);
-            input.Steering = -1f;
-            input.Jog = -1;
+            input.Steering = 1f;
+            input.Jog = 1;
             Advance(assisted, 0.45f, input);
-            Assert.That(unattended.Player.Lane, Is.GreaterThan(0.9f));
-            Assert.That(assisted.Player.Lane, Is.LessThan(0f));
+            Assert.That(unattended.Player.Lane, Is.LessThan(-0.9f));
+            Assert.That(assisted.Player.Lane, Is.GreaterThan(0f));
         }
     }
 }

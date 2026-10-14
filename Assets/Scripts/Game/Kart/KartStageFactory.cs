@@ -126,7 +126,7 @@ namespace MixVerse.Game.Kart
             for (var section = 0; section < 6; section++)
             {
                 var distance = section * settings.courseLength / 6f;
-                var words = new[] { "SUMMIT / 山頂", "峠の下り", "社長・取引先 観戦中", "LONG CURVE", "DOWNHILL HAIRPIN", "麓へ / FINAL" };
+                var words = new[] { "SUMMIT / 山頂", "峠の下り", "社長・取引先 観戦中", "DOWNHILL SPIRAL", "DOWNHILL HAIRPIN", "麓へ / FINAL" };
                 Gate(distance, words[section], section == 2 ? _coral : _cyan, settings);
             }
             Gate(settings.courseLength, "FINISH  /  上司に花を", _gold, settings);

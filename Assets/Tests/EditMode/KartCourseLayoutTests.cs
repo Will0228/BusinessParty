@@ -13,7 +13,7 @@ namespace MixVerse.Game.Model.Tests
         {
             var layout = new KartCourseLayout(length);
             var scale = length / 1200f;
-            foreach (var section in new[] { new[] { 180f, 335f, 1f }, new[] { 1010f, 1125f, -1f } })
+            foreach (var section in new[] { new[] { 180f, 335f, 1f }, new[] { 600f, 735f, -1f }, new[] { 1010f, 1125f, -1f } })
             {
                 var start = section[0] * scale;
                 var end = section[1] * scale;
@@ -27,14 +27,16 @@ namespace MixVerse.Game.Model.Tests
             }
         }
 
+        [TestCase(550f, 595f, 1f)]
         [TestCase(100f, 145f, -1f)]
         [TestCase(425f, 475f, 1f)]
         [TestCase(495f, 545f, -1f)]
+        [TestCase(750f, 800f, 1f)]
         public void AdditionalHairpinsTurnThroughOneHundredEightyDegrees(float start, float end, float direction)
         {
             var layout = new KartCourseLayout(1200f);
             Assert.That(layout.HeadingAt(end) - layout.HeadingAt(start), Is.EqualTo(direction * (float)Math.PI).Within(0.001f));
-            Assert.That(layout.GradeAt((start + end) * 0.5f), Is.LessThan(0f));
+            Assert.That(layout.GradeAt((start + end) * 0.5f), Is.LessThanOrEqualTo(0f));
         }
 
         [Test]
@@ -94,15 +96,16 @@ namespace MixVerse.Game.Model.Tests
         }
 
         [Test]
-        public void LongCurveTurnsContinuouslyAndMoreGentlyThanHairpins()
+        public void TunnelSpiralTurnsContinuouslyAndConnectsSmoothlyToHairpin()
         {
             var layout = new KartCourseLayout(1200f);
             for (var d = 610f; d <= 725f; d += 5f)
             {
                 Assert.That(layout.TurnRateAt(d), Is.LessThan(0f));
-                Assert.That(Math.Abs(layout.TurnRateAt(d)), Is.LessThan(Math.Abs(layout.TurnRateAt(840f)) * 0.2f));
+                Assert.That(Math.Abs(layout.TurnRateAt(d)), Is.LessThan(Math.Abs(layout.TurnRateAt(840f))));
             }
-            Assert.That(layout.HeadingAt(735f) - layout.HeadingAt(600f), Is.EqualTo(-1.35f).Within(0.001f));
+            Assert.That(layout.TurnRateAt(735f), Is.EqualTo(0f));
+            Assert.That(layout.TurnRateAt(750f), Is.EqualTo(0f));
             for (var d = 755f; d < 800f; d += 1f)
             {
                 var derivative = (layout.HeadingAt(d + 0.05f) - layout.HeadingAt(d - 0.05f)) / 0.1f;
