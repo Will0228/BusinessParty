@@ -6,7 +6,7 @@ namespace MixVerse.Game.Model.Tests
 {
     public sealed class KartRaceCpuLaneTests
     {
-        private KartRace NewRace(int seed = 0, float steeringSpeed = 10f, float minSeconds = 2.5f, float maxSeconds = 2.5f)
+        private KartRace NewRace(int seed = 0, float steeringSpeed = 13f, float minSeconds = 2.5f, float maxSeconds = 2.5f)
         {
             var race = new KartRace(new KartRaceSettings
             {
@@ -32,6 +32,7 @@ namespace MixVerse.Game.Model.Tests
 
         [TestCase(4f)]
         [TestCase(8f)]
+        [TestCase(10.4f)]
         [TestCase(16f)]
         public void ThreeLaneCentersScaleWithRoadWidth(float halfWidth)
         {
@@ -80,8 +81,8 @@ namespace MixVerse.Game.Model.Tests
                 Advance(race, 1f / 120f);
                 Assert.That(System.Math.Abs(race.Boss.Lane - previousBoss), Is.LessThanOrEqualTo(2f / 120f + 0.00001f));
                 Assert.That(System.Math.Abs(race.Junior.Lane - previousJunior), Is.LessThanOrEqualTo(2f / 120f + 0.00001f));
-                Assert.That(System.Math.Abs(race.Boss.Lane), Is.LessThanOrEqualTo(7.3f));
-                Assert.That(System.Math.Abs(race.Junior.Lane), Is.LessThanOrEqualTo(7.3f));
+                Assert.That(System.Math.Abs(race.Boss.Lane), Is.LessThanOrEqualTo(new KartRaceSettings().roadHalfWidth - 0.7f));
+                Assert.That(System.Math.Abs(race.Junior.Lane), Is.LessThanOrEqualTo(new KartRaceSettings().roadHalfWidth - 0.7f));
                 previousBoss = race.Boss.Lane;
                 previousJunior = race.Junior.Lane;
             }
@@ -116,15 +117,15 @@ namespace MixVerse.Game.Model.Tests
             race.Junior.IsAirborne = true;
             race.Junior.Height = 1000f;
             Advance(race, 4f);
-            Assert.That(race.Boss.Lane, Is.EqualTo(-4f));
-            Assert.That(race.Junior.Lane, Is.EqualTo(4f));
+            Assert.That(race.Boss.Lane, Is.EqualTo(race.Lanes.CenterAt(0)));
+            Assert.That(race.Junior.Lane, Is.EqualTo(race.Lanes.CenterAt(2)));
 
             race.Boss.DisabledSeconds = 0f;
             race.Junior.IsAirborne = false;
             race.Junior.Height = 0f;
             Advance(race, 3.5f);
-            Assert.That(race.Boss.Lane, Is.Not.EqualTo(-4f));
-            Assert.That(race.Junior.Lane, Is.Not.EqualTo(4f));
+            Assert.That(race.Boss.Lane, Is.Not.EqualTo(race.Lanes.CenterAt(0)));
+            Assert.That(race.Junior.Lane, Is.Not.EqualTo(race.Lanes.CenterAt(2)));
         }
 
         [Test]
@@ -133,7 +134,7 @@ namespace MixVerse.Game.Model.Tests
             var race = NewRace();
             race.Objects.Add(new TrackObject { Kind = TrackObjectKind.Crate, Distance = 110f, Lane = race.Boss.Lane });
             Advance(race, 0.2f);
-            Assert.That(race.Boss.Lane, Is.GreaterThan(-4f));
+            Assert.That(race.Boss.Lane, Is.GreaterThan(race.Lanes.CenterAt(0)));
             Assert.That(race.Boss.DisabledSeconds, Is.Zero);
         }
 
@@ -146,8 +147,8 @@ namespace MixVerse.Game.Model.Tests
             for (var frame = 0; frame < 725; frame++)
             {
                 Advance(race, 1f / 120f);
-                if (bossChangedAt == 0f && race.Boss.Lane != -4f) bossChangedAt = race.Time;
-                if (juniorChangedAt == 0f && race.Junior.Lane != 4f) juniorChangedAt = race.Time;
+                if (bossChangedAt == 0f && race.Boss.Lane != race.Lanes.CenterAt(0)) bossChangedAt = race.Time;
+                if (juniorChangedAt == 0f && race.Junior.Lane != race.Lanes.CenterAt(2)) juniorChangedAt = race.Time;
             }
             Assert.That(bossChangedAt, Is.InRange(3f, 6.01f));
             Assert.That(juniorChangedAt, Is.InRange(3f, 6.01f));

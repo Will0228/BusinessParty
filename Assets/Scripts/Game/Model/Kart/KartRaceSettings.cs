@@ -6,7 +6,7 @@ namespace MixVerse.Game.Model.Kart
     public sealed class KartRaceSettings
     {
         public float courseLength = 1850f;
-        public float roadHalfWidth = 8f;
+        public float roadHalfWidth = 10.4f;
         public float metersPerSpeedUnit = 0.25f;
         public float maxSpeed = 100f;
         public float playerMaxSpeedRatio = 1f;
