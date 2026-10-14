@@ -349,8 +349,7 @@ namespace MixVerse.Game.Kart
                     DistanceAlertAudio.Stop();
                 }
             }
-            if (section == CourseSection.Gallery) Warning.text += "\n監視中：バック・スピン・横転は厳禁";
-            else if (race.Player.Distance > race.Jump.Start - JumpWarningDistance && race.Player.Distance < race.Jump.Takeoff)
+            if (race.Player.Distance > race.Jump.Start - JumpWarningDistance && race.Player.Distance < race.Jump.Takeoff)
                 Warning.text += "\n<color=#FFD84A>この先ジャンプ台：速度を保って道の切れ目を飛び越えろ</color>";
             else if (race.InCamera(race.Player.Distance)) Warning.text += "\n監視カメラ録画中：ゴール後に確認";
             Radio.gameObject.SetActive(countdown <= 0f && race.Phase == RacePhase.Racing);

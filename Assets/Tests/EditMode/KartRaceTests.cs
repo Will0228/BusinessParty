@@ -169,7 +169,7 @@ namespace MixVerse.Game.Model.Tests
             Assert.That(race.Player.DisabledSeconds, Is.GreaterThan(0f));
             Assert.That(race.Player.Speed, Is.Zero);
         }
-        [Test] public void ReverseInGalleryFails()
+        [Test] public void ReverseInGalleryDoesNotFail()
         {
             var race = NewRace();
             race.Player.Distance = Gallery;
@@ -177,7 +177,7 @@ namespace MixVerse.Game.Model.Tests
             race.Junior.Distance = Gallery + 5f;
             race.Player.Speed = -10f;
             race.Tick(0.02f, new KartInput { Gain = 0.5f, Master = 0f });
-            Assert.That(race.ResultReason, Does.Contain("バック"));
+            Assert.That(race.Phase, Is.EqualTo(RacePhase.Racing));
         }
         [Test] public void WallContactInGallerySlowsPlayerWithoutFailing()
         {
