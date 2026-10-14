@@ -8,6 +8,11 @@ namespace MixVerse.Game.Model.Kart
         public float courseLength = 1850f;
         public float roadHalfWidth = 8f;
         public float metersPerSpeedUnit = 0.25f;
+        public float maxSpeed = 100f;
+        public float playerMaxSpeedRatio = 1f;
+        public float bossMaxSpeedRatio = 0.93f;
+        public float juniorMaxSpeedRatio = 0.97f;
+        public float bossUphillSpeedMultiplier = 0.88f;
         public float acceleration = 45f;
         public float braking = 80f;
         public float steeringSpeed = 5f;
@@ -61,11 +66,21 @@ namespace MixVerse.Game.Model.Kart
 
         public KartItem debugUnlimitedItem = KartItem.None;
 
+        public float PlayerMaxSpeed => maxSpeed * playerMaxSpeedRatio;
+        public float BossMaxSpeed => maxSpeed * bossMaxSpeedRatio;
+        public float BossUphillSpeed => BossMaxSpeed * bossUphillSpeedMultiplier;
+        public float JuniorMaxSpeed => maxSpeed * juniorMaxSpeedRatio;
+
         public void Validate()
         {
             courseLength = Math.Max(300f, courseLength);
             roadHalfWidth = Math.Max(4f, roadHalfWidth);
             metersPerSpeedUnit = Math.Max(0.05f, metersPerSpeedUnit);
+            maxSpeed = Math.Max(1f, maxSpeed);
+            playerMaxSpeedRatio = Math.Max(0.1f, Math.Min(1f, playerMaxSpeedRatio));
+            bossMaxSpeedRatio = Math.Max(0.1f, Math.Min(1f, bossMaxSpeedRatio));
+            juniorMaxSpeedRatio = Math.Max(0.1f, Math.Min(1f, juniorMaxSpeedRatio));
+            bossUphillSpeedMultiplier = Math.Max(0.1f, Math.Min(1f, bossUphillSpeedMultiplier));
             acceleration = Math.Max(1f, acceleration);
             braking = Math.Max(1f, braking);
             steeringSpeed = Math.Max(1f, steeringSpeed);

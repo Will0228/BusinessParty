@@ -38,7 +38,7 @@ namespace MixVerse.Game.Model.Kart
 
             var turbo = TurboSeconds > 0f;
             TurboSeconds = Math.Max(0f, TurboSeconds - deltaTime);
-            var target = Math.Max(0f, Math.Min(1f, input.Gain)) * 100f * Direction;
+            var target = Math.Max(0f, Math.Min(1f, input.Gain)) * _settings.PlayerMaxSpeed * Direction;
             if (turbo) target *= _settings.turboSpeedMultiplier;
             var rate = Math.Abs(target) < Math.Abs(Speed) ? _settings.braking : _settings.acceleration * (turbo ? 1.5f : 1f);
             Speed += Math.Max(-rate * deltaTime, Math.Min(rate * deltaTime, target - Speed));

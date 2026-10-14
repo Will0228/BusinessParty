@@ -77,7 +77,7 @@ namespace MixVerse.Game.Model.Tests
             var race = NewRace();
             race.Player.Distance = race.Jump.Start - 60f;
             race.Boss.Distance = race.Jump.Start - 20f;
-            race.Boss.Speed = 44f;
+            race.Boss.Speed = new KartRaceSettings().BossUphillSpeed;
             for (var i = 0; i < 600 && race.Boss.Distance < race.Jump.Landing + 5f; i++)
             {
                 race.Tick(Step, Forward(0.5f));
@@ -102,7 +102,7 @@ namespace MixVerse.Game.Model.Tests
             race.Boss.Lane = 0f;
             race.Boss.Height = 3f;
             race.Boss.IsAirborne = true;
-            race.Boss.Speed = 50f;
+            race.Boss.Speed = new KartRaceSettings().BossMaxSpeed;
             race.Player.Distance = race.Boss.Distance;
             race.Player.Lane = 0f;
             race.Tick(Step, Forward(0f));

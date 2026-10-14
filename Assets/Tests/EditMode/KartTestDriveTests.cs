@@ -12,9 +12,10 @@ namespace MixVerse.Game.Model.Tests
 
         [Test] public void GainAcceleratesStraightAhead()
         {
-            var drive = new KartTestDrive(new KartRaceSettings());
+            var settings = new KartRaceSettings();
+            var drive = new KartTestDrive(settings);
             Advance(drive, 3f, new KartInput { Gain = 1f, Master = 1f });
-            Assert.That(drive.Speed, Is.EqualTo(100f).Within(0.01f));
+            Assert.That(drive.Speed, Is.EqualTo(settings.PlayerMaxSpeed).Within(0.01f));
             Assert.That(drive.Z, Is.GreaterThan(0f));
             Assert.That(drive.X, Is.EqualTo(0f).Within(0.001f));
         }
@@ -46,7 +47,7 @@ namespace MixVerse.Game.Model.Tests
             Advance(drive, 3f, new KartInput { Gain = 1f, Master = 1f });
             drive.Tick(1f / 120f, new KartInput { Gain = 1f, Master = 1f, UseItem = true });
             Advance(drive, 1f, new KartInput { Gain = 1f, Master = 1f });
-            Assert.That(drive.Speed, Is.GreaterThan(100f));
+            Assert.That(drive.Speed, Is.GreaterThan(settings.PlayerMaxSpeed));
         }
 
         [Test] public void CannotDriftWhenSlow()

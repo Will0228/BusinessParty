@@ -17,13 +17,17 @@ namespace MixVerse.Game.Model.Tests
 
         [Test] public void CarsReachSpecifiedSpeeds()
         {
+            var settings = new KartRaceSettings();
             var race = NewRace();
             race.Player.Lane = 0f;
             race.Objects.Clear();
             Advance(race, 3f, Forward(1f));
             Assert.That(race.Player.Speed, Is.EqualTo(100f).Within(0.01f));
-            Assert.That(race.Junior.Speed, Is.EqualTo(70f).Within(0.01f));
-            Assert.That(race.Boss.Speed, Is.EqualTo(50f).Within(0.01f));
+            Assert.That(race.Junior.Speed, Is.EqualTo(97f).Within(0.01f));
+            Assert.That(race.Boss.Speed, Is.EqualTo(93f).Within(0.01f));
+            Assert.That(settings.PlayerMaxSpeed, Is.EqualTo(settings.maxSpeed).Within(0.01f));
+            Assert.That(settings.JuniorMaxSpeed, Is.EqualTo(settings.maxSpeed * 0.97f).Within(0.01f));
+            Assert.That(settings.BossMaxSpeed, Is.EqualTo(settings.maxSpeed * 0.93f).Within(0.01f));
         }
         [Test] public void MasterGainKeepsDirectionInDeadZone()
         {
@@ -203,7 +207,7 @@ namespace MixVerse.Game.Model.Tests
             input.Steering = 1f;
             Advance(race, 3f, input);
             Assert.That(race.IsOnRoadEdge, Is.True);
-            Assert.That(race.Player.Speed, Is.EqualTo(100f * settings.roadEdgeSpeedMultiplier).Within(1f));
+            Assert.That(race.Player.Speed, Is.EqualTo(settings.PlayerMaxSpeed * settings.roadEdgeSpeedMultiplier).Within(1f));
         }
         [Test] public void BossWinWithGapUnderThreeSecondsClears()
         {
@@ -313,13 +317,14 @@ namespace MixVerse.Game.Model.Tests
         }
         [Test] public void FollowingBossTooCloselyFails()
         {
-            var race = new KartRace(new KartRaceSettings { cpuLaneChangeMinSeconds = 10f, cpuLaneChangeMaxSeconds = 10f });
+            var settings = new KartRaceSettings { cpuLaneChangeMinSeconds = 10f, cpuLaneChangeMaxSeconds = 10f };
+            var race = new KartRace(settings);
             race.Objects.Clear();
             race.Player.Distance = 0f;
             race.Boss.Distance = 5f;
             race.Player.Lane = race.Boss.Lane;
             race.Junior.Distance = 0f;
-            Advance(race, 3.2f, Forward());
+            Advance(race, 3.2f, Forward(settings.BossMaxSpeed / settings.PlayerMaxSpeed));
             Assert.That(race.ResultReason, Does.Contain("煽"));
         }
         [Test] public void DriftReleaseAwardsTurboAndThenBrakesWhenGainIsZero()
@@ -391,6 +396,7 @@ namespace MixVerse.Game.Model.Tests
 
         [Test] public void SalaryOrderRaisesTopSpeedByTenPercent()
         {
+            var settings = new KartRaceSettings();
             var race = NewRace();
             race.Objects.Clear();
             race.Player.Lane = 0f;
@@ -399,7 +405,7 @@ namespace MixVerse.Game.Model.Tests
             race.Tick(0.02f, input);
             Assert.That(race.Player.InvincibleSeconds, Is.GreaterThan(0f));
             Advance(race, 3f, Forward(1f));
-            Assert.That(race.Player.Speed, Is.EqualTo(110f).Within(0.01f));
+            Assert.That(race.Player.Speed, Is.EqualTo(settings.PlayerMaxSpeed * settings.salaryOrderSpeedMultiplier).Within(0.01f));
         }
 
         [Test] public void SalaryOrderInvincibilityPreventsRocketKnockback()
@@ -486,18 +492,23 @@ namespace MixVerse.Game.Model.Tests
                 cpuLaneChangeMaxSeconds = 1000f
             };
             var race = new KartRace(settings);
+            var layout = new KartCourseLayout(settings.courseLength);
             var headingLimit = settings.steeringMaxHeadingOffsetDegrees * (float)System.Math.PI / 180f;
             race.Objects.Clear();
             var frameCap = (int)(18000 * (CourseLength / 1200f) * 1.1f);
+            var diag = "";
             for (var frame = 0; frame < frameCap && race.Phase == RacePhase.Racing; frame++)
             {
-                var target = race.Junior.Distance + 5f;
-                var gain = System.Math.Max(0f, System.Math.Min(1f, (50f + (target - race.Player.Distance) * 10f) / 100f));
-                if (race.Junior.Distance < race.Boss.Distance - 8f) gain = 0.7f;
-                if (race.Player.Distance > race.Junior.Distance && race.Player.Distance - race.Junior.Distance < 8f)
-                    gain = System.Math.Max(0.2f, System.Math.Min(0.7f, (50f - (race.Junior.Distance - race.Boss.Distance + 5f) * 3f) / 100f));
-                if (race.Boss.Distance > CourseLength - 30f && race.Player.Distance > race.Boss.Distance - 4f) gain = 0.25f;
-                var lane = race.Junior.Lane;
+                // 上司の20m後方を維持する。前に入って抑えている部下も上司より遅くなるので、上司が1位のまま僅差でゴールできる
+                var follow = race.Boss.Speed + (race.Boss.Distance - race.Player.Distance - 20f) * 0.5f;
+                // 部下の方が最高速が速く、前に出られると抜き返せないので、前を取れていないうちは全開で走る
+                var ahead = race.Player.Distance - race.Junior.Distance;
+                var targetSpeed = ahead < 1f ? settings.PlayerMaxSpeed : follow;
+                var turnRate = System.Math.Abs(layout.TurnRateAt(race.Player.Distance));
+                if (turnRate > 0.001f) targetSpeed = System.Math.Min(targetSpeed, 1.2f / (turnRate * settings.metersPerSpeedUnit));
+                var gain = System.Math.Max(0f, System.Math.Min(1f, targetSpeed / settings.PlayerMaxSpeed));
+                // 部下と同じ車線に入って抑えるが、壁を擦ると最高速が落ちて上司に追従できないので内側に寄せる
+                var lane = System.Math.Max(-2.5f, System.Math.Min(2.5f, race.Junior.Lane * 0.9f));
                 if (System.Math.Abs(race.Player.Distance - race.Boss.Distance) < 10f && System.Math.Abs(lane - race.Boss.Lane) < 2f)
                     lane = race.Boss.Lane > 0f ? -1f : 2f;
                 // Laneの誤差から目標機首角(desiredHeadingOffset)を出し、実際のHeadingOffsetとの差でステアリングを決める
@@ -506,8 +517,10 @@ namespace MixVerse.Game.Model.Tests
                 var headingError = desiredHeadingOffset - race.Player.HeadingOffset;
                 var steering = System.Math.Max(-1f, System.Math.Min(1f, headingError * 8f));
                 race.Tick(1f / 120f, new KartInput { Gain = gain, Master = 1f, Steering = steering });
+                if (diag == "" && race.Junior.Distance > race.Player.Distance + 2f)
+                    diag = $"lost t={race.Time:0.0} pl={race.Player.Lane:0.00} jl={race.Junior.Lane:0.00} ps={race.Player.Speed:0} js={race.Junior.Speed:0} gap={race.Junior.Distance - race.Player.Distance:0.0}";
             }
-            Assert.That(race.Phase, Is.EqualTo(RacePhase.Cleared), race.ResultReason);
+            Assert.That(race.Phase, Is.EqualTo(RacePhase.Cleared), $"{diag} / {race.ResultReason} t={race.Time:0.0} P={race.Player.Distance:0} B={race.Boss.Distance:0} J={race.Junior.Distance:0} ps={race.Player.Speed:0} js={race.Junior.Speed:0} bs={race.Boss.Speed:0} atk={race.Attacks}");
             Assert.That(race.FinishGap, Is.LessThan(3f));
             Assert.That(race.Attacks, Is.GreaterThan(0));
         }

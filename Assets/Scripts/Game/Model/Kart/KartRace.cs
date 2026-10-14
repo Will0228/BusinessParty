@@ -152,14 +152,14 @@ namespace MixVerse.Game.Model.Kart
                     RecordMisconduct("壁に激突しました", false);
                 }
             }
-            var bossTarget = SectionAt(Boss.Distance) == CourseSection.Uphill ? 44f : 50f;
-            var juniorTarget = 70f;
+            var bossTarget = SectionAt(Boss.Distance) == CourseSection.Uphill ? _settings.BossUphillSpeed : _settings.BossMaxSpeed;
+            var juniorTarget = _settings.JuniorMaxSpeed;
             var ahead = Player.Distance - Junior.Distance;
             var blocking = !Player.Finished && ahead > 0f && ahead < _settings.blockingDistance &&
                            Math.Abs(Player.Lane - Junior.Lane) < _settings.juniorOvertakeLaneOffset && Player.Speed < juniorTarget;
             if (blocking)
             {
-                juniorTarget = Math.Max(0f, Math.Min(70f, Player.Speed) - (ahead < 3f ? 15f : 0f));
+                juniorTarget = Math.Max(0f, Math.Min(_settings.JuniorMaxSpeed, Player.Speed) - (ahead < 3f ? 15f : 0f));
                 _blockingTime += dt;
                 if (_blockingTime >= _settings.blockingSeconds) { RegisterAttack("ブロッキング成功"); _blockingTime = 0f; }
                 if (_juniorPassingSide == 0) _juniorPassingSide = PassingSide();
@@ -169,7 +169,7 @@ namespace MixVerse.Game.Model.Kart
             UpdateCpuLaneTarget(Junior, dt);
             AvoidObstacles(Boss, dt);
             UpdateJuniorLane(dt);
-            var playerTarget = Clamp(input.Gain, 0f, 1f) * 100f * _direction;
+            var playerTarget = Clamp(input.Gain, 0f, 1f) * _settings.PlayerMaxSpeed * _direction;
             if (onRoadEdge) playerTarget *= _settings.roadEdgeSpeedMultiplier;
             Move(Player, playerTarget, dt);
             Move(Boss, bossTarget, dt);
