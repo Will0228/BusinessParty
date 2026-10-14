@@ -45,7 +45,7 @@ MonoBehaviour:
   - {fileID: 2100000, guid: bc4dfc49b3e44ad42935e1c92fb6bc3c, type: 2}
   pavementMaterial: {fileID: 2100000, guid: abc00000000013600010078466846187, type: 2}
   skybox: {fileID: 2100000, guid: 1295f76fbce1ca546a0c7f8fc50dc2d2, type: 2}
-  bgmClip: {fileID: 8300000, guid: ff6900be4b8cc48da88a7497a5c9ff3f, type: 3}
+  bgmClip: {fileID: 8300000, guid: 77f1a9a6c354454f838660756aa2f00d, type: 3}
   explosionSeClip: {fileID: 8300000, guid: 0b2fdfae0ec91486e8f89910f627fa3d, type: 3}
   rocketFireSeClip: {fileID: 8300000, guid: c7fbeb675d6f047c3be830807da73fa5, type: 3}
   blowAwaySeClip: {fileID: 8300000, guid: febedca68f92f453782b721e830a9c87, type: 3}
