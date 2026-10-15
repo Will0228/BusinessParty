@@ -98,9 +98,10 @@ namespace MixVerse.Game.Model.Kart
                 {
                     var racer = Racers[j];
                     if (racer.Finished || racer.DisabledSeconds > 0f) continue;
-                    var min = Math.Min(_previousDistances[j], racer.Distance) - 1f;
-                    var max = Math.Max(_previousDistances[j], racer.Distance) + 1f;
-                    if (obj.Distance < min || obj.Distance > max || Math.Abs(obj.Lane - racer.Lane) > 1.25f) continue;
+                    var hit = HitScale(racer);
+                    var min = Math.Min(_previousDistances[j], racer.Distance) - hit;
+                    var max = Math.Max(_previousDistances[j], racer.Distance) + hit;
+                    if (obj.Distance < min || obj.Distance > max || Math.Abs(obj.Lane - racer.Lane) > 1.25f * hit) continue;
                     if (obj.Kind == TrackObjectKind.ItemBox)
                     {
                         if (racer.Item != KartItem.None) continue;
@@ -146,8 +147,9 @@ namespace MixVerse.Game.Model.Kart
             var hitDistance = float.MaxValue;
             foreach (var racer in Racers)
             {
-                if (racer.Id == rocket.Owner || racer.Finished || Math.Abs(racer.Lane - rocket.Lane) > 1.25f) continue;
-                if (racer.Distance >= previous - 1.2f && racer.Distance <= rocket.Distance + 1.2f) hitDistance = Math.Min(hitDistance, racer.Distance);
+                var hit = HitScale(racer);
+                if (racer.Id == rocket.Owner || racer.Finished || Math.Abs(racer.Lane - rocket.Lane) > 1.25f * hit) continue;
+                if (racer.Distance >= previous - 1.2f * hit && racer.Distance <= rocket.Distance + 1.2f * hit) hitDistance = Math.Min(hitDistance, racer.Distance);
             }
             foreach (var obj in Objects)
             {

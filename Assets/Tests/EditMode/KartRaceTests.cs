@@ -47,6 +47,36 @@ namespace MixVerse.Game.Model.Tests
             Assert.That(race.Phase, Is.EqualTo(RacePhase.Failed));
             Assert.That(race.ResultReason, Does.Contain("接触"));
         }
+        [Test] public void BossHitboxIsWidenedByBossHitScale()
+        {
+            var race = NewRace();
+            race.Objects.Clear();
+            race.Boss.Lane = 0f;
+            race.Player.Distance = race.Boss.Distance;
+            race.Player.Lane = 1.5f;
+            race.Tick(0.02f, Forward());
+            Assert.That(race.Phase, Is.EqualTo(RacePhase.Failed));
+        }
+        [Test] public void BossHitboxStaysWithinScaledWidth()
+        {
+            var race = NewRace();
+            race.Objects.Clear();
+            race.Boss.Lane = 0f;
+            race.Player.Distance = race.Boss.Distance;
+            race.Player.Lane = 1.7f;
+            race.Tick(0.02f, Forward());
+            Assert.That(race.Phase, Is.EqualTo(RacePhase.Racing));
+        }
+        [Test] public void BossHitScaleOfOneKeepsOriginalHitbox()
+        {
+            var race = new KartRace(new KartRaceSettings { bossHitScale = 1f });
+            race.Objects.Clear();
+            race.Boss.Lane = 0f;
+            race.Player.Distance = race.Boss.Distance;
+            race.Player.Lane = 1.5f;
+            race.Tick(0.02f, Forward());
+            Assert.That(race.Phase, Is.EqualTo(RacePhase.Racing));
+        }
         [Test] public void JuniorContactAloneDoesNotCountAsAttack()
         {
             var race = NewRace();

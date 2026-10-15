@@ -227,7 +227,8 @@ namespace MixVerse.Game.Model.Kart
 
         private void CheckContacts(float dt)
         {
-            if (!Player.Finished && !Boss.Finished && SameLevel(Player, Boss) && Math.Abs(Player.Distance - Boss.Distance) < 2.1f && Math.Abs(Player.Lane - Boss.Lane) < 1.35f)
+            var bossHit = HitScale(Boss);
+            if (!Player.Finished && !Boss.Finished && SameLevel(Player, Boss) && Math.Abs(Player.Distance - Boss.Distance) < 2.1f * bossHit && Math.Abs(Player.Lane - Boss.Lane) < 1.35f * bossHit)
             {
                 if (Player.InvincibleSeconds > 0f && Boss.InvincibleSeconds <= 0f)
                 {
@@ -361,6 +362,8 @@ namespace MixVerse.Game.Model.Kart
             ResultScene = scene;
         }
         private bool SameLevel(RacerState a, RacerState b) => Math.Abs(a.Height - b.Height) < 1.2f;
+        // 上司は見た目を大きくしているので、当たり判定も少しだけ広げる
+        private float HitScale(RacerState racer) => racer.Id == RacerId.Boss ? _settings.bossHitScale : 1f;
         // ステアリングだけでは機首を大きく振らせない。steeringMaxHeadingOffsetDegrees に近づくほど効きを弱め、
         // 入力を入れ続けても浅い傾きのまま横へ流れるだけに留める（ドリフトの振り角はこの制限を受けない）
         private float SteeringAuthority(float steer)

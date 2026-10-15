@@ -38,6 +38,7 @@ namespace MixVerse.Game.Model.Kart
         public float cpuLaneChangeSpeed = 2f;
         public float racerContactLength = 2f;
         public float racerContactWidth = 1.4f;
+        public float bossHitScale = 1.2f;
         public float pushCreditSeconds = 2f;
         public float knockbackFlightSeconds = 0.9f;
         public float knockbackRecoverySeconds = 1f;
@@ -107,6 +108,7 @@ namespace MixVerse.Game.Model.Kart
             cpuLaneChangeSpeed = Math.Max(0.5f, cpuLaneChangeSpeed);
             racerContactLength = Math.Max(0.5f, racerContactLength);
             racerContactWidth = Math.Max(0.5f, racerContactWidth);
+            bossHitScale = Math.Max(0.5f, bossHitScale);
             pushCreditSeconds = Math.Max(0.1f, pushCreditSeconds);
             knockbackFlightSeconds = Math.Max(0.2f, knockbackFlightSeconds);
             knockbackRecoverySeconds = Math.Max(0.1f, knockbackRecoverySeconds);
