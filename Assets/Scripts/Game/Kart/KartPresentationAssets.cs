@@ -12,6 +12,8 @@ namespace MixVerse.Game.Kart
         public Material[] screenMaterials;
         public Material pavementMaterial;
         public Material skybox;
+        public GameObject bossBodyPrefab;
+        public GameObject bossWeaponPrefab;
         public AudioClip bgmClip;
         public AudioClip explosionSeClip;
         public AudioClip rocketFireSeClip;

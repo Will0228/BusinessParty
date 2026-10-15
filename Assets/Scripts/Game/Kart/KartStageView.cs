@@ -12,7 +12,7 @@ namespace MixVerse.Game.Kart
         public AudioListener Listener;
         public Transform[] Karts;
         public KartRunnerView[] Runners;
-        public MeshRenderer[][] BodyRenderers;
+        public Renderer[][] BodyRenderers;
         public Material[][] BodyMaterials;
         public Material RainbowMaterial;
         public ParticleSystem[] StarAuras;

@@ -234,7 +234,7 @@ namespace MixVerse.Game.Kart
             _stage.Tags = new Transform[3];
             _stage.TagLabels = new TextMeshPro[3];
             _stage.Runners = new KartRunnerView[3];
-            _stage.BodyRenderers = new MeshRenderer[3][];
+            _stage.BodyRenderers = new Renderer[3][];
             _stage.BodyMaterials = new Material[3][];
             _stage.RainbowMaterial = _materials.Rainbow();
             _stage.StarAuras = new ParticleSystem[3];
@@ -253,10 +253,10 @@ namespace MixVerse.Game.Kart
                 var kart = new GameObject("Kart " + (RacerId)i).transform;
                 kart.SetParent(_stage.transform, false);
                 _stage.Karts[i] = kart;
-                _stage.Runners[i] = runners.Build(kart, colors[i]);
+                _stage.Runners[i] = BuildRunner(runners, kart, (RacerId)i, colors[i]);
                 Headlamp(kart);
                 // マントは非アクティブなので拾われず、虹色にならずに赤いまま残る
-                var bodyRenderers = kart.GetComponentsInChildren<MeshRenderer>();
+                var bodyRenderers = kart.GetComponentsInChildren<Renderer>();
                 _stage.BodyRenderers[i] = bodyRenderers;
                 var bodyMaterials = new Material[bodyRenderers.Length];
                 for (var r = 0; r < bodyRenderers.Length; r++) bodyMaterials[r] = bodyRenderers[r].sharedMaterial;
@@ -272,6 +272,14 @@ namespace MixVerse.Game.Kart
                 _stage.Tags[i] = label.transform;
                 _stage.TagLabels[i] = label;
             }
+        }
+
+        // 上司だけは剣を持ったモンスター。アセットは gitignore 運用なので無い環境ではスーツ姿に戻す
+        private KartRunnerView BuildRunner(KartRunnerFactory runners, Transform kart, RacerId racer, Color color)
+        {
+            var body = _assets != null ? _assets.bossBodyPrefab : null;
+            if (racer != RacerId.Boss || body == null) return runners.Build(kart, color);
+            return runners.BuildSkinned(kart, body, _assets.bossWeaponPrefab);
         }
 
         private void Headlamp(Transform kart)
