@@ -27,6 +27,7 @@ namespace MixVerse.Game.Kart
             stage.Ground = BuildGround(stage, materials);
             stage.GroundTile = GroundTile;
             stage.Kart = BuildKart(root.transform, materials);
+            stage.Runner = stage.Kart.GetComponent<KartRunnerView>();
             var glow = new Material(Resources.Load<Shader>("KartExplosionParticle"));
             glow.SetFloat("_Ring", 0f);
             glow.SetFloat("_DstBlend", (float)BlendMode.One);
@@ -88,37 +89,12 @@ namespace MixVerse.Game.Kart
             return texture;
         }
 
-        // 見た目は本番のプレイヤーカート（KartStageFactory.BuildKarts）に合わせている
+        // 見た目は本番のプレイヤー（KartStageFactory.BuildKarts）に合わせている
         private Transform BuildKart(Transform root, KartMaterialLibrary materials)
         {
             var kart = new GameObject("Kart Player").transform;
             kart.SetParent(root, false);
-            var paint = materials.Lit(_paint * 0.8f, 0.85f, 0.25f, _paint * 0.06f);
-            var trim = materials.Lit(new Color(0.03f, 0.04f, 0.06f), 0.7f, 0.4f);
-            var tire = materials.Lit(new Color(0.03f, 0.03f, 0.035f), 0.25f);
-            Shape(kart, "Chassis", PrimitiveType.Cube, Vector3.zero, new Vector3(1.6f, 0.45f, 2.5f), paint);
-            Shape(kart, "Nose", PrimitiveType.Cube, new Vector3(0f, 0.28f, 0.75f), new Vector3(1.25f, 0.4f, 0.9f), paint);
-            Shape(kart, "Seat", PrimitiveType.Cube, new Vector3(0f, 0.4f, -0.45f), new Vector3(0.85f, 0.7f, 0.7f), trim);
-            Shape(kart, "Driver suit", PrimitiveType.Capsule, new Vector3(0f, 0.75f, -0.1f), new Vector3(0.6f, 0.45f, 0.6f),
-                materials.Lit(new Color(0.14f, 0.2f, 0.3f), 0.35f));
-            Shape(kart, "Driver helmet", PrimitiveType.Sphere, new Vector3(0f, 1.3f, -0.05f), Vector3.one * 0.65f, paint);
-            Shape(kart, "Visor", PrimitiveType.Cube, new Vector3(0f, 1.3f, 0.24f), new Vector3(0.5f, 0.18f, 0.12f),
-                materials.Lit(new Color(0.02f, 0.03f, 0.05f), 0.95f, 0.6f));
-            for (var side = -1; side <= 1; side += 2)
-            {
-                for (var axle = -1; axle <= 1; axle += 2)
-                {
-                    var wheel = Shape(kart, "Wheel", PrimitiveType.Cylinder, new Vector3(side * 0.88f, -0.1f, axle * 0.8f),
-                        new Vector3(0.65f, 0.18f, 0.65f), tire);
-                    wheel.transform.localRotation = Quaternion.Euler(0f, 0f, 90f);
-                }
-
-                Shape(kart, "Headlight", PrimitiveType.Cube, new Vector3(side * 0.42f, 0.3f, 1.21f),
-                    new Vector3(0.34f, 0.14f, 0.05f), materials.Unlit(new Color(4f, 3.8f, 3.4f)));
-                Shape(kart, "Tail light", PrimitiveType.Cube, new Vector3(side * 0.55f, 0.12f, -1.26f),
-                    new Vector3(0.38f, 0.12f, 0.05f), materials.Unlit(new Color(4f, 0.12f, 0.08f)));
-            }
-
+            new KartRunnerFactory(materials).Build(kart, _paint);
             return kart;
         }
 
@@ -138,7 +114,7 @@ namespace MixVerse.Game.Kart
         {
             var obj = new GameObject("Drift spark");
             obj.transform.SetParent(kart, false);
-            obj.transform.localPosition = new Vector3(side * 0.88f, -0.4f, -0.8f);
+            obj.transform.localPosition = new Vector3(side * 0.2f, -0.42f, -0.05f);
             obj.transform.localRotation = Quaternion.LookRotation(new Vector3(side * 0.6f, 0.35f, -1f).normalized, Vector3.up);
             var particles = obj.AddComponent<ParticleSystem>();
             particles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);

@@ -22,6 +22,7 @@ namespace MixVerse.Game.Kart
         public Camera Camera;
         public Light Sun;
         public Transform Kart;
+        public KartRunnerView Runner;
         public Transform Ground;
         public float GroundTile;
         public ParticleSystem[] DriftSparks;
@@ -49,6 +50,7 @@ namespace MixVerse.Game.Kart
             _slip = Mathf.Lerp(_slip, drive.DriftDirection * DriftSlipDegrees, 1f - Mathf.Exp(-8f * deltaTime));
             Kart.localPosition = position;
             Kart.localRotation = heading * Quaternion.Euler(0f, _slip, 0f);
+            Runner.Animate(drive.Speed / EngineSeMaxSpeed, false, false, drive.TurboSeconds > 0f, drive.DriftDirection, deltaTime);
 
             // 地面はタイル単位でカートに付いて来させ、どこまで走っても端に着かないようにする
             Ground.localPosition = new Vector3(Mathf.Round(drive.X / GroundTile) * GroundTile, 0f,
