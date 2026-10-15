@@ -12,6 +12,14 @@ namespace MixVerse.Game.Kart
         public AudioListener Listener;
         public Transform[] Karts;
         public KartRunnerView[] Runners;
+        public MeshRenderer[][] BodyRenderers;
+        public Material[][] BodyMaterials;
+        public Material RainbowMaterial;
+        public ParticleSystem[] StarAuras;
+        public Light[] StarLights;
+        public MeshRenderer[] RainbowRings;
+        public ParticleSystem[] Sparkles;
+        public ParticleSystem[] Stars;
         public Transform[] Tags;
         public TextMeshPro[] TagLabels;
         public TextMeshProUGUI Ranking;
@@ -129,6 +137,75 @@ namespace MixVerse.Game.Kart
             return Quaternion.LookRotation(Point(distance + 1f) - Point(Mathf.Max(0f, distance - 1f)), Vector3.up);
         }
 
+        private void ApplyRainbowBody(int i)
+        {
+            var renderers = BodyRenderers[i];
+            if (renderers == null || RainbowMaterial == null) return;
+            foreach (var renderer in renderers) renderer.sharedMaterial = RainbowMaterial;
+        }
+        private void ClearRainbowBody(int i)
+        {
+            var renderers = BodyRenderers[i];
+            var materials = BodyMaterials?[i];
+            if (renderers == null || materials == null) return;
+            for (var r = 0; r < renderers.Length; r++) renderers[r].sharedMaterial = materials[r];
+        }
+        private void ApplyStarPower(int i, float time)
+        {
+            ApplyRainbowBody(i);
+            if (StarAuras != null && StarAuras[i] != null)
+            {
+                var emission = StarAuras[i].emission;
+                emission.enabled = true;
+            }
+            if (StarLights != null && StarLights[i] != null)
+            {
+                var light = StarLights[i];
+                // HDRカラーにしてブルームで光り輝くようにする
+                var hdr = Color.HSVToRGB(Mathf.Repeat(time * 2.2f, 1f), 0.75f, 1f) * 2.5f;
+                hdr.a = 1f;
+                light.color = hdr;
+                light.intensity = 9f + Mathf.Sin(time * 18f) * 3f;
+            }
+            if (RainbowRings != null && RainbowRings[i] != null)
+            {
+                var ring = RainbowRings[i];
+                ring.enabled = true;
+                ring.transform.localRotation = Quaternion.Euler(0f, time * 110f, 0f);
+            }
+            if (Sparkles != null && Sparkles[i] != null)
+            {
+                var emission = Sparkles[i].emission;
+                emission.enabled = true;
+            }
+            if (Stars != null && Stars[i] != null)
+            {
+                var emission = Stars[i].emission;
+                emission.enabled = true;
+            }
+        }
+        private void ClearStarPower(int i)
+        {
+            ClearRainbowBody(i);
+            if (StarAuras != null && StarAuras[i] != null)
+            {
+                var emission = StarAuras[i].emission;
+                emission.enabled = false;
+            }
+            if (StarLights != null && StarLights[i] != null) StarLights[i].intensity = 0f;
+            if (RainbowRings != null && RainbowRings[i] != null) RainbowRings[i].enabled = false;
+            if (Sparkles != null && Sparkles[i] != null)
+            {
+                var emission = Sparkles[i].emission;
+                emission.enabled = false;
+            }
+            if (Stars != null && Stars[i] != null)
+            {
+                var emission = Stars[i].emission;
+                emission.enabled = false;
+            }
+        }
+
         public void Render(KartRace race, float gain, float countdown, bool midi)
         {
             for (var i = 0; i < race.Racers.Length; i++)
@@ -220,10 +297,12 @@ namespace MixVerse.Game.Kart
                 var lean = i == (int)RacerId.Player && race.IsDrifting ? race.DriftDirection : 0;
                 Runners[i].Animate(racer.Speed / _settings.maxSpeed, racer.IsAirborne || racer.IsFalling, flailing,
                     racer.TurboSeconds > 0f, lean, Time.deltaTime);
+                if (racer.InvincibleSeconds > 0f) ApplyStarPower(i, race.Time);
+                else ClearStarPower(i);
                 Tags[i].gameObject.SetActive(race.Phase == RacePhase.Racing && i != (int)RacerId.Player);
                 Tags[i].localPosition = position + Vector3.up * (3.2f + racer.Height);
                 Tags[i].rotation = Camera.transform.rotation;
-                TagLabels[i].text = $"{race.Rank(racer)}  {_racerNames[i]}";
+                TagLabels[i].text = $"{race.Rank(racer)}  {_racerNames[i]}" + (racer.InvincibleSeconds > 0f ? "  <color=#FFD84A>★ 無敵</color>" : "");
             }
             RenderCamera(race);
             var inTunnel = _layout.InTunnel(race.Player.Distance);
@@ -255,7 +334,8 @@ namespace MixVerse.Game.Kart
             Item.text = "所持アイテム\n<size=25>" + ItemName(race.Player.Item) + "</size>\n<size=16>SYNC / SPACE で使用</size>";
             EmptyItemIcon.SetActive(race.Player.Item == KartItem.None);
             for (var i = 1; i < ItemIcons.Length; i++) ItemIcons[i].SetActive((int)race.Player.Item == i);
-            Drift.text = race.Player.TurboSeconds > 0f ? "TURBO  加速中" : $"DRIFT  {race.DriftTier} / 2";
+            Drift.text = race.Player.InvincibleSeconds > 0f ? $"昇給辞令  無敵 +10%  {race.Player.InvincibleSeconds:0.0}s" :
+                race.Player.TurboSeconds > 0f ? "TURBO  加速中" : $"DRIFT  {race.DriftTier} / 2";
             DriftFill.fillAmount = Mathf.Clamp01(race.DriftTime / _settings.driftSecondSeconds);
             Gain.fillAmount = gain;
             Progress.fillAmount = race.Player.Distance / _settings.courseLength;
@@ -355,7 +435,7 @@ namespace MixVerse.Game.Kart
             }
             var distance = race.Player.Distance;
             var turn = Vector3.SignedAngle(DirectionAt(distance) * Vector3.forward, DirectionAt(distance + 14f) * Vector3.forward, Vector3.up);
-            var kart = Point(distance, race.Player.Lane) + Vector3.up * (0.45f + Mathf.Max(race.Player.Height, 0f));
+            var kart = Point(distance, race.Player.Lane) + Vector3.up * (0.45f + Mathf.Max(race.Player.Height, 0f)));
             ChaseCamera.Follow(kart, DirectionAt(distance), Mathf.Abs(race.Player.Speed) / 100f, turn, deltaTime);
         }
 
@@ -394,6 +474,7 @@ namespace MixVerse.Game.Kart
             switch (item)
             {
                 case KartItem.Rocket: return "ロケラン";
+                case KartItem.SalaryOrder: return "昇給辞令";
                 default: return "アイテムなし";
             }
         }
