@@ -47,7 +47,7 @@ MonoBehaviour:
   skybox: {fileID: 2100000, guid: 1295f76fbce1ca546a0c7f8fc50dc2d2, type: 2}
   bossBodyPrefab: {fileID: 9081247891841179449, guid: 937b81db8bd32214a9e53ae8838a83d6, type: 3}
   bossWeaponPrefab: {fileID: 8405392987233067362, guid: 2f1c69b961afa6f4ebb637cc1a51d148, type: 3}
-  bossBodyScale: 1.5
+  bossBodyScale: 2.25
   bgmClip: {fileID: 8300000, guid: 77f1a9a6c354454f838660756aa2f00d, type: 3}
   explosionSeClip: {fileID: 8300000, guid: 0b2fdfae0ec91486e8f89910f627fa3d, type: 3}
   rocketFireSeClip: {fileID: 8300000, guid: c7fbeb675d6f047c3be830807da73fa5, type: 3}

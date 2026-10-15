@@ -14,7 +14,7 @@ namespace MixVerse.Game.Kart
         public Material skybox;
         public GameObject bossBodyPrefab;
         public GameObject bossWeaponPrefab;
-        public float bossBodyScale = 1.5f;
+        public float bossBodyScale = 2.25f;
         public AudioClip bgmClip;
         public AudioClip explosionSeClip;
         public AudioClip rocketFireSeClip;
