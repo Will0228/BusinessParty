@@ -11,6 +11,7 @@ namespace MixVerse.Game.Kart
         public Camera Camera;
         public AudioListener Listener;
         public Transform[] Karts;
+        public KartRunnerView[] Runners;
         public Transform[] Tags;
         public TextMeshPro[] TagLabels;
         public TextMeshProUGUI Ranking;
@@ -215,6 +216,10 @@ namespace MixVerse.Game.Kart
                 Karts[i].localPosition = kartPosition;
                 Karts[i].localRotation = kartRotation;
                 Karts[i].localScale = Vector3.one;
+                var flailing = racer.DisabledSeconds > 0f || race.Phase == RacePhase.Failed;
+                var lean = i == (int)RacerId.Player && race.IsDrifting ? race.DriftDirection : 0;
+                Runners[i].Animate(racer.Speed / _settings.maxSpeed, racer.IsAirborne || racer.IsFalling, flailing,
+                    racer.TurboSeconds > 0f, lean, Time.deltaTime);
                 Tags[i].gameObject.SetActive(race.Phase == RacePhase.Racing && i != (int)RacerId.Player);
                 Tags[i].localPosition = position + Vector3.up * (3.2f + racer.Height);
                 Tags[i].rotation = Camera.transform.rotation;
