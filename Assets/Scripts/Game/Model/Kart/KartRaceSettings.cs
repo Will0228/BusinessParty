@@ -52,6 +52,8 @@ namespace MixVerse.Game.Model.Kart
         public float explosionTumbleScale = 1.2f;
         public float testDriveTurboSeconds = 3f;
         public float turboSpeedMultiplier = 1.2f;
+        public float salaryOrderSeconds = 5f;
+        public float salaryOrderSpeedMultiplier = 1.1f;
         public float jumpRampPosition = 0.3f;
         public float jumpRampLength = 7.5f;
         public float jumpRampHeight = 1.2f;
@@ -119,6 +121,8 @@ namespace MixVerse.Game.Model.Kart
             explosionTumbleScale = Math.Max(0.1f, explosionTumbleScale);
             testDriveTurboSeconds = Math.Max(0.1f, testDriveTurboSeconds);
             turboSpeedMultiplier = Math.Max(1f, turboSpeedMultiplier);
+            salaryOrderSeconds = Math.Max(0.1f, salaryOrderSeconds);
+            salaryOrderSpeedMultiplier = Math.Max(1f, salaryOrderSpeedMultiplier);
             jumpRampPosition = Math.Max(0.05f, Math.Min(0.9f, jumpRampPosition));
             jumpRampLength = Math.Max(2f, jumpRampLength);
             jumpRampHeight = Math.Max(0.2f, jumpRampHeight);
@@ -135,7 +139,7 @@ namespace MixVerse.Game.Model.Kart
     public enum RacePhase { Racing, Cleared, Failed }
     public enum FailureScene { None, Distance, BossHit }
     public enum CourseSection { City, Uphill, Gallery, Tunnel, Hairpins, FinishStraight }
-    public enum KartItem { None, Rocket }
+    public enum KartItem { None, Rocket, SalaryOrder }
 
     public struct KartInput
     {
@@ -160,6 +164,7 @@ namespace MixVerse.Game.Model.Kart
         public float Speed;
         public float DisabledSeconds;
         public float TurboSeconds;
+        public float InvincibleSeconds;
         public float Height;
         public float VerticalSpeed;
         public float FinishTime = -1f;
