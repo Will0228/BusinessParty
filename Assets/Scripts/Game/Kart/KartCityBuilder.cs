@@ -336,7 +336,7 @@ namespace MixVerse.Game.Kart
             var right = Vector3.Cross(Vector3.up, forward);
             rotation = Quaternion.LookRotation(forward, Vector3.up);
             center = _stage.Point(along) + right * side * (_edge + depth * 0.5f);
-            return !_buildingClearance.OverlapsRoad(_stage.Path, center, rotation, depth, length, _edge - 0.3f);
+            return _buildingClearance.TryReserve(_stage.Path, center, rotation, depth, length, _edge - 0.3f);
         }
 
         private void BuildSkyline(int side)
@@ -353,7 +353,7 @@ namespace MixVerse.Game.Kart
                 var center = _stage.Point(d) + right * side * lateral;
                 if (DistanceToRoad(center) < _edge + 12f + Mathf.Max(width, depth) * 0.75f) continue;
                 var rotation = Quaternion.LookRotation(forward) * Quaternion.Euler(0f, (float)_random.NextDouble() * 24f - 12f, 0f);
-                if (_buildingClearance.OverlapsRoad(_stage.Path, center, rotation, depth, width, _edge)) continue;
+                if (!_buildingClearance.TryReserve(_stage.Path, center, rotation, depth, width, _edge)) continue;
                 var size = new Vector3(depth, height, width);
                 var bucket = Bucket(d);
                 Block(bucket, center + Vector3.up * (GroundHeight - 2f), rotation, size, Facade());
@@ -370,6 +370,17 @@ namespace MixVerse.Game.Kart
             var center = _stage.Point(distance) + forward * 18f;
             var rotation = Quaternion.LookRotation(forward);
             var size = new Vector3(90f, 140f, 16f);
+            var placed = false;
+            for (var attempt = 0; attempt < 20; attempt++)
+            {
+                if (_buildingClearance.TryReserve(_stage.Path, center, rotation, size.x, size.z, _edge))
+                {
+                    placed = true;
+                    break;
+                }
+                center += forward * 10f;
+            }
+            if (!placed) return;
             var bucket = Bucket(distance);
             Block(bucket, center + Vector3.up * GroundHeight, rotation, size, Facade());
             var screen = ScreenMaterial();
