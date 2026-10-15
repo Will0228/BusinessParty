@@ -255,6 +255,7 @@ namespace MixVerse.Game.Kart
                 _stage.Karts[i] = kart;
                 _stage.Runners[i] = runners.Build(kart, colors[i]);
                 Headlamp(kart);
+                // マントは非アクティブなので拾われず、虹色にならずに赤いまま残る
                 var bodyRenderers = kart.GetComponentsInChildren<MeshRenderer>();
                 _stage.BodyRenderers[i] = bodyRenderers;
                 var bodyMaterials = new Material[bodyRenderers.Length];

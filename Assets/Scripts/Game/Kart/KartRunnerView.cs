@@ -9,11 +9,14 @@ namespace MixVerse.Game.Kart
         private const float MinCadence = 3f;
         private const float MaxCadence = 16f;
         private const float AirCadence = 22f;
+        private const float FlightPelvisLift = 0.1f;
+        private const float FlightPelvisBack = 0.25f;
 
         public Transform Pelvis;
         public Transform Torso;
         public Transform Head;
         public Transform Tie;
+        public Transform Cape;
         public Transform[] Shoulders;
         public Transform[] Elbows;
         public Transform[] Hips;
@@ -31,8 +34,8 @@ namespace MixVerse.Game.Kart
             _noiseSeed = Random.value * 100f;
         }
 
-        // speedRatio は最高速に対する比率（後退時は負）。lean はドリフト方向（-1 / 0 / 1）
-        public void Animate(float speedRatio, bool airborne, bool flailing, bool turbo, int lean, float deltaTime)
+        // speedRatio は最高速に対する比率（後退時は負）。lean はドリフト方向（-1 / 0 / 1）。flying は昇給辞令の無敵中
+        public void Animate(float speedRatio, bool airborne, bool flailing, bool turbo, bool flying, int lean, float deltaTime)
         {
             _time += deltaTime;
             var ratio = Mathf.Clamp01(Mathf.Abs(speedRatio));
@@ -42,7 +45,11 @@ namespace MixVerse.Game.Kart
             _phase += deltaTime * cadence * Mathf.PI * 2f * direction;
             _armSpin += deltaTime * cadence * 540f * direction;
 
+            var superman = flying && !flailing;
+            if (Cape.gameObject.activeSelf != superman) Cape.gameObject.SetActive(superman);
+
             if (flailing) Flail();
+            else if (superman) Fly(lean);
             else if (airborne) AirPedal(ratio);
             else if (ratio < IdleSpeedRatio) Idle();
             else Run(ratio, turbo, lean);
@@ -110,6 +117,30 @@ namespace MixVerse.Game.Kart
             Torso.localRotation = Quaternion.Euler(-10f + Mathf.Sin(_time * 12f) * 8f, 0f, Mathf.Sin(_time * 17f) * 12f);
             Head.localRotation = Quaternion.Euler(-20f, Mathf.Sin(_time * 21f) * 40f, 0f);
             Tie.localRotation = Quaternion.Euler(170f + Mathf.Sin(_time * 50f) * 25f, 0f, 0f);
+        }
+
+        // 体を水平に倒し、右拳を前へ突き出して左腕は体に沿わせるスーパーマンの飛行ポーズ
+        private void Fly(int lean)
+        {
+            Pelvis.localPosition = _pelvisBase + new Vector3(0f, FlightPelvisLift + Mathf.Sin(_time * 3f) * 0.06f, -FlightPelvisBack);
+            Pelvis.localRotation = Quaternion.Euler(82f + Mathf.Sin(_time * 2.4f) * 3f, 0f, -lean * 25f);
+            Torso.localRotation = Quaternion.Euler(-6f, 0f, 0f);
+            Head.localRotation = Quaternion.Euler(-70f, 0f, 0f);
+
+            Shoulders[1].localRotation = Quaternion.Euler(176f, 0f, 0f);
+            Elbows[1].localRotation = Quaternion.identity;
+            Shoulders[0].localRotation = Quaternion.Euler(-12f, 0f, -14f);
+            Elbows[0].localRotation = Quaternion.Euler(-20f, 0f, 0f);
+            for (var side = 0; side < 2; side++)
+            {
+                var outward = side == 0 ? -1f : 1f;
+                var flutter = Mathf.Sin(_time * 5f + side * Mathf.PI);
+                Hips[side].localRotation = Quaternion.Euler(-4f + flutter * 4f, 0f, outward * 3f);
+                Knees[side].localRotation = Quaternion.Euler(10f + flutter * 6f, 0f, 0f);
+            }
+
+            Tie.localRotation = Quaternion.Euler(15f + Mathf.Sin(_time * 40f) * 12f, Mathf.Sin(_time * 27f) * 20f, 0f);
+            Cape.localRotation = Quaternion.Euler(30f + Mathf.Sin(_time * 16f) * 12f, 0f, Mathf.Sin(_time * 11f) * 8f);
         }
 
         private void Idle()

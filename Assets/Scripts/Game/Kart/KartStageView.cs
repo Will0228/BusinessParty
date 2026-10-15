@@ -84,6 +84,9 @@ namespace MixVerse.Game.Kart
         private readonly HashSet<int> _rocketImpacts = new HashSet<int>();
         private readonly HashSet<int> _blownUpRacers = new HashSet<int>();
         private readonly KartItem[] _lastItems = new KartItem[3];
+        private readonly float[] _flightLift = new float[3];
+        private const float FlightAltitude = 1.4f;
+        private const float FlightLiftSpeed = 2.5f;
         private const float BossTurnTime = 0.85f;
         private const float JumpWarningDistance = 70f;
         private const float BossCrashTime = 1.55f;
@@ -290,17 +293,19 @@ namespace MixVerse.Game.Kart
                         }
                     }
                 }
-                Karts[i].localPosition = kartPosition;
+                var flying = racer.InvincibleSeconds > 0f && racer.DisabledSeconds <= 0f && race.Phase == RacePhase.Racing;
+                _flightLift[i] = Mathf.MoveTowards(_flightLift[i], flying ? 1f : 0f, Time.deltaTime * FlightLiftSpeed);
+                Karts[i].localPosition = kartPosition + Vector3.up * FlightHeight(i);
                 Karts[i].localRotation = kartRotation;
                 Karts[i].localScale = Vector3.one;
                 var flailing = racer.DisabledSeconds > 0f || race.Phase == RacePhase.Failed;
                 var lean = i == (int)RacerId.Player && race.IsDrifting ? race.DriftDirection : 0;
                 Runners[i].Animate(racer.Speed / _settings.maxSpeed, racer.IsAirborne || racer.IsFalling, flailing,
-                    racer.TurboSeconds > 0f, lean, Time.deltaTime);
+                    racer.TurboSeconds > 0f, flying, lean, Time.deltaTime);
                 if (racer.InvincibleSeconds > 0f) ApplyStarPower(i, race.Time);
                 else ClearStarPower(i);
                 Tags[i].gameObject.SetActive(race.Phase == RacePhase.Racing && i != (int)RacerId.Player);
-                Tags[i].localPosition = position + Vector3.up * (3.2f + racer.Height);
+                Tags[i].localPosition = position + Vector3.up * (3.2f + racer.Height + FlightHeight(i));
                 Tags[i].rotation = Camera.transform.rotation;
                 TagLabels[i].text = $"{race.Rank(racer)}  {_racerNames[i]}" + (racer.InvincibleSeconds > 0f ? "  <color=#FFD84A>★ 無敵</color>" : "");
             }
@@ -435,9 +440,12 @@ namespace MixVerse.Game.Kart
             }
             var distance = race.Player.Distance;
             var turn = Vector3.SignedAngle(DirectionAt(distance) * Vector3.forward, DirectionAt(distance + 14f) * Vector3.forward, Vector3.up);
-            var kart = Point(distance, race.Player.Lane) + Vector3.up * (0.45f + Mathf.Max(race.Player.Height, 0f)));
+            var kart = Point(distance, race.Player.Lane) + Vector3.up * (0.45f + Mathf.Max(race.Player.Height, 0f) + FlightHeight((int)RacerId.Player));
             ChaseCamera.Follow(kart, DirectionAt(distance), Mathf.Abs(race.Player.Speed) / 100f, turn, deltaTime);
         }
+
+        // 昇給辞令で飛び立つ・着地する高さ。離着陸が急に跳ねないよう SmoothStep で補間する
+        private float FlightHeight(int i) => Mathf.SmoothStep(0f, 1f, _flightLift[i]) * FlightAltitude;
 
         // コース外まで吹っ飛ばされている間は、道路を映す走行カメラではプレイヤーが画面から外れてしまう
         private static bool IsBlownAway(RacerState racer) =>
@@ -628,6 +636,7 @@ namespace MixVerse.Game.Kart
             _rocketImpacts.Clear();
             _blownUpRacers.Clear();
             for (var i = 0; i < _lastItems.Length; i++) _lastItems[i] = KartItem.None;
+            for (var i = 0; i < _flightLift.Length; i++) _flightLift[i] = 0f;
             _bossCrashExploded = false;
             foreach (var view in ObjectViews.Values) if (view != null) Destroy(view.gameObject);
             ObjectViews.Clear();

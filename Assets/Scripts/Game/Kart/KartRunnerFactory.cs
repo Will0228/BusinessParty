@@ -27,6 +27,7 @@ namespace MixVerse.Game.Kart
             var hair = _materials.Lit(new Color(0.04f, 0.035f, 0.03f), 0.5f);
             var shoe = _materials.Lit(new Color(0.03f, 0.02f, 0.02f), 0.85f, 0.2f);
             var leather = _materials.Lit(new Color(0.32f, 0.18f, 0.08f), 0.55f);
+            var cape = _materials.Lit(new Color(0.85f, 0.06f, 0.08f), 0.45f, 0f, new Color(0.3f, 0.01f, 0.02f));
 
             var view = root.gameObject.AddComponent<KartRunnerView>();
             view.Pelvis = Pivot(root, "Pelvis", new Vector3(0f, GroundOffset + ThighLength + ShinLength + 0.06f, 0f));
@@ -37,6 +38,10 @@ namespace MixVerse.Game.Kart
             Shape(view.Torso, "Shirt", PrimitiveType.Cube, new Vector3(0f, 0.45f, 0.14f), new Vector3(0.18f, 0.34f, 0.04f), shirt);
             view.Tie = Pivot(view.Torso, "Tie pivot", new Vector3(0f, 0.6f, 0.17f));
             Shape(view.Tie, "Tie", PrimitiveType.Cube, new Vector3(0f, -0.2f, 0f), new Vector3(0.09f, 0.4f, 0.03f), tie);
+            // 昇給辞令で飛んでいる間だけ出すマント
+            view.Cape = Pivot(view.Torso, "Cape pivot", new Vector3(0f, 0.6f, -0.17f));
+            Shape(view.Cape, "Cape", PrimitiveType.Cube, new Vector3(0f, -0.55f, 0f), new Vector3(0.58f, 1.1f, 0.02f), cape);
+            view.Cape.gameObject.SetActive(false);
 
             view.Head = Pivot(view.Torso, "Neck", new Vector3(0f, 0.64f, 0f));
             Shape(view.Head, "Face", PrimitiveType.Sphere, new Vector3(0f, 0.18f, 0f), new Vector3(0.3f, 0.34f, 0.3f), skin);
