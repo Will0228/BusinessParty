@@ -80,10 +80,13 @@ namespace MixVerse.Game.Kart
         }
 
         // 人型リグのモデル（UE 系ボーン名）を置き、同じ関節構成の見えないピボットで手足を動かす
-        public KartRunnerView BuildSkinned(Transform root, GameObject bodyPrefab, GameObject weaponPrefab)
+        // root はカートとして毎フレーム等倍に戻されるので、拡大は足元に挟んだ rig で行う
+        public KartRunnerView BuildSkinned(Transform root, GameObject bodyPrefab, GameObject weaponPrefab, float scale)
         {
-            var body = Object.Instantiate(bodyPrefab, root, false).transform;
-            body.localPosition = new Vector3(0f, GroundOffset, 0f);
+            var rig = Pivot(root, "Skinned rig", new Vector3(0f, GroundOffset, 0f));
+            rig.localScale = Vector3.one * scale;
+            var body = Object.Instantiate(bodyPrefab, rig, false).transform;
+            body.localPosition = Vector3.zero;
             body.localRotation = Quaternion.identity;
             foreach (var skin in body.GetComponentsInChildren<SkinnedMeshRenderer>(true)) skin.updateWhenOffscreen = true;
             var bones = new Dictionary<string, Transform>();
@@ -97,7 +100,7 @@ namespace MixVerse.Game.Kart
 
             var view = root.gameObject.AddComponent<KartRunnerView>();
             var skeleton = root.gameObject.AddComponent<KartRunnerSkeleton>();
-            view.Pelvis = Joint(root, "Pelvis", bones["pelvis"], skeleton);
+            view.Pelvis = Joint(rig, "Pelvis", bones["pelvis"], skeleton);
             view.Torso = Joint(view.Pelvis, "Torso", bones["spine_01"], skeleton);
             view.Head = Joint(view.Torso, "Neck", bones["neck_01"], skeleton);
             view.Tie = Pivot(view.Torso, "Tie pivot", Vector3.zero);

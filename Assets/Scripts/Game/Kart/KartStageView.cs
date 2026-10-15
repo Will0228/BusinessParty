@@ -22,6 +22,7 @@ namespace MixVerse.Game.Kart
         public ParticleSystem[] Stars;
         public Transform[] Tags;
         public TextMeshPro[] TagLabels;
+        public float[] TagHeights;
         public TextMeshProUGUI Ranking;
         public TextMeshProUGUI Section;
         public TextMeshProUGUI Speed;
@@ -305,7 +306,7 @@ namespace MixVerse.Game.Kart
                 if (racer.InvincibleSeconds > 0f) ApplyStarPower(i, race.Time);
                 else ClearStarPower(i);
                 Tags[i].gameObject.SetActive(race.Phase == RacePhase.Racing && i != (int)RacerId.Player);
-                Tags[i].localPosition = position + Vector3.up * (3.2f + racer.Height + FlightHeight(i));
+                Tags[i].localPosition = position + Vector3.up * (TagHeights[i] + racer.Height + FlightHeight(i));
                 Tags[i].rotation = Camera.transform.rotation;
                 TagLabels[i].text = $"{race.Rank(racer)}  {_racerNames[i]}" + (racer.InvincibleSeconds > 0f ? "  <color=#FFD84A>★ 無敵</color>" : "");
             }

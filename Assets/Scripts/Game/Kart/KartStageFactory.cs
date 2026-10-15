@@ -13,6 +13,7 @@ namespace MixVerse.Game.Kart
         private readonly Color _cyan = new Color(0.23f, 0.94f, 0.88f);
         private readonly Color _gold = new Color(1f, 0.75f, 0.25f);
         private readonly Color _coral = new Color(1f, 0.36f, 0.3f);
+        private const float TagBaseHeight = 3.2f;
         private TMP_FontAsset _font;
         private KartStageView _stage;
         private Sprite _barSprite;
@@ -233,6 +234,7 @@ namespace MixVerse.Game.Kart
             _stage.Karts = new Transform[3];
             _stage.Tags = new Transform[3];
             _stage.TagLabels = new TextMeshPro[3];
+            _stage.TagHeights = new float[3];
             _stage.Runners = new KartRunnerView[3];
             _stage.BodyRenderers = new Renderer[3][];
             _stage.BodyMaterials = new Material[3][];
@@ -271,16 +273,21 @@ namespace MixVerse.Game.Kart
                 var label = WorldLabel(_stage.transform, "", colors[i], 7f);
                 _stage.Tags[i] = label.transform;
                 _stage.TagLabels[i] = label;
+                _stage.TagHeights[i] = TagHeight((RacerId)i);
             }
         }
 
         // 上司だけは剣を持ったモンスター。アセットは gitignore 運用なので無い環境ではスーツ姿に戻す
         private KartRunnerView BuildRunner(KartRunnerFactory runners, Transform kart, RacerId racer, Color color)
         {
-            var body = _assets != null ? _assets.bossBodyPrefab : null;
-            if (racer != RacerId.Boss || body == null) return runners.Build(kart, color);
-            return runners.BuildSkinned(kart, body, _assets.bossWeaponPrefab);
+            if (!UsesMonster(racer)) return runners.Build(kart, color);
+            return runners.BuildSkinned(kart, _assets.bossBodyPrefab, _assets.bossWeaponPrefab, _assets.bossBodyScale);
         }
+
+        private bool UsesMonster(RacerId racer) => racer == RacerId.Boss && _assets != null && _assets.bossBodyPrefab != null;
+
+        // 名札は体の大きさに合わせて持ち上げ、頭にめり込ませない
+        private float TagHeight(RacerId racer) => TagBaseHeight * (UsesMonster(racer) ? _assets.bossBodyScale : 1f);
 
         private void Headlamp(Transform kart)
         {
